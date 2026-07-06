@@ -1,0 +1,35 @@
+[
+  {
+    "id": "emp-maya",
+    "name": "Maya Chen",
+    "role": "Software Engineer",
+    "role_key": "software_engineer",
+    "department": "Engineering",
+    "start_date": "2026-07-06",
+    "email": "maya.chen@meridianlabs.io",
+    "manager": "Daniel Cho",
+    "buddy": "Ravi Menon"
+  },
+  {
+    "id": "emp-diego",
+    "name": "Diego Ramos",
+    "role": "Sales Associate",
+    "role_key": "sales_associate",
+    "department": "Sales",
+    "start_date": "2026-06-22",
+    "email": "diego.ramos@meridianlabs.io",
+    "manager": "Hannah Bergstrom",
+    "buddy": "Leo Tanaka"
+  },
+  {
+    "id": "emp-priya",
+    "name": "Priya Nair",
+    "role": "Data Analyst",
+    "role_key": "data_analyst",
+    "department": "Analytics",
+    "start_date": "2026-06-29",
+    "email": "priya.nair@meridianlabs.io",
+    "manager": "Ines Farrell",
+    "buddy": "Ines Farrell"
+  }
+]

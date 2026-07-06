@@ -1,0 +1,104 @@
+{
+  "software_engineer": {
+    "day_1": [
+      "Pick up laptop and badge at the Floor 3 IT desk",
+      "Complete first login, MFA and password manager setup",
+      "Meet your onboarding buddy (Ravi Menon)",
+      "Join #new-hires, #ask-people and your team channel on Slack",
+      "Attend HR orientation with Marcus Webb"
+    ],
+    "week_1": [
+      "Set up your local dev environment with your buddy",
+      "Get GitHub org and CI access",
+      "Ship your first starter pull request",
+      "First 1:1 with your manager (Daniel Cho)",
+      "Read the platform architecture primer",
+      "Enroll in benefits on Meridian People"
+    ],
+    "day_30": [
+      "Complete security awareness training",
+      "Own a small feature end to end",
+      "Review three teammates' pull requests",
+      "Meet five people outside Engineering",
+      "Participate in your first sprint retro"
+    ],
+    "day_60": [
+      "Lead a small project or epic slice",
+      "Shadow an on-call rotation",
+      "Present at the engineering weekly demo",
+      "Mid-point check-in with your manager"
+    ],
+    "day_90": [
+      "Own an on-call shift with a backup",
+      "Draft an RFC or design doc",
+      "90-day review and growth plan with your manager",
+      "Volunteer a demo or shout-out at Compass"
+    ]
+  },
+  "sales_associate": {
+    "day_1": [
+      "Pick up laptop and badge at the Floor 3 IT desk",
+      "Complete first login, MFA and password manager setup",
+      "Meet the Sales Director (Hannah Bergstrom)",
+      "Get your Northstar CRM account",
+      "Attend HR orientation with Marcus Webb"
+    ],
+    "week_1": [
+      "Complete the product demo bootcamp",
+      "Shadow three discovery calls",
+      "Study the ICP and pricing sheet with Leo Tanaka",
+      "First 1:1 with your manager",
+      "Enroll in benefits on Meridian People"
+    ],
+    "day_30": [
+      "Pass demo certification with Leo Tanaka",
+      "Own your first ten outbound leads",
+      "Shadow a full deal cycle in Northstar",
+      "Complete security awareness training",
+      "Meet your marketing and product counterparts"
+    ],
+    "day_60": [
+      "Run discovery calls solo",
+      "Present at your first pipeline review",
+      "Joint customer call with a senior account executive",
+      "Mid-point check-in with your manager"
+    ],
+    "day_90": [
+      "Close or co-close your first deal",
+      "Own a starter account list",
+      "90-day review and quota ramp plan"
+    ]
+  },
+  "data_analyst": {
+    "day_1": [
+      "Pick up laptop and badge at the Floor 3 IT desk",
+      "Complete first login, MFA and password manager setup",
+      "Meet the Data & Analytics Lead (Ines Farrell)",
+      "Request data warehouse access",
+      "Attend HR orientation with Marcus Webb"
+    ],
+    "week_1": [
+      "Tour the core dashboards with your buddy",
+      "Read the metrics dictionary in The Hub",
+      "Read the SQL style guide",
+      "First 1:1 with your manager",
+      "Enroll in benefits on Meridian People"
+    ],
+    "day_30": [
+      "Deliver your first stakeholder report",
+      "Complete security awareness training",
+      "Meet five stakeholders across teams",
+      "Refresh one legacy dashboard"
+    ],
+    "day_60": [
+      "Own a metrics domain end to end",
+      "Present insights at the analytics weekly",
+      "Mid-point check-in with your manager"
+    ],
+    "day_90": [
+      "Ship a self-serve dashboard for your stakeholders",
+      "Propose one data-quality improvement",
+      "90-day review and growth plan"
+    ]
+  }
+}
