@@ -1,125 +1,126 @@
 {
-  "company": "Meridian Labs",
+  "company": "BDO educational demo",
+  "disclaimer": "AISHA is an educational capstone prototype. It is not affiliated with, endorsed by, or representative of BDO Unibank. All people, records, contacts, documents, metrics, and interactions are fictionalized.",
   "people": [
     {
       "id": "p01",
-      "name": "Elena Vasquez",
-      "role": "CEO & Co-founder",
-      "team": "Leadership",
-      "responsibilities": ["company vision and strategy", "hosts the monthly Compass all-hands", "fundraising and board"],
-      "email": "elena.vasquez@meridianlabs.io",
-      "slack": "@elena",
-      "location": "Floor 4"
+      "name": "Liza Villanueva",
+      "role": "People Experience Lead",
+      "team": "People Experience",
+      "responsibilities": ["onboarding program", "HR policy questions", "sensitive concerns", "support escalations"],
+      "email": "liza.villanueva@bdo-demo.local",
+      "slack": "@liza.people",
+      "location": "Learning Branch, 2F People Desk"
     },
     {
       "id": "p02",
-      "name": "Marcus Webb",
-      "role": "Head of People",
-      "team": "People Ops",
-      "responsibilities": ["HR policy and code of conduct", "onboarding program", "HR escalations and sensitive concerns", "performance and compensation questions"],
-      "email": "marcus.webb@meridianlabs.io",
-      "slack": "@marcusw",
-      "location": "Floor 4"
+      "name": "Noel Bautista",
+      "role": "Payroll and Benefits Specialist",
+      "team": "People Experience",
+      "responsibilities": ["payroll runs", "payslip questions", "benefits enrollment", "government contribution questions"],
+      "email": "noel.bautista@bdo-demo.local",
+      "slack": "@noel.payroll",
+      "location": "Learning Branch, 2F People Desk"
     },
     {
       "id": "p03",
-      "name": "Anita Kapoor",
-      "role": "Payroll Specialist",
-      "team": "People Ops",
-      "responsibilities": ["payroll runs and payslips", "salary payments and direct deposit", "tax withholding forms", "expense reimbursements"],
-      "email": "anita.kapoor@meridianlabs.io",
-      "slack": "@anita",
-      "location": "Floor 4"
+      "name": "Irene Chua",
+      "role": "IT Access Coordinator",
+      "team": "IT Access",
+      "responsibilities": ["laptops and branch workstations", "email and collaboration access", "MFA setup", "core banking training sandbox access"],
+      "email": "irene.chua@bdo-demo.local",
+      "slack": "@irene.it",
+      "location": "Learning Branch, 1F IT Bar"
     },
     {
       "id": "p04",
-      "name": "Sofia Reyes",
-      "role": "Benefits Coordinator",
-      "team": "People Ops",
-      "responsibilities": ["health insurance enrollment and Aurora plans", "401(k) retirement plan questions", "wellness stipend and perks", "leave and time off administration"],
-      "email": "sofia.reyes@meridianlabs.io",
-      "slack": "@sofiar",
-      "location": "Floor 4"
+      "name": "Rafael Aquino",
+      "role": "Compliance Learning Officer",
+      "team": "Compliance Learning",
+      "responsibilities": ["AML learning module", "data privacy learning module", "conduct reminders", "LMS completion questions"],
+      "email": "rafael.aquino@bdo-demo.local",
+      "slack": "@rafael.compliance",
+      "location": "Learning Branch, 3F Training Room"
     },
     {
       "id": "p05",
-      "name": "Tomas Lindgren",
-      "role": "IT Support Lead",
-      "team": "IT",
-      "responsibilities": ["laptops and hardware", "accounts, email and Slack access", "MFA, VPN and password manager", "help desk and software licenses"],
-      "email": "tomas.lindgren@meridianlabs.io",
-      "slack": "@tomasl",
-      "location": "Floor 3, IT desk"
+      "name": "Carlo Santos",
+      "role": "Branch Manager",
+      "team": "Branch Banking",
+      "responsibilities": ["Alyssa's manager", "branch expectations", "customer interaction readiness", "manager check-ins"],
+      "email": "carlo.santos@bdo-demo.local",
+      "slack": "@carlo.branch",
+      "location": "Learning Branch, Manager Office"
     },
     {
       "id": "p06",
-      "name": "Grace Obi",
-      "role": "Security & Compliance Officer",
-      "team": "IT",
-      "responsibilities": ["security awareness training", "data protection and confidentiality questions", "phishing and incident reports", "vendor security reviews"],
-      "email": "grace.obi@meridianlabs.io",
-      "slack": "@graceo",
-      "location": "Floor 3"
+      "name": "Mika Tan",
+      "role": "Senior Branch Banking Associate",
+      "team": "Branch Banking",
+      "responsibilities": ["Alyssa's onboarding buddy", "branch shadowing", "customer greeting practice", "daily workflow questions"],
+      "email": "mika.tan@bdo-demo.local",
+      "slack": "@mika.buddy",
+      "location": "Learning Branch, Service Area"
     },
     {
       "id": "p07",
-      "name": "Daniel Cho",
-      "role": "Engineering Manager, Platform",
-      "team": "Engineering",
-      "responsibilities": ["platform engineering team", "engineer onboarding plans and buddies", "sprint planning and code review standards", "engineering hiring"],
-      "email": "daniel.cho@meridianlabs.io",
-      "slack": "@dcho",
-      "location": "Floor 5, Engineering neighborhood"
+      "name": "Rina Mercado",
+      "role": "Branch Operations Lead",
+      "team": "Branch Operations",
+      "responsibilities": ["queue flow", "cash and document handoff practice", "branch opening routines", "Jomar's buddy"],
+      "email": "rina.mercado@bdo-demo.local",
+      "slack": "@rina.ops",
+      "location": "Learning Branch, Operations Desk"
     },
     {
       "id": "p08",
-      "name": "Ravi Menon",
-      "role": "Senior Software Engineer",
-      "team": "Engineering",
-      "responsibilities": ["onboarding buddy for new engineers", "dev environment and CI/CD setup", "first PRs and code walkthroughs", "platform architecture questions"],
-      "email": "ravi.menon@meridianlabs.io",
-      "slack": "@ravim",
-      "location": "Floor 5, Engineering neighborhood"
+      "name": "Patricia Go",
+      "role": "Digital Channels Team Lead",
+      "team": "Digital Channels",
+      "responsibilities": ["digital support associate ramp", "online banking support scripts", "handoff to branch teams", "Nina's manager"],
+      "email": "patricia.go@bdo-demo.local",
+      "slack": "@patricia.digital",
+      "location": "Learning Branch, Digital Support Room"
     },
     {
       "id": "p09",
-      "name": "Hannah Bergstrom",
-      "role": "Sales Director",
-      "team": "Sales",
-      "responsibilities": ["sales team and quotas", "deal strategy and pipeline reviews", "sales hiring and ramp plans"],
-      "email": "hannah.bergstrom@meridianlabs.io",
-      "slack": "@hannahb",
-      "location": "Floor 5, Sales neighborhood"
+      "name": "Luis Navarro",
+      "role": "Digital Banking Support Specialist",
+      "team": "Digital Channels",
+      "responsibilities": ["digital support shadowing", "ticket triage practice", "Nina's buddy", "customer empathy examples"],
+      "email": "luis.navarro@bdo-demo.local",
+      "slack": "@luis.digital",
+      "location": "Learning Branch, Digital Support Room"
     },
     {
       "id": "p10",
-      "name": "Leo Tanaka",
-      "role": "Sales Enablement Lead",
-      "team": "Sales",
-      "responsibilities": ["demo certification program", "pitch training and call shadowing", "Northstar CRM setup and hygiene", "pricing sheet and ICP materials"],
-      "email": "leo.tanaka@meridianlabs.io",
-      "slack": "@leot",
-      "location": "Floor 5, Sales neighborhood"
+      "name": "Grace Uy",
+      "role": "Workplace and Facilities Coordinator",
+      "team": "Workplace",
+      "responsibilities": ["building access", "visitor procedures", "training-room logistics", "desk and locker questions"],
+      "email": "grace.uy@bdo-demo.local",
+      "slack": "@grace.workplace",
+      "location": "Learning Branch, Lobby Desk"
     },
     {
       "id": "p11",
-      "name": "Ines Farrell",
-      "role": "Data & Analytics Lead",
-      "team": "Analytics",
-      "responsibilities": ["data warehouse access and modeling", "dashboards and metrics dictionary", "analyst onboarding", "data quality standards"],
-      "email": "ines.farrell@meridianlabs.io",
-      "slack": "@inesf",
-      "location": "Floor 5, Analytics neighborhood"
+      "name": "Mark Alcantara",
+      "role": "LMS Administrator",
+      "team": "Compliance Learning",
+      "responsibilities": ["learning portal access", "module reset requests", "completion records", "certificate download questions"],
+      "email": "mark.alcantara@bdo-demo.local",
+      "slack": "@mark.lms",
+      "location": "Learning Branch, 3F Training Room"
     },
     {
       "id": "p12",
-      "name": "Priscilla Ang",
-      "role": "Office & Workplace Manager",
-      "team": "Workplace",
-      "responsibilities": ["badges and building access", "desks, equipment and meeting rooms", "mail, packages and visitors", "office events and cafeteria"],
-      "email": "priscilla.ang@meridianlabs.io",
-      "slack": "@priscilla",
-      "location": "Floor 4, reception"
+      "name": "Tessa Ong",
+      "role": "Early Careers Program Manager",
+      "team": "People Experience",
+      "responsibilities": ["management trainee cohort", "program milestones", "cohort baselines", "readiness check coordination"],
+      "email": "tessa.ong@bdo-demo.local",
+      "slack": "@tessa.careers",
+      "location": "Learning Branch, 2F People Desk"
     }
   ]
 }

@@ -6,12 +6,11 @@ This file maps the course module checklist to the current codebase.
 
 Narrative status:
 
-- Front-facing product should be AISHA: AI Support for Hires and Associates.
-- Demo setting should be fictionalized BDO with the required educational
+- Front-facing product is AISHA: AI Support for Hires and Associates.
+- Demo setting is fictionalized BDO with the required educational
   disclaimer from `AISHAStorySpine.md`.
-- Existing implementation may still contain Meridian/Maya/Meri until the BDO
-  synthetic-data slice is completed. Treat those as stale demo data, not the
-  target story.
+- Slice 1 replaced the user-facing seed data, app copy, prompts, handbook docs,
+  README, business case, and tests with AISHA/BDO/Alyssa content.
 - The main business value is faster productivity/time-to-ramp, supported by
   onboarding/ramp state, trend signals, and HR support cards.
 
@@ -63,11 +62,11 @@ These can be claimed now with code evidence:
 - SQLite-backed onboarding state.
 - Pulse/risk dashboard.
 
-AISHA-specific claims once the rebrand slice is complete:
+AISHA-specific claims now supported by Slice 1:
 
 - Role-based onboarding and ramp support for Alyssa Reyes, a fictionalized BDO
   Management Trainee / Branch Banking Associate.
-- Day 30 readiness framing instead of a 30-60-90 onboarding story.
+- Day 30 readiness framing instead of the old long-range onboarding story.
 - Support-card framing for HR: enough signal to help, not enough detail to
   police.
 - Educational/fictional BDO disclaimer throughout demo/docs.

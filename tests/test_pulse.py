@@ -12,12 +12,14 @@ START = date(2026, 6, 22)
 
 def _emp() -> Employee:
     return Employee(
-        id="e", name="Diego Ramos", role="Sales Associate", role_key="sales_associate",
-        department="Sales", start_date=START,
+        id="e",
+        name="Jomar Dela Cruz",
+        role="Client Service Associate",
+        role_key="client_service_associate",
+        department="Branch Operations",
+        start_date=START,
     )
 
-
-# ---------------------------------------------------------------- scheduling
 
 def test_not_due_before_start():
     assert not pulse.is_checkin_due(START, date(2026, 6, 20), None, 7)
@@ -47,11 +49,9 @@ def test_weeks_since_start():
 
 def test_checkin_question_is_personal():
     q = pulse.build_checkin_question(_emp(), date(2026, 6, 29))
-    assert q.startswith("Hi Diego")
+    assert q.startswith("Hi Jomar")
     assert "first week" in q
 
-
-# ------------------------------------------------------------------- parsing
 
 def test_parse_pulse_happy():
     raw = '{"sentiment": 2, "concerns": ["workload"], "summary": "struggling"}'
@@ -71,7 +71,9 @@ def test_parse_pulse_garbage_is_neutral():
 
 def test_classify_pulse_with_injected_llm():
     llm = SimpleNamespace(
-        invoke=lambda _p: SimpleNamespace(content='{"sentiment": 1, "concerns": ["connection"], "summary": "isolated"}')
+        invoke=lambda _p: SimpleNamespace(
+            content='{"sentiment": 1, "concerns": ["connection"], "summary": "isolated"}'
+        )
     )
     r = pulse.classify_pulse("nobody talks to me", llm=llm)
     assert r.sentiment == 1 and "connection" in r.concerns
@@ -84,8 +86,6 @@ def test_classify_pulse_neutral_when_llm_raises():
     r = pulse.classify_pulse("fine", llm=SimpleNamespace(invoke=boom))
     assert r.sentiment == 3
 
-
-# ---------------------------------------------------------------------- risk
 
 def test_risk_empty_is_safe():
     assert not pulse.risk_flag([])
@@ -110,8 +110,8 @@ def test_no_risk_stable_or_improving():
 
 
 def test_trend():
-    assert pulse.trend([]) == "–"
-    assert pulse.trend([3]) == "–"
+    assert pulse.trend([]) == "-"
+    assert pulse.trend([3]) == "-"
     assert pulse.trend([3, 4]) == "improving"
     assert pulse.trend([4, 3]) == "declining"
     assert pulse.trend([4, 4]) == "stable"

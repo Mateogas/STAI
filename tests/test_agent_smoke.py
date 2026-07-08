@@ -1,9 +1,4 @@
-"""Agent smoke tests with a scripted fake LLM — no Ollama needed.
-
-These don't judge answer quality (that's the live demo's job); they prove the
-wiring: the graph loops model -> tool -> model, tools mutate real state, the
-capture records what happened, and output guardrails shape the final text.
-"""
+"""Agent smoke tests with a scripted fake LLM; no Ollama needed."""
 
 from __future__ import annotations
 
@@ -43,30 +38,36 @@ class FakeToolCallingModel(BaseChatModel):
 def _fake_retrieve(query, k=None, doc_type=None, department=None):
     return [
         Document(
-            page_content="Vacation (PTO): 20 days per year, accruing monthly.",
-            metadata={"source": "leave_policy.md", "title": "Leave Policy",
-                      "doc_type": "policy", "department": "all"},
+            page_content="Leave requests are filed in the demo HR portal.",
+            metadata={
+                "source": "leave_policy.md",
+                "title": "Leave and Absence Guide",
+                "doc_type": "policy",
+                "department": "all",
+            },
         )
     ]
 
 
-def test_happy_path_kb_answer_with_citation(repo, maya, monkeypatch):
+def test_happy_path_kb_answer_with_citation(repo, alyssa, monkeypatch):
     monkeypatch.setattr(stai.retriever, "retrieve", _fake_retrieve)
     fake = FakeToolCallingModel(
         responses=[
             AIMessage(
                 content="",
-                tool_calls=[{
-                    "name": "search_knowledge_base",
-                    "args": {"query": "vacation days"},
-                    "id": "call_1",
-                }],
+                tool_calls=[
+                    {
+                        "name": "search_knowledge_base",
+                        "args": {"query": "leave requests"},
+                        "id": "call_1",
+                    }
+                ],
             ),
-            AIMessage(content="You get 20 vacation days a year [source: leave_policy.md]."),
+            AIMessage(content="File leave in the demo HR portal [source: leave_policy.md]."),
         ]
     )
-    agent, capture = build_agent(maya, repo, SIM, llm=fake)
-    result = agent.invoke({"messages": [("user", "How many vacation days do I get?")]})
+    agent, capture = build_agent(alyssa, repo, SIM, llm=fake)
+    result = agent.invoke({"messages": [("user", "How do I file leave?")]})
 
     tool_msgs = [m for m in result["messages"] if isinstance(m, ToolMessage)]
     assert tool_msgs and "leave_policy.md" in tool_msgs[0].content
@@ -79,39 +80,43 @@ def test_happy_path_kb_answer_with_citation(repo, maya, monkeypatch):
     assert grounded.citations == ["leave_policy.md"]
 
 
-def test_escalation_path_files_real_ticket(repo, maya):
+def test_escalation_path_files_real_ticket(repo, alyssa):
     fake = FakeToolCallingModel(
         responses=[
             AIMessage(
                 content="",
-                tool_calls=[{
-                    "name": "escalate_to_hr",
-                    "args": {"question": "Does Meridian sponsor work visas?",
-                             "details": "not found in handbook"},
-                    "id": "call_1",
-                }],
+                tool_calls=[
+                    {
+                        "name": "escalate_to_hr",
+                        "args": {
+                            "question": "Can someone reset my training sandbox?",
+                            "details": "not found in handbook",
+                        },
+                        "id": "call_1",
+                    }
+                ],
             ),
-            AIMessage(content="I've filed escalation #1 with People Ops — they'll follow up."),
+            AIMessage(content="I've filed escalation #1 with People Experience."),
         ]
     )
-    agent, capture = build_agent(maya, repo, SIM, llm=fake)
-    answer = run_agent(agent, [("user", "Do we sponsor work visas?")])
+    agent, capture = build_agent(alyssa, repo, SIM, llm=fake)
+    answer = run_agent(agent, [("user", "Can someone reset my training sandbox?")])
 
     assert "escalation" in answer.lower()
     assert capture.escalation_id is not None
     open_escalations = repo.list_escalations(status="open")
     assert len(open_escalations) == 1
-    assert open_escalations[0].employee_id == maya.id
+    assert open_escalations[0].employee_id == alyssa.id
 
 
-def test_direct_answer_no_tools(repo, maya):
+def test_direct_answer_no_tools(repo, alyssa):
     fake = FakeToolCallingModel(
-        responses=[AIMessage(content="¡Hola Maya! Encantado de ayudarte con tu onboarding.")]
+        responses=[AIMessage(content="Hola Alyssa. Encantada de ayudarte con tu onboarding.")]
     )
-    agent, capture = build_agent(maya, repo, SIM, llm=fake)
+    agent, capture = build_agent(alyssa, repo, SIM, llm=fake)
     answer = run_agent(agent, [("user", "hola!")])
 
     assert "Hola" in answer
     assert not capture.used_search
     grounded = apply_output_guardrails(answer, capture.used_search, capture.source_names)
-    assert grounded.answer == answer  # small talk: no citation demanded
+    assert grounded.answer == answer

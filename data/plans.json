@@ -1,104 +1,104 @@
 {
-  "software_engineer": {
+  "branch_banking_associate": {
+    "pre_start": [
+      "Upload fictional pre-employment documents in the demo HR portal",
+      "Confirm Day 1 Learning Branch arrival details",
+      "Read the AISHA educational disclaimer and privacy note",
+      "Complete the pre-start survey for branch banking trainees"
+    ],
     "day_1": [
-      "Pick up laptop and badge at the Floor 3 IT desk",
-      "Complete first login, MFA and password manager setup",
-      "Meet your onboarding buddy (Ravi Menon)",
-      "Join #new-hires, #ask-people and your team channel on Slack",
-      "Attend HR orientation with Marcus Webb"
+      "Pick up badge and laptop at the Learning Branch",
+      "Complete first login, MFA, email, and collaboration access",
+      "Meet branch manager Carlo Santos",
+      "Meet onboarding buddy Mika Tan",
+      "Attend People Experience orientation with Liza Villanueva"
     ],
     "week_1": [
-      "Set up your local dev environment with your buddy",
-      "Get GitHub org and CI access",
-      "Ship your first starter pull request",
-      "First 1:1 with your manager (Daniel Cho)",
-      "Read the platform architecture primer",
-      "Enroll in benefits on Meridian People"
+      "Complete AML basics learning module",
+      "Complete data privacy and customer confidentiality module",
+      "Shadow Mika during branch opening routines",
+      "Practice customer greeting and queue triage scripts",
+      "First manager check-in with Carlo Santos",
+      "Review payslip and benefits explainer with AISHA"
+    ],
+    "week_2": [
+      "Shadow two supervised customer interactions",
+      "Practice account inquiry handoff in the training sandbox",
+      "Review branch operations checklist with Rina Mercado",
+      "Complete buddy feedback session with Mika Tan",
+      "Log one blocker or question for the manager check-in"
     ],
     "day_30": [
-      "Complete security awareness training",
-      "Own a small feature end to end",
-      "Review three teammates' pull requests",
-      "Meet five people outside Engineering",
-      "Participate in your first sprint retro"
-    ],
-    "day_60": [
-      "Lead a small project or epic slice",
-      "Shadow an on-call rotation",
-      "Present at the engineering weekly demo",
-      "Mid-point check-in with your manager"
-    ],
-    "day_90": [
-      "Own an on-call shift with a backup",
-      "Draft an RFC or design doc",
-      "90-day review and growth plan with your manager",
-      "Volunteer a demo or shout-out at Compass"
+      "Complete Day 30 Readiness Check with Carlo Santos",
+      "Demonstrate supervised customer greeting and routing",
+      "Explain when to escalate privacy, AML, or unusual transaction concerns",
+      "Review unresolved access or confidence blockers",
+      "Agree on the next ramp focus after Day 30"
     ]
   },
-  "sales_associate": {
+  "client_service_associate": {
+    "pre_start": [
+      "Upload fictional pre-employment documents in the demo HR portal",
+      "Confirm Learning Branch arrival and dress guidelines",
+      "Read the AISHA educational disclaimer and privacy note"
+    ],
     "day_1": [
-      "Pick up laptop and badge at the Floor 3 IT desk",
-      "Complete first login, MFA and password manager setup",
-      "Meet the Sales Director (Hannah Bergstrom)",
-      "Get your Northstar CRM account",
-      "Attend HR orientation with Marcus Webb"
+      "Pick up badge and laptop at the Learning Branch",
+      "Complete first login, MFA, email, and collaboration access",
+      "Meet branch operations lead Rina Mercado",
+      "Attend People Experience orientation with Liza Villanueva"
     ],
     "week_1": [
-      "Complete the product demo bootcamp",
-      "Shadow three discovery calls",
-      "Study the ICP and pricing sheet with Leo Tanaka",
-      "First 1:1 with your manager",
-      "Enroll in benefits on Meridian People"
+      "Complete customer confidentiality module",
+      "Review queue flow and document handoff basics",
+      "Shadow branch opening and closing routines",
+      "Practice customer greeting scripts",
+      "Review payslip and benefits explainer with AISHA"
+    ],
+    "week_2": [
+      "Shadow three service-counter interactions",
+      "Practice escalation handoff language",
+      "Complete buddy feedback session with Rina Mercado",
+      "First manager check-in with Carlo Santos"
     ],
     "day_30": [
-      "Pass demo certification with Leo Tanaka",
-      "Own your first ten outbound leads",
-      "Shadow a full deal cycle in Northstar",
-      "Complete security awareness training",
-      "Meet your marketing and product counterparts"
-    ],
-    "day_60": [
-      "Run discovery calls solo",
-      "Present at your first pipeline review",
-      "Joint customer call with a senior account executive",
-      "Mid-point check-in with your manager"
-    ],
-    "day_90": [
-      "Close or co-close your first deal",
-      "Own a starter account list",
-      "90-day review and quota ramp plan"
+      "Complete Day 30 Readiness Check with Carlo Santos",
+      "Demonstrate supervised queue triage",
+      "Explain document confidentiality expectations",
+      "Agree on the next branch operations ramp focus"
     ]
   },
-  "data_analyst": {
+  "digital_banking_support_associate": {
+    "pre_start": [
+      "Upload fictional pre-employment documents in the demo HR portal",
+      "Confirm Day 1 digital support orientation details",
+      "Read the AISHA educational disclaimer and privacy note"
+    ],
     "day_1": [
-      "Pick up laptop and badge at the Floor 3 IT desk",
-      "Complete first login, MFA and password manager setup",
-      "Meet the Data & Analytics Lead (Ines Farrell)",
-      "Request data warehouse access",
-      "Attend HR orientation with Marcus Webb"
+      "Pick up badge and laptop at the Learning Branch",
+      "Complete first login, MFA, email, and collaboration access",
+      "Meet digital channels lead Patricia Go",
+      "Meet onboarding buddy Luis Navarro",
+      "Attend People Experience orientation with Liza Villanueva"
     ],
     "week_1": [
-      "Tour the core dashboards with your buddy",
-      "Read the metrics dictionary in The Hub",
-      "Read the SQL style guide",
-      "First 1:1 with your manager",
-      "Enroll in benefits on Meridian People"
+      "Complete customer data privacy module",
+      "Review digital support ticket categories",
+      "Shadow Luis during ticket triage practice",
+      "Practice customer empathy scripts",
+      "Review payslip and benefits explainer with AISHA"
+    ],
+    "week_2": [
+      "Shadow two digital support handoffs",
+      "Practice identifying branch escalation cases",
+      "Complete buddy feedback session with Luis Navarro",
+      "First manager check-in with Patricia Go"
     ],
     "day_30": [
-      "Deliver your first stakeholder report",
-      "Complete security awareness training",
-      "Meet five stakeholders across teams",
-      "Refresh one legacy dashboard"
-    ],
-    "day_60": [
-      "Own a metrics domain end to end",
-      "Present insights at the analytics weekly",
-      "Mid-point check-in with your manager"
-    ],
-    "day_90": [
-      "Ship a self-serve dashboard for your stakeholders",
-      "Propose one data-quality improvement",
-      "90-day review and growth plan"
+      "Complete Day 30 Readiness Check with Patricia Go",
+      "Demonstrate supervised ticket triage",
+      "Explain privacy-safe customer support boundaries",
+      "Agree on the next digital channels ramp focus"
     ]
   }
 }

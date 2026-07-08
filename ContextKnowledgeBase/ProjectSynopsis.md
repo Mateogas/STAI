@@ -85,7 +85,7 @@ Implementation anchors:
 
 Story framing:
 
-- Replace "30-60-90 onboarding" with "onboarding and ramp milestones."
+- Use onboarding and ramp milestones, not the old long-range checklist framing.
 - Hero milestone: Day 30 supervised branch-readiness check.
 - Anything beyond Day 30 is ramp analytics, not onboarding.
 

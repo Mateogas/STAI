@@ -15,7 +15,7 @@ def repo(tmp_path) -> Repo:
 
 
 @pytest.fixture
-def maya(repo) -> Employee:
-    emp = repo.get_employee("emp-maya")
+def alyssa(repo) -> Employee:
+    emp = repo.get_employee("emp-alyssa")
     assert emp is not None
     return emp

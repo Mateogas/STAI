@@ -7,14 +7,14 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-# Onboarding plan phases, in chronological order.
-PHASE_ORDER: list[str] = ["day_1", "week_1", "day_30", "day_60", "day_90"]
+# Onboarding and ramp phases, in chronological order.
+PHASE_ORDER: list[str] = ["pre_start", "day_1", "week_1", "week_2", "day_30"]
 PHASE_LABELS: dict[str, str] = {
-    "day_1": "Day 1",
-    "week_1": "Week 1",
-    "day_30": "First 30 days",
-    "day_60": "Days 31–60",
-    "day_90": "Days 61–90",
+    "pre_start": "Pre-start",
+    "day_1": "Day 1 Setup",
+    "week_1": "Week 1 Foundations",
+    "week_2": "Week 2 Practice and Feedback",
+    "day_30": "Day 30 Readiness Check",
 }
 
 

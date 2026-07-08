@@ -40,6 +40,8 @@ Locked decisions:
 
 ## Slice 1 - BDO Synthetic Data Generation And Full Rebrand
 
+Status: implemented.
+
 Goal:
 
 - Completely replace visible Meridian/Maya/Meri demo content with
@@ -110,12 +112,13 @@ Goal:
 
 Likely tests:
 
-- A test that scans user-facing source/data/docs for forbidden old wording:
+- Implemented in Slice 1: a test scans user-facing source/data/docs for
+  forbidden old wording:
   `Meridian`, `Maya`, `Meri`, `30-60-90`, and old role assumptions, allowing
   only explicit legacy notes if needed.
 - Tests proving seed data contains Alyssa and the BDO fictional disclaimer where
   expected.
-- Tests around plan/ramp phases so code does not assume only `day_60`/`day_90`
+- Tests around plan/ramp phases so code does not assume only legacy phase
   semantics.
 - Tests ensuring HR support summaries do not expose raw private pulse/chat text
   by default.

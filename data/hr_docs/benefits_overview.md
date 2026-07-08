@@ -4,75 +4,43 @@ doc_type: policy
 department: all
 ---
 
-# Benefits at Meridian Labs
+# Benefits Overview
 
-This is the official summary of what Meridian Labs offers. If employee-benefit
-words like "deductible" or "401(k) match" are new to you, read the *Benefits 101
-Explainer* first — it translates this page into plain language. Enrollment for
-everything below happens in **Meridian People → Benefits**. Your enrollment
-window is **30 days from your start date**; miss it and you wait for the annual
-open-enrollment in November. Questions: Sofia Reyes (Benefits Coordinator) or
-**#ask-people**.
+This is fictional training content for the AISHA educational capstone demo. It
+is not an official BDO policy and does not represent real BDO benefits.
 
-## Health insurance (medical, dental, vision)
+New hires in this demo review benefits during Week 1 Foundations. Questions go
+to **Noel Bautista (Payroll and Benefits Specialist)** or the People Experience
+team.
 
-Coverage through **Aurora Health**. Three medical plans:
+## Enrollment
 
-| Plan | Monthly premium (you pay) | Annual deductible | Best for |
-|------|---------------------------|-------------------|----------|
-| Aurora Base | $0 | $2,500 | Healthy, rarely see a doctor, want max take-home pay |
-| Aurora Plus | $60 | $1,000 | Balanced choice — most employees pick this |
-| Aurora Premium | $150 | $250 | Regular prescriptions, dependents, planned procedures |
+- Benefits enrollment opens after Day 1 Setup and should be completed within
+  the first month of the fictional ramp.
+- Use the demo HR portal. Do not send personal documents through email.
+- If the portal blocks you, ask AISHA to route you to Noel or file a People
+  Experience escalation.
 
-- Meridian pays the full premium for **Base** and the large majority for Plus and
-  Premium; the table shows only your share, deducted pre-tax from each paycheck
-  (it will appear on your payslip — see *Payslip Explainer*).
-- Dental and vision are separate, $8/month each, one plan level.
-- You can add a spouse/partner and children to any plan; dependent premiums are
-  listed in Meridian People.
-- Coverage starts on your **start date** (retroactive once you enroll within the
-  30-day window).
+## Health and wellness
 
-## Retirement — Meridian 401(k)
+- The fictional plan includes medical coverage options, a wellness allowance,
+  and a confidential employee support line.
+- HR sees support-signal trends from AISHA, not private support-line usage or
+  raw chat transcripts by default.
 
-- You contribute a percentage of each paycheck, pre-tax; Meridian **matches 100%
-  of your contribution up to 4% of salary**.
-- Matching is **vested immediately** — the match is yours from day one, even if
-  you leave.
-- Auto-enrollment at 4% begins on your first payroll unless you change it. You
-  can change your percentage any time in Meridian People.
-- If "401(k)" means nothing to you, the *Benefits 101 Explainer* has a worked
-  example of why enrolling at 4% from your first paycheck matters.
+## Leave
 
-## Time off
+- Leave requests are filed in the demo HR portal and approved by the manager.
+- New hires should tell their manager as soon as possible when an absence may
+  affect a ramp milestone, branch shadowing, or a Day 30 Readiness Check.
 
-Paid time off, sick leave, holidays, and parental leave are covered in the
-*Leave Policy*. Headline numbers: **20 vacation days**, **10 sick days**, **11
-company holidays**, **16 weeks parental leave**.
+## Payroll and contributions
 
-## Perks & stipends
+- Payslips are available in the demo HR portal.
+- Payroll questions, deductions, and fictional government contribution
+  explainers are owned by Noel Bautista.
 
-- **Wellness stipend:** $50/month, auto-paid with payroll — gym, therapy apps,
-  sports gear, glasses. No receipts needed.
-- **Learning budget:** $1,200/year for courses, books, conferences. Request in
-  The Hub → Learning; your manager approves.
-- **Home-office allowance:** one-time $400 in your first 60 days for desk
-  equipment (order via The Hub → Workplace → Equipment).
-- **Commuter benefit:** pre-tax transit deduction or parking — see *Office
-  Logistics*.
-- **Employee assistance program (EAP):** free, confidential counseling —
-  6 sessions/year per topic, 24/7 hotline. Nobody at Meridian is told you used it.
+## Support boundary
 
-## Life & disability insurance
-
-Company-paid life insurance at 2× annual salary and long-term disability
-coverage are automatic — no enrollment needed. Beneficiary designation is in
-Meridian People → Benefits → Life.
-
-## What we do NOT offer (asked often)
-
-- No company car or car allowance.
-- No tuition reimbursement for degree programs (the learning budget can cover
-  individual courses).
-- No stock options at this time; a company-wide profit-share is paid each
-  February when targets are met.
+AISHA can explain this fictional content and route questions. AISHA is not an
+official policy source, HR replacement, or benefits administrator.

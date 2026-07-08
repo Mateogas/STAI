@@ -1,14 +1,9 @@
-"""Proactive pulse check-ins and attrition-risk scoring.
+"""Proactive pulse check-ins and support-signal scoring.
 
-The clock is the sidebar's *simulated date* (a demo prop), never the wall
-clock. When a check-in is due the agent OPENS the session with a well-being
-question; the user's reply is sentiment-scored by the small guardrail model
-into a ``PulseResult`` and stored. The HR dashboard flags hires whose latest
-score is <= 2 or whose trend is declining — the direct countermeasure to the
-"~33% of new hires quit within 90 days" statistic in the business case.
-
-LLM parsing is separated from scheduling/risk logic so everything except the
-actual model call is unit-testable without Ollama.
+The clock is the sidebar's simulated date, never the wall clock. When a check-in
+is due, AISHA opens the session with a well-being question. The reply is
+sentiment-scored into a ``PulseResult`` and stored. The HR dashboard flags
+support needs when the latest score is low or declining.
 """
 
 from __future__ import annotations
@@ -19,7 +14,6 @@ from datetime import date
 from stai.config import settings
 from stai.models import Employee, PulseResult
 
-# ------------------------------------------------------------------ schedule
 
 def weeks_since_start(start_date: date, sim_date: date) -> int:
     return max(0, (sim_date - start_date).days // 7)
@@ -31,8 +25,7 @@ def is_checkin_due(
     last_checkin: date | None,
     cadence_days: int | None = None,
 ) -> bool:
-    """Weekly cadence: first check-in one cadence after the start date, then
-    one cadence after the previous check-in. Never before the start date."""
+    """Weekly cadence: first check-in one cadence after start, then weekly."""
     cadence = cadence_days or settings.pulse_cadence_days
     if sim_date < start_date:
         return False
@@ -45,24 +38,24 @@ def is_checkin_due(
 
 _QUESTIONS = [
     (
-        "before we dive into anything else — you've wrapped your first week at "
-        "Meridian. How are you feeling so far? Anything confusing, surprising, "
-        "or harder than expected? (Honest answers help me help you — this isn't "
-        "a performance review.)"
+        "before we dive into anything else, you have wrapped your first week in "
+        "the fictionalized BDO ramp. How are you feeling so far? Anything "
+        "confusing, surprising, or harder than expected? Honest answers help me "
+        "route support; this is not a performance review."
     ),
     (
         "quick weekly pulse check: how did this week feel? Are you getting what "
-        "you need from your team and your onboarding plan, or is anything "
-        "dragging?"
+        "you need from your manager, buddy, and ramp plan, or is anything still "
+        "blocked?"
     ),
     (
-        "checking in — you're a few weeks in now. How's the workload feeling, "
-        "and do you feel connected to the people you work with? Anything you "
-        "wish someone had told you earlier?"
+        "checking in: you are a few weeks in now. How is branch practice feeling, "
+        "and do you feel clear on who to ask when you get stuck?"
     ),
     (
-        "monthly-ish pulse: how does the job compare to what you expected when "
-        "you signed? Anything you'd change about your first weeks here?"
+        "monthly-ish pulse: how does the role compare to what you expected when "
+        "you started? Anything AISHA should help clarify before your Day 30 "
+        "readiness conversation?"
     ),
 ]
 
@@ -70,27 +63,26 @@ _QUESTIONS = [
 def build_checkin_question(employee: Employee, sim_date: date) -> str:
     week = weeks_since_start(employee.start_date, sim_date)
     template = _QUESTIONS[min(max(week - 1, 0), len(_QUESTIONS) - 1)]
-    return f"Hi {employee.first_name} — {template}"
+    return f"Hi {employee.first_name} - {template}"
 
-
-# ----------------------------------------------------------------- sentiment
 
 _PULSE_PROMPT = """\
-You score well-being check-in replies from new hires for an HR system.
+You score well-being check-in replies from new hires for a support dashboard.
 Read the REPLY and output JSON with:
-- "sentiment": integer 1-5 (1 = very negative / wants to quit, 2 = struggling,
-  3 = neutral or mixed, 4 = good, 5 = thriving)
+- "sentiment": integer 1-5 (1 = very negative / urgently needs support, 2 =
+  struggling, 3 = neutral or mixed, 4 = good, 5 = thriving)
 - "concerns": array chosen from ["workload", "expectations", "connection",
-  "clarity", "tools", "manager", "other"] — empty if none
-- "summary": one short sentence for an HR dashboard
+  "clarity", "tools", "manager", "compliance", "branch_practice", "other"] -
+  empty if none
+- "summary": one short privacy-preserving sentence for an HR support dashboard
 
 Examples:
 REPLY: "Loving it so far, the team is great!"
-{"sentiment": 5, "concerns": [], "summary": "Very positive first weeks."}
-REPLY: "Honestly I'm drowning, nobody has time to explain anything and I'm not sure this is what I signed up for."
-{"sentiment": 1, "concerns": ["workload", "connection", "expectations"], "summary": "Overwhelmed, feels unsupported, questioning the role."}
+{"sentiment": 5, "concerns": [], "summary": "Positive first weeks and feels supported."}
+REPLY: "Honestly I'm drowning, nobody has time to explain anything and I'm afraid to ask."
+{"sentiment": 1, "concerns": ["workload", "connection", "clarity"], "summary": "Overwhelmed and needs clearer support touchpoints."}
 REPLY: "It's fine I guess. Some days are slow because I'm still waiting on access."
-{"sentiment": 3, "concerns": ["tools"], "summary": "Neutral; blocked on access."}
+{"sentiment": 3, "concerns": ["tools"], "summary": "Mixed; still blocked on access."}
 
 Answer with ONLY the JSON object.
 
@@ -108,7 +100,9 @@ def parse_pulse(raw: str) -> PulseResult:
         sentiment = min(5, max(1, sentiment))
         concerns = [str(c) for c in data.get("concerns", []) if str(c).strip()]
         return PulseResult(
-            sentiment=sentiment, concerns=concerns, summary=str(data.get("summary", ""))
+            sentiment=sentiment,
+            concerns=concerns,
+            summary=str(data.get("summary", "")),
         )
     except (ValueError, TypeError, json.JSONDecodeError):
         return PulseResult(sentiment=3, concerns=[], summary="(could not parse reply)")
@@ -139,15 +133,8 @@ def classify_pulse(reply: str, llm=None) -> PulseResult:
     return result
 
 
-# ---------------------------------------------------------------------- risk
-
 def risk_flag(scores: list[int]) -> bool:
-    """True when the latest pulse is bad or the trend is sliding low.
-
-    Rules (kept deliberately simple and explainable to HR):
-    - latest score <= 2  -> at risk
-    - latest dropped vs. previous AND latest <= 3 -> at risk (declining)
-    """
+    """True when the latest pulse indicates a support need."""
     if not scores:
         return False
     if scores[-1] <= 2:
@@ -157,7 +144,7 @@ def risk_flag(scores: list[int]) -> bool:
 
 def trend(scores: list[int]) -> str:
     if len(scores) < 2:
-        return "–"
+        return "-"
     if scores[-1] > scores[-2]:
         return "improving"
     if scores[-1] < scores[-2]:

@@ -1,10 +1,8 @@
 """The agent's five tools.
 
 Tools are built per chat turn via ``build_tools`` so they close over the
-current employee, the repo, and a ``RunCapture`` that records what happened
-(sources retrieved, escalation filed, plan changed). The UI and the output
-guardrails read the capture after the run — that is how "Sources" expanders
-and the must-cite check know what the agent actually looked at.
+current employee, the repo, and a ``RunCapture`` that records what happened.
+The UI and output guardrails read the capture after the run.
 """
 
 from __future__ import annotations
@@ -20,10 +18,9 @@ from pathlib import Path
 from langchain_core.tools import tool
 
 from stai.config import settings
-from stai.models import PHASE_LABELS, PHASE_ORDER, ChecklistItem, Employee, Person
+from stai.models import PHASE_LABELS, ChecklistItem, Employee, Person
 from stai.state import Repo
 
-# Words that carry no signal when matching people/tasks.
 _STOPWORDS = {
     "a", "an", "the", "i", "me", "my", "we", "our", "you", "your", "who", "whom",
     "what", "which", "how", "do", "does", "did", "is", "are", "was", "can",
@@ -41,7 +38,6 @@ def _tokens(text: str) -> set[str]:
 
 
 def _tokens_match(a: str, b: str) -> bool:
-    # crude stemming: 'laptop' matches 'laptops', 'payslip' matches 'payslips'
     return a == b or (len(a) >= 4 and b.startswith(a)) or (len(b) >= 4 and a.startswith(b))
 
 
@@ -49,7 +45,7 @@ def _tokens_match(a: str, b: str) -> bool:
 class RunCapture:
     """What happened during one agent run."""
 
-    sources: list[dict] = field(default_factory=list)   # {source, title, snippet}
+    sources: list[dict] = field(default_factory=list)
     used_search: bool = False
     escalation_id: int | None = None
     plan_changed: bool = False
@@ -62,8 +58,6 @@ class RunCapture:
                 seen.append(s["source"])
         return seen
 
-
-# ------------------------------------------------------------------ people
 
 @lru_cache(maxsize=1)
 def load_org(org_file: str | None = None) -> list[Person]:
@@ -99,13 +93,8 @@ def match_people(query: str, people: list[Person], top_n: int = 2) -> list[Perso
     return [p for _, p in scored[:top_n]]
 
 
-# ------------------------------------------------------------------- tasks
-
 def match_task(query: str, items: list[ChecklistItem]) -> ChecklistItem | None:
-    """Resolve a task reference (id number or fuzzy title) to a plan item.
-
-    Undone items win ties so "mark laptop setup done" targets the open task.
-    """
+    """Resolve a task reference (id number or fuzzy title) to a plan item."""
     q = query.strip()
     if q.isdigit():
         wanted = int(q)
@@ -123,13 +112,11 @@ def match_task(query: str, items: list[ChecklistItem]) -> ChecklistItem | None:
             )
             score = max(score, hits / len(q_tokens))
         if not item.done:
-            score += 0.05  # prefer open tasks on near-ties
+            score += 0.05
         if score > best_score:
             best, best_score = item, score
     return best if best_score >= 0.5 else None
 
-
-# ------------------------------------------------------------- tool factory
 
 def build_tools(employee: Employee, repo: Repo, sim_date: date):
     """Return (tools, capture) bound to this employee and simulated date."""
@@ -137,11 +124,11 @@ def build_tools(employee: Employee, repo: Repo, sim_date: date):
 
     @tool
     def search_knowledge_base(query: str, doc_type: str = "") -> str:
-        """Search the Meridian Labs employee handbook for policies, benefits,
-        payroll, IT setup, office logistics, glossary terms and onboarding
-        guides. Use for ANY question about company facts. Optionally filter by
-        doc_type: one of 'policy', 'guide', 'explainer', 'checklist',
-        'glossary'."""
+        """Search the fictionalized BDO onboarding handbook for policies,
+        benefits, payroll, IT access, branch logistics, glossary terms,
+        compliance learning, and ramp guides. Use for ANY question about demo
+        company facts. Optionally filter by doc_type: one of 'policy', 'guide',
+        'explainer', 'checklist', 'glossary'."""
         from stai.retriever import format_docs, retrieve
 
         capture.used_search = True
@@ -156,20 +143,21 @@ def build_tools(employee: Employee, repo: Repo, sim_date: date):
             )
         if not docs:
             return (
-                "NO_RESULTS: nothing relevant found in the handbook. Tell the "
-                "user this isn't covered and offer to escalate_to_hr."
+                "NO_RESULTS: nothing relevant found in the fictionalized "
+                "handbook. Tell the user this is not covered and offer to "
+                "escalate_to_hr."
             )
         return format_docs(docs)
 
     @tool
     def get_my_plan(focus: str = "") -> str:
-        """Read the employee's personal 30-60-90 onboarding plan: every task,
-        its phase, its numeric id, and whether it is done. Use when the user
-        asks about their tasks, plan, progress, or what to do next. The
-        optional 'focus' argument is ignored — the full plan is returned."""
+        """Read the employee's onboarding and ramp plan: every task, phase,
+        numeric id, and completion state. Use when the user asks about tasks,
+        progress, Day 30 readiness, or what to do next. The optional 'focus'
+        argument is ignored; the full plan is returned."""
         phases = repo.get_plan(employee.id)
         done, total = repo.progress(employee.id)
-        lines = [f"{employee.name}'s 30-60-90 plan — {done}/{total} tasks done:"]
+        lines = [f"{employee.name}'s onboarding and ramp plan - {done}/{total} tasks done:"]
         for phase in phases:
             lines.append(f"\n{phase.label}:")
             for item in phase.items:
@@ -179,15 +167,16 @@ def build_tools(employee: Employee, repo: Repo, sim_date: date):
 
     @tool
     def complete_task(task: str) -> str:
-        """Mark one onboarding-plan task as done. Pass the task's numeric id
-        or a distinctive fragment of its title (e.g. 'laptop' or 'first PR')."""
+        """Mark one onboarding or ramp task as done. Pass the task's numeric id
+        or a distinctive fragment of its title, such as 'MFA', 'AML', or
+        'buddy feedback'."""
         items = repo.list_plan_items(employee.id)
         item = match_task(task, items)
         if item is None:
             open_titles = "; ".join(f"(id {i.id}) {i.title}" for i in items if not i.done)
             return (
                 f"NOT_FOUND: no plan task matches '{task}'. Open tasks are: "
-                f"{open_titles or 'none — everything is done!'}"
+                f"{open_titles or 'none - everything is done!'}"
             )
         already = item.done
         item = repo.complete_task(employee.id, item.id)
@@ -201,40 +190,40 @@ def build_tools(employee: Employee, repo: Repo, sim_date: date):
 
     @tool
     def escalate_to_hr(question: str, details: str = "") -> str:
-        """File a ticket with the People Ops team when the handbook doesn't
-        answer the user's question, when they report a serious concern, or
-        when they explicitly ask for HR. Pass the user's question and any
-        useful context."""
+        """File a People Experience ticket when the handbook does not answer,
+        when the user reports a serious concern, or when they explicitly ask
+        for human support. Pass the user's question and useful context."""
         esc = repo.add_escalation(employee.id, question, details)
         capture.escalation_id = esc.id
         return (
-            f"Escalation #{esc.id} filed with People Ops (Marcus Webb's team). "
-            "They respond within 2 business days; the employee can also write "
-            "to people@meridianlabs.io or #ask-people directly."
+            f"Escalation #{esc.id} filed with People Experience (Liza Villanueva's team). "
+            "They respond within 2 business days; the employee can also write to "
+            "people@bdo-demo.local or message @liza.people in the demo chat."
         )
 
     @tool
     def find_person(query: str) -> str:
-        """Look up who at Meridian Labs handles something (e.g. 'payroll',
-        'laptop problems', 'benefits enrollment') or find a named colleague.
-        Returns their role, team, and how to reach them."""
+        """Look up who handles something in the fictionalized BDO org directory
+        (for example payroll, laptop access, AML learning, branch shadowing, or
+        benefits enrollment) or find a named colleague. Returns role, team, and
+        how to reach them."""
         matches = match_people(query, load_org())
         if not matches:
             return (
                 "NO_MATCH: nobody in the org directory matches. Offer to "
-                "escalate_to_hr so People Ops can route the question."
+                "escalate_to_hr so People Experience can route the question."
             )
         blocks = []
         for person in matches:
             blocks.append(
-                f"{person.name} — {person.role} ({person.team} team)\n"
+                f"{person.name} - {person.role} ({person.team} team)\n"
                 f"  Handles: {'; '.join(person.responsibilities)}\n"
-                f"  Reach: {person.slack} on Slack, {person.email}, {person.location}"
+                f"  Reach: {person.slack} in demo chat, {person.email}, {person.location}"
             )
         best = matches[0]
         blocks.append(
-            f"Suggested intro: a 15-minute virtual coffee — message {best.slack} "
-            f"with one line about what you need; that's normal at Meridian."
+            f"Suggested intro: send {best.slack} one line about what you need. "
+            "Asking early is part of the ramp, not a problem."
         )
         return "\n\n".join(blocks)
 

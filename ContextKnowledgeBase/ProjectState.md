@@ -4,7 +4,7 @@ This is the current implementation state after auditing the repo against
 `Specification.pdf`, `README.md`, `PLAN.md`, `docs/BUSINESS_CASE.md`, and the
 source code.
 
-## Narrative target vs current implementation
+## Narrative implementation
 
 Target narrative:
 
@@ -16,13 +16,15 @@ Target narrative:
 - Demo milestone: Day 30 supervised branch readiness.
 - HR view: support signals and suggested actions, not surveillance.
 
-Current implementation caveat:
+Current implementation:
 
-- The code/data still contain Meridian/Maya/Meri and 30-60-90 wording until the
-  BDO synthetic-data rebrand slice is implemented.
-- Do not treat Meridian/Maya as the target story. Use
-  `ContextKnowledgeBase/AISHAStorySpine.md` as the target source of truth.
-- After the rebrand, run the stale-wording validation from `AISHAStorySpine.md`.
+- Slice 1 has rebranded the user-facing app, seed data, handbook docs, README,
+  business case, agent prompt, guardrails, pulse wording, tools, and tests to
+  AISHA/BDO/Alyssa.
+- Legacy narrative references should remain only in explicit migration notes,
+  context-routing prompts, or changelog/history entries.
+- Keep using `ContextKnowledgeBase/AISHAStorySpine.md` as the narrative source
+  of truth for future implementation work.
 
 ## Implemented core
 
@@ -33,7 +35,7 @@ Entry point: `app.py`
 Current views:
 
 - New hire chat view.
-- HR admin dashboard.
+- HR support dashboard.
 - Sidebar persona picker.
 - Simulated date picker for pulse check-in demos.
 - Demo reset control.
@@ -126,7 +128,7 @@ Implemented:
 - LLM-scored pulse sentiment.
 - Concern tags.
 - Pulse records stored in SQLite.
-- HR risk flag if latest score is low or declining.
+- HR support flag if latest score is low or declining.
 
 ### Tests
 
@@ -135,6 +137,7 @@ Implemented:
 - Guardrail parsing and citation tests.
 - Pulse scheduling and risk tests.
 - State and tool tests.
+- AISHA/BDO stale-wording regression test.
 - Ingestion chunking tests.
 - Agent smoke tests with a fake tool-calling model.
 - Streamlit boot test.

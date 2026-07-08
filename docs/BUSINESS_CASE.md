@@ -1,161 +1,120 @@
-# STAI — Business Case
+# AISHA Business Case
 
-> Narrative update pending: the accepted front-facing product/story is now
-> AISHA (AI Support for Hires and Associates), using a fictionalized BDO
-> educational demo with Alyssa Reyes as the main employee. This business case
-> still contains older Meridian/Maya and attrition-first wording until the BDO
-> synthetic-data rebrand slice is implemented. See
-> `ContextKnowledgeBase/AISHAStorySpine.md`.
+> AISHA is an educational capstone prototype. It is not affiliated with,
+> endorsed by, or representative of BDO Unibank. All employee records,
+> onboarding documents, org contacts, metrics, and demo interactions are
+> fictionalized for storytelling and evaluation purposes.
 
-**One-liner:** a local-first, agentic onboarding assistant that doesn't just
-hand new hires a checklist — it answers the questions they're afraid to ask,
-notices when they're about to quit, and tells HR before it happens.
+**AISHA** stands for **AI Support for Hires and Associates**. It is a
+local-first agentic onboarding and ramp-support assistant for a fictionalized
+BDO educational demo.
 
----
+## One-liner
 
-## 1. Validated market — someone already pays for this
+AISHA helps new hires become productive faster by closing the support loop:
+grounded answers, role-based ramp tasks, people routing, proactive check-ins,
+and HR support signals without exposing private chat transcripts by default.
 
-Employee onboarding software is an established, paid category. Companies pay
-per-seat SaaS subscriptions today:
+## Why this problem matters
 
-| Player | What they sell | Signal |
-|---|---|---|
-| **Enboarder** | Adaptive, journey-based onboarding ("30-60-90 journeys", nudges) | Raised $100M+; sells to enterprise HR |
-| **Leena AI** | 24/7 conversational HR Q&A bot over company policies | The "ask HR anything" bot, enterprise contracts |
-| **BambooHR** | Onboarding checklists, e-signatures, new-hire packets | SME standard; onboarding is a core paid module |
-| **Workday** | Enterprise HCM suite with onboarding flows | **Bought Paradox (conversational AI recruiting/onboarding) for ~$1B in Oct 2025** |
+Large banks do not lose onboarding time because new hires cannot read policies.
+They lose time because onboarding is fragmented across documents, systems,
+people, compliance steps, branch norms, manager expectations, and support
+channels.
 
-The Workday–Paradox acquisition is the clearest possible market signal:
-the biggest HCM vendor paid a billion dollars because **conversational AI is
-where onboarding is going**. The problem is validated; the budget line exists;
-the question is only which wedge a new entrant can win.
+Alyssa Reyes, the main demo employee, is a Management Trainee / Branch Banking
+Associate. Her first meaningful milestone is not a generic long-range checklist;
+it is **Day 30 Readiness Check**: being ready for supervised branch customer
+interactions with process awareness, compliance awareness, and confidence in who
+to ask when blocked.
 
-## 2. Baseline — what every competitor does (and we must match)
+## Baseline capabilities
 
-Table stakes across Enboarder/Leena/Bamboo/Workday, all present in STAI:
+AISHA matches expected onboarding-assistant table stakes:
 
-1. **Task checklists & compliance paperwork** → role-based 30-60-90 plans with
-   phase grouping and progress tracking (not a flat list).
-2. **24/7 grounded Q&A** → RAG over the employee handbook **with citations**,
-   so answers are auditable, not vibes.
-3. **Role personalization** → engineer / sales / analyst plans differ; the
-   agent knows who's asking (name, role, week of onboarding).
-4. **Reminders / follow-ups** → proactive weekly check-ins (below, we go
-   further than reminders).
-5. **HR visibility** → dashboard: per-hire progress, open escalations, pulse
-   trend, risk flags.
-
-## 3. The wedge — where incumbents can't or won't go
-
-### 3a. Distribution wedge: local-first
-
-Incumbents are cloud SaaS with 6–12-week enterprise implementations, per-seat
-pricing, and your HR data on their servers. That model **structurally excludes**
-two big segments:
-
-- **SMEs** that can't justify implementation projects or enterprise minimums.
-- **Privacy-bound organizations** — healthcare, finance, public sector,
-  EU/GDPR-conscious companies — for whom "upload employee HR data to a US
-  SaaS" is a compliance project or a hard no.
-
-STAI runs **entirely on-premise**: Ollama for the LLMs, Chroma for the vector
-store, SQLite for state. **Zero data egress. One-day deployment** (pull three
-models, ingest the handbook folder, run). The demo you're watching is the
-deployment. Incumbents can't serve this cheaply because their architecture,
-pricing, and sales motion all assume cloud multi-tenancy.
-
-### 3b. Product wedge: attack why new hires actually quit
-
-Incumbents push tasks. None of them address the reasons new hires leave —
-and **~33% of new hires quit within their first 90 days**. Top causes from
-exit surveys:
-
-| Quit cause | Share | STAI differentiator that attacks it |
-|---|---|---|
-| Expectation–reality mismatch | **30.3%** | **B. Pulse check-ins** surface the mismatch in week 1–2, while it's fixable — not in the exit interview |
-| No connection to team/culture | **19.5%** | **C. Connection builder** — org-directory lookups, "who handles X", concrete intro suggestions from day one |
-| Poor onboarding experience | **17.4%** | **A. First-job decoder** — payslip explainer, benefits-101, jargon glossary, judgment-free tone; plus grounded answers instead of "ask around" |
-
-Companies with a strong onboarding program see **~82% better new-hire
-retention**. That's the ROI headline: replacing one departed new hire is
-commonly estimated at 50–100%+ of annual salary (recruiting, ramp time, lost
-productivity). **If STAI saves one fresh-grad departure per year, it has paid
-for itself many times over** — and it produces the early-warning data
-(pulse trend, risk flags) to prove it's doing so.
-
-### The fresh-graduate focus
-
-Every differentiator is tuned for people in their **first job ever**:
-
-- **A. First-job decoder.** Nobody teaches payslips, deductibles, or 401(k)
-  matching in school, and juniors are embarrassed to ask. The KB includes
-  explainers written for exactly that ("explain it like it's my first job —
-  it is"), and the agent's system prompt hard-codes a judgment-free framing:
-  no question too basic, never condescending.
-- **B. Proactive pulse + attrition risk.** The agent *opens* the conversation
-  when a weekly check-in is due. Replies are sentiment-scored (1–5 + concern
-  tags) by a local classifier; scores ≤ 2 or a declining trend raise a flag on
-  the HR dashboard. HR sees "Maya, week 2, declining, concerns: workload,
-  connection" — actionable while the hire is still on board.
-- **C. Connection builder.** "Who do I ask about my laptop?" returns a real
-  person with role, team, and how to reach them — plus a nudge to book a
-  15-minute intro. Connection is the second-biggest quit cause; the agent
-  manufactures connections instead of waiting for them to happen.
-
-## 4. "Why not just ChatGPT?"
-
-The default objection to any internal assistant. Five structural answers:
-
-| ChatGPT | STAI |
+| Capability | AISHA implementation |
 |---|---|
-| (a) Doesn't know company-internal policy — it will guess | RAG over the actual handbook, **citations required** by an output guardrail; a KB miss produces "not in the handbook" + escalation, never a guess |
-| (b) Can't be given confidential HR documents (cloud processing) | **Fully local**; the handbook, org data, and every pulse answer stay on company hardware |
-| (c) Doesn't know who's asking | Per-employee state: role, department, start date, week, personal plan progress, pulse history |
-| (d) Can't *act* | Tools: updates the 30-60-90 plan, files HR escalation tickets, looks up real colleagues |
-| (e) Can't *initiate* | Proactive: opens the session with the weekly pulse check-in on its own schedule |
+| Grounded policy help | Chroma RAG over fictionalized onboarding docs with required `[source: filename]` citations |
+| Role-based plan | SQLite-backed onboarding and ramp tasks across Pre-start, Day 1 Setup, Week 1 Foundations, Week 2 Practice and Feedback, and Day 30 Readiness Check |
+| Action-taking tools | `get_my_plan`, `complete_task`, `find_person`, `escalate_to_hr`, and `search_knowledge_base` |
+| HR visibility | Support dashboard with progress, pulse trends, support signals, and escalation queue |
+| Guardrails | Topic classifier, prompt-injection refusal, citation enforcement, and output-side PII redaction |
+| Local-first privacy | Ollama, Chroma, SQLite, and Streamlit run offline for the demo |
 
-## Prototype scope — deliberate cuts, stated up front
+## Differentiated wedge
 
-- **Auth:** a persona picker stands in for login. Production sits behind the
-  company's **SSO**; identity then comes from the session, not a dropdown.
-  Out of prototype scope on purpose — it demos nothing.
-- **Simulated-date picker:** pulse cadence is weekly; the sidebar date picker
-  compresses weeks into seconds for the demo. Production uses the wall clock.
-- **Multilingual, not multimodal:** the agent answers in the user's language
-  (system-prompt level; the KB stays English). Image/voice input is argued
-  irrelevant for text-based HR Q&A — the modality of HR questions is text.
-- **Synthetic data:** Meridian Labs (company, handbook, org chart, hires) is
-  fictional by design — it lets us demo confidential-looking flows publicly.
+### 1. Faster time-to-ramp
 
-## Future work (documented, not built)
+AISHA keeps the user focused on what moves readiness forward today: which task
+is next, who owns a blocker, which learning module matters, and what Day 30
+readiness means for the role.
 
-- **Agent QA / eval harness:** golden Q&A set graded by LLM-as-judge,
-  retrieval precision checks, a red-team prompt-injection suite, regression
-  evals run on every prompt change. This is the first post-prototype
-  engineering investment, because agent changes currently regress silently.
-- **HRIS integration:** sync hires/plans from BambooHR/Workday instead of
-  `employees.json`; write pulse flags back.
-- **PDF/Docx ingestion** for real handbooks (the pipeline only assumes
-  markdown today).
-- **SSO** (OIDC/SAML) and role-based access for the HR dashboard.
-- **Guardrail hardening:** the input classifier is a small (3B) few-shot
-  model picked by measured accuracy on a topic battery (15/15 vs 8/15 for the
-  1B alternative); the model is a one-env-var swap (`STAI_GUARDRAIL_MODEL`)
-  either direction — smaller for latency, larger for stricter filtering.
+### 2. First-job decoder
 
-## Why these technology choices
+Fresh graduates and early-career hires often hesitate to ask basic questions
+about payslips, benefits, acronyms, branch routines, and workplace norms. AISHA
+answers plainly and routes to the right owner without shaming the user.
 
-- **Ollama (local LLMs):** the distribution wedge *is* privacy; a cloud LLM
-  would delete section 3a. Also: zero per-token cost at SME scale.
-- **Chroma (VectorDB):** grounded Q&A over a private handbook is the core
-  loop; a persisted local vector store with metadata filtering fits the
-  local-first constraint. (Also a hard course requirement — satisfied by an
-  architecturally necessary component, not a bolt-on.)
-- **LangChain + LangGraph:** native tool-calling agent loop, model-agnostic —
-  the same code runs any Ollama model, so hardware decides model size.
-- **Pydantic everywhere:** typed domain models, validated LLM classifier
-  outputs (`PulseResult`, `GuardrailVerdict`), env-driven config.
-- **SQLite:** transactional per-employee state (plans, escalations, pulses)
-  with zero infrastructure — matches one-day deploy.
-- **Streamlit:** two polished views (chat + dashboard) in one Python file
-  each; the UI is not the product, the agent is.
+### 3. Support before drag compounds
+
+The useful signal is behavior over time, not one emotional message. AISHA can
+surface delayed milestones, unresolved access blockers, missed manager or buddy
+touchpoints, repeated workflow questions, and declining pulse scores.
+
+### 4. Support, not surveillance
+
+AISHA gives HR enough signal to offer help, not enough detail to police the
+employee. The HR view should show concern tags, concise rationale, and suggested
+support actions. It should not show raw private chat transcripts by default.
+
+## Why not just a general chatbot?
+
+| General chatbot limitation | AISHA answer |
+|---|---|
+| Does not know the fictional company context | RAG over the demo handbook with citations |
+| Cannot act on ramp state | Tool calls read and update the employee's plan |
+| Does not know who is asking | Employee state includes role, department, start date, manager, buddy, and progress |
+| Cannot initiate support | Pulse check-ins open on the simulated schedule |
+| May blur privacy boundaries | Output guardrails and HR dashboard design avoid raw private-chat exposure |
+
+## Prototype scope
+
+Implemented:
+
+- Streamlit new-hire chat and HR support dashboard.
+- Local Ollama LLMs and local Chroma vector store.
+- SQLite state for employees, plan items, escalations, and pulse records.
+- Fictionalized BDO educational data for Alyssa and two secondary personas.
+- Citation format `[source: filename]`.
+- Simulated-date pulse scheduling.
+
+Deliberately not implemented in this slice:
+
+- REST API endpoint.
+- LLMOps monitoring.
+- Docker packaging.
+- SSO or production role-based access.
+- HRIS, LMS, calendar, attendance, or branch-system integrations.
+- Real BDO data, policies, people, systems, or records.
+
+## ROI story
+
+AISHA's value is measured as faster productivity and reduced ramp drag:
+
+- fewer blocked days waiting for the right owner,
+- earlier completion of access and compliance learning tasks,
+- clearer manager and buddy touchpoints,
+- less repeated HR question load,
+- earlier support before small blockers become disengagement.
+
+The demo's main proof point is Alyssa reaching Day 30 with supervised branch
+readiness, not HR collecting more private information.
+
+## Technology rationale
+
+- **Ollama** keeps the demo local-first.
+- **Chroma** supports grounded retrieval over the fictional handbook.
+- **LangChain/LangGraph** provides the tool-calling agent loop.
+- **Pydantic** validates settings and domain models.
+- **SQLite** gives durable local state with no infrastructure.
+- **Streamlit** makes the new-hire and HR support views demoable in one app.

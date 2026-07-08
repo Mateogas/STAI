@@ -98,6 +98,46 @@ Follow-up:
 - Redesign Streamlit around the AISHA onboarding/ramp cockpit and HR support
   cards.
 
+## 2026-07-09 - Slice 1 AISHA/BDO synthetic data rebrand
+
+Files changed:
+
+- `data/employees.json`
+- `data/org.json`
+- `data/plans.json`
+- `data/hr_docs/*.md`
+- `app.py`
+- `src/stai/agent.py`
+- `src/stai/guardrails.py`
+- `src/stai/models.py`
+- `src/stai/pulse.py`
+- `src/stai/tools.py`
+- `README.md`
+- `docs/BUSINESS_CASE.md`
+- `tests/*.py`
+- `ContextKnowledgeBase/ProjectState.md`
+- `ContextKnowledgeBase/ImplementationPlan.md`
+
+Capability added:
+
+- Replaced user-facing demo story with AISHA/BDO/Alyssa.
+- Added a stale-wording regression test for user-facing app/source/data/docs.
+- Changed plan templates to Pre-start, Day 1 Setup, Week 1 Foundations, Week 2
+  Practice and Feedback, and Day 30 Readiness Check.
+- Preserved citation format, tool names, `RunCapture`, simulated-date behavior,
+  SQLite seed behavior, and mocked/no-Ollama test approach.
+
+Tests run:
+
+- `uv run pytest tests/test_rebrand.py` was attempted but `uv` was not on PATH
+  in the current shell.
+
+Remaining follow-up:
+
+- Run full validation once `uv` is available.
+- Continue with module checklist gaps: API endpoint, LLMOps, Docker,
+  evaluation artifact, persistent memory, and deterministic disambiguation.
+
 ## Future changelog rule
 
 When a future chat finishes a task, append a short entry here:

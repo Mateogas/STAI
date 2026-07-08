@@ -14,9 +14,8 @@ The current app works, but it still feels like a technical demo:
 - the new-hire experience is mostly an empty chat,
 - the HR dashboard is table-first rather than action-first,
 - sources and model/config details make sense to developers but not users,
-- the UI does not express the AISHA thesis,
-- current copy still reflects the older Meridian/Maya/Meri story until the
-  rebrand slice is completed.
+- the UI copy now reflects AISHA/BDO/Alyssa, but the layout still does not fully
+  express the AISHA thesis.
 
 ## Desired UX Thesis
 
@@ -39,9 +38,9 @@ The first screen should answer:
 - Who can help?
 - What does Day 30 supervised branch readiness require?
 
-### 2. Replace 30-60-90 With Onboarding And Ramp Stages
+### 2. Use Onboarding And Ramp Stages
 
-Do not make "30-60-90 onboarding" the main visual. Use:
+Keep the new stage model as the main visual language:
 
 - Pre-start
 - Day 1 Setup
