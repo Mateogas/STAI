@@ -64,6 +64,40 @@ Purpose:
 - mark `ContextTransfer.md` as legacy,
 - align `CLAUDE.md` and `AGENTS.md` with the new context flow.
 
+## 2026-07-09 - AISHA/BDO story spine and routing prep
+
+Files changed:
+
+- `ContextKnowledgeBase/AISHAStorySpine.md`
+- `ContextKnowledgeBase/ContextCatalog.md`
+- `ContextKnowledgeBase/README.md`
+- `ContextKnowledgeBase/ProjectSynopsis.md`
+- `ContextKnowledgeBase/ProjectState.md`
+- `ContextKnowledgeBase/ImplementationPlan.md`
+- `ContextKnowledgeBase/ModuleChecklist.md`
+- `ContextKnowledgeBase/UIUXBrief.md`
+- `ContextKnowledgeBase/ChatPrompts.md`
+- `AGENTS.md`
+- `CLAUDE.md`
+- `README.md`
+- `docs/BUSINESS_CASE.md`
+
+Decision made:
+
+- AISHA is the front-facing product name: AI Support for Hires and Associates.
+- BDO is the story setting with an explicit educational/fictional disclaimer.
+- Alyssa Reyes is the main demo employee.
+- Primary value is faster productivity/time-to-ramp, centered on Day 30
+  supervised branch readiness.
+- AISHA is support, not surveillance.
+
+Follow-up:
+
+- Implement the BDO synthetic-data rebrand slice.
+- Add stale-wording/TDD safeguards.
+- Redesign Streamlit around the AISHA onboarding/ramp cockpit and HR support
+  cards.
+
 ## Future changelog rule
 
 When a future chat finishes a task, append a short entry here:

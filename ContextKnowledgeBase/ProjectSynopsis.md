@@ -1,45 +1,68 @@
 # Project Synopsis
 
-## North star
+## North Star
 
-STAI should be presented as an agentic onboarding system that helps companies
-catch the invisible failure points of onboarding: confusion, isolation, and
-early disengagement.
+AISHA should be presented as a local-first agentic onboarding and ramp-support
+system for a fictionalized BDO educational demo.
 
-The product is not just "ChatGPT for HR docs." The stronger thesis is:
+The product is not a generic HR chatbot and not a policy search box. The
+stronger thesis is:
 
-> New hires do not quit because they lacked another checklist. They quit
-> because small unanswered questions, unclear expectations, and weak social
-> connection compound during the first 90 days. STAI gives the employee a safe
-> place to ask, gives them concrete next steps, and gives HR an early warning
-> while intervention is still possible.
+> New hires in a large bank do not lose ramp time because they cannot
+> understand policies. They lose ramp time because onboarding is fragmented
+> across systems, people, compliance steps, manager expectations, branch norms,
+> and support channels. AISHA closes that support loop while protecting privacy.
 
-## Current one-liner
+## Current One-Liner
 
-STAI is a local-first agentic onboarding assistant that answers policy
-questions with citations, manages a new hire's 30-60-90 plan, connects them to
-the right people, and flags early attrition risk from weekly pulse check-ins.
+AISHA, AI Support for Hires and Associates, is a local-first agentic onboarding
+system that helps new hires ramp faster by combining grounded answers,
+role-based onboarding state, people lookup, pulse check-ins, and HR support
+signals without turning the experience into surveillance.
 
-## Better presentation angle
+## Locked Story Setting
 
-Lead with the human use case, then show the architecture.
+- Product name: AISHA.
+- Expansion: AI Support for Hires and Associates.
+- Business setting: BDO, used with an explicit educational/fictional disclaimer.
+- Demo employee: Alyssa Reyes.
+- Role: Management Trainee / Branch Banking Associate.
+- Main business value: faster productivity and time-to-ramp.
+- Demo milestone: Day 30 supervised branch-readiness check.
+- Support boundary: HR gets support signals, not raw private chat transcripts by
+  default.
+
+Required disclaimer:
+
+> AISHA is an educational capstone prototype. It is not affiliated with,
+> endorsed by, or representative of BDO Unibank. All employee records,
+> onboarding documents, org contacts, metrics, and demo interactions are
+> fictionalized for storytelling and evaluation purposes.
+
+## Better Presentation Angle
+
+Lead with the ramp problem, then show the agentic architecture.
 
 Suggested framing:
 
-1. A fresh graduate joins a large company.
-2. They have practical questions they are embarrassed to ask.
-3. They do not know who owns payroll, IT access, benefits, or team norms.
-4. A checklist says what to finish, but not how to feel oriented.
-5. HR usually discovers struggle too late, often through exit interviews.
-6. STAI turns onboarding from a static checklist into an agentic support loop.
+1. Alyssa Reyes joins BDO as a Management Trainee / Branch Banking Associate.
+2. She is capable, but onboarding is fragmented across access, compliance,
+   branch practice, manager expectations, and support channels.
+3. Basic Q&A is not enough because the real issue is coordination over time.
+4. AISHA gives Alyssa a safe guide and routes her to the right human owner.
+5. AISHA tracks role-based onboarding and ramp milestones toward Day 30
+   supervised readiness.
+6. AISHA notices behavior-over-time signals such as delayed milestones, missed
+   buddy touchpoints, repeated blockers, and declining pulse confidence.
+7. HR and managers receive a support card with a suggested humane action, not a
+   surveillance feed.
 
-## Product pillars
+## Product Pillars
 
-### 1. Safe employee companion
+### 1. Safe New-Hire Guide
 
-The assistant answers the questions a new hire may feel awkward asking:
-payslips, benefits jargon, first-day logistics, policies, workplace acronyms,
-and basic "who do I ask?" questions.
+AISHA helps a new hire ask questions, understand next steps, and locate the
+right owner without feeling exposed or judged.
 
 Implementation anchors:
 
@@ -48,9 +71,10 @@ Implementation anchors:
 - Judgment-free system prompt.
 - Multilingual response instruction.
 
-### 2. Action-oriented onboarding plan
+### 2. Role-Based Onboarding And Ramp State
 
-The assistant is not only a Q&A bot. It can read and mutate onboarding state.
+AISHA is not only Q&A. It reads and mutates onboarding state so progress can be
+tracked against role expectations.
 
 Implementation anchors:
 
@@ -59,9 +83,15 @@ Implementation anchors:
 - SQLite-backed plan items
 - role-specific plan templates in `data/plans.json`
 
-### 3. Connection builder
+Story framing:
 
-The assistant routes the employee to the right human instead of saying "ask HR."
+- Replace "30-60-90 onboarding" with "onboarding and ramp milestones."
+- Hero milestone: Day 30 supervised branch-readiness check.
+- Anything beyond Day 30 is ramp analytics, not onboarding.
+
+### 3. Connection Builder
+
+AISHA routes the employee to the right human instead of saying "ask HR."
 
 Implementation anchors:
 
@@ -69,53 +99,60 @@ Implementation anchors:
 - `data/org.json`
 - intro suggestions generated from tool results
 
-### 4. HR early-warning loop
+### 4. HR And Manager Support Loop
 
-The agent proactively asks check-in questions, scores replies, stores pulse
-history, and gives HR a dashboard of risk signals.
+AISHA proactively asks pulse questions, stores trend signals, and gives HR or
+managers a support card when small blockers start compounding.
 
 Implementation anchors:
 
 - `pulse.py`
 - `pulse_checkins` SQLite table
-- HR dashboard risk flag
+- HR dashboard risk/support display
 - escalation queue
 
-## Why agentic AI is appropriate
+Privacy boundary:
 
-This is a good agentic use case because the app must combine:
+- HR should see milestone delays, unresolved blockers, pulse trends, broad
+  concern tags, concise rationale, and suggested support action.
+- HR should not see full private chat transcripts by default.
 
-- retrieval over unstructured policy documents,
+## Why Agentic AI Is Appropriate
+
+This is a good agentic use case because AISHA must combine:
+
+- retrieval over unstructured onboarding and policy documents,
 - per-user memory/state,
 - tool calls that change onboarding data,
-- guardrails for scope and citations,
-- proactive check-ins,
-- a human-in-the-loop escalation path.
+- people lookup and owner routing,
+- guardrails for scope, citations, and privacy,
+- proactive pulse check-ins,
+- behavior-over-time trend detection,
+- a human-in-the-loop support path.
 
 A single prompt would not be enough because the assistant needs to retrieve,
-act, remember, and route.
+act, remember, compare progress over time, and route support.
 
-## What the story should avoid
+## What The Story Should Avoid
 
 Do not frame this as:
 
 - a generic HR chatbot,
+- a payroll or benefits explainer for people who cannot understand policies,
 - a policy search box,
 - a checklist tracker with an LLM bolted on,
 - a "local ChatGPT" demo,
-- a developer environment with model names as the main story.
+- a surveillance dashboard,
+- an attrition fortune-teller,
+- a replacement for HR, managers, buddies, or mentors,
+- an official BDO system or a source of real BDO employee data.
 
-Those are implementation details. The sellable product story is the employee
-journey and HR's ability to intervene earlier.
+Preferred wording:
 
-## Pending narrative shift
-
-The next story-spine pass should move from the current Meridian/Maya demo to a
-P&G-style enterprise onboarding setting. Keep the technical capabilities, but
-ground the narrative in a more recognizable corporate environment:
-
-- large cross-functional organization,
-- structured onboarding,
-- complex benefits/processes,
-- many possible owners for questions,
-- HR wants early visibility without turning the experience into surveillance.
+- "faster time-to-ramp"
+- "onboarding and ramp milestones"
+- "Day 30 readiness"
+- "support card"
+- "behavior over time"
+- "support signals"
+- "enough signal to help, not enough detail to police"

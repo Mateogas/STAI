@@ -1,47 +1,169 @@
 # Implementation Plan
 
 This plan is designed for slicing work across separate chats and context
-windows.
+windows. Use `ContextCatalog.md` to decide which files to read for each slice.
 
-## Recommended sequence
+## Recommended Sequence
 
-1. Lock the narrative spine.
-2. Close hard rubric gaps: API, LLMOps, Docker.
-3. Strengthen partial modules: disambiguation and memory.
-4. Produce evaluation/write-up artifacts.
-5. Hand UI/UX redesign brief to a design-focused chat.
-6. Final README/spec alignment pass.
+1. Story spine and routing context - done.
+2. Generate fictionalized BDO synthetic data and replace Meridian/Maya/Meri.
+3. Add TDD safeguards for stale wording, rebrand consistency, and behavior
+   contracts.
+4. Redesign UI/UX around Alyssa's Day 30 readiness journey and HR support cards.
+5. Close hard rubric gaps: API, LLMOps, Docker.
+6. Strengthen partial modules: disambiguation and persistent memory.
+7. Produce evaluation/write-up artifacts and final README/spec alignment.
 
-The story spine should be done first, but only lightly. Do not spend days on
-copy before closing the required technical gaps.
+The rebrand is now large enough that it should be treated as an implementation
+slice, not a copy pass. Do not mix unrelated architecture changes into the data
+generation/rebrand slice unless tests force a small compatibility fix.
 
-## Slice 0 - Story spine and P&G framing
+## Slice 0 - AISHA Story Spine And Context Routing
 
-Goal:
-
-- Replace the generic/Meridian pitch with a sharper P&G-style onboarding story.
-
-Inputs:
-
-- `ContextKnowledgeBase/ProjectSynopsis.md`
-- `ContextKnowledgeBase/ProjectState.md`
-- `docs/BUSINESS_CASE.md`
-- `README.md`
+Status: done.
 
 Outputs:
 
-- Revised north star.
-- Demo narrative.
-- Presentation outline.
-- Product language for README/write-up.
+- `ContextKnowledgeBase/AISHAStorySpine.md`
+- `ContextKnowledgeBase/ContextCatalog.md`
+- Updated `AGENTS.md`, `CLAUDE.md`, and context README routing.
+
+Locked decisions:
+
+- AISHA = AI Support for Hires and Associates.
+- BDO is the story setting with a clear educational/fictional disclaimer.
+- Alyssa Reyes is the main demo employee.
+- Role is Management Trainee / Branch Banking Associate.
+- Primary value is faster productivity/time-to-ramp.
+- Hero milestone is Day 30 supervised branch readiness.
+- AISHA is support, not surveillance.
+
+## Slice 1 - BDO Synthetic Data Generation And Full Rebrand
+
+Goal:
+
+- Completely replace visible Meridian/Maya/Meri demo content with
+  fictionalized BDO/AISHA/Alyssa content.
+
+Inputs:
+
+- `ContextKnowledgeBase/ContextCatalog.md`
+- `ContextKnowledgeBase/AISHAStorySpine.md`
+- `ContextKnowledgeBase/ProjectState.md`
+- existing `data/*.json`
+- existing `data/hr_docs/*.md`
+- tests that assert old names, roles, task labels, or org contacts
+
+Scope:
+
+- `data/employees.json`
+- `data/org.json`
+- `data/plans.json`
+- `data/hr_docs/*.md`
+- `app.py`
+- `src/stai/agent.py`
+- `src/stai/guardrails.py`
+- `src/stai/pulse.py`
+- `src/stai/tools.py`
+- `README.md`
+- `docs/BUSINESS_CASE.md`
+- relevant tests
+
+Synthetic data design:
+
+- Main employee: Alyssa Reyes, Management Trainee / Branch Banking Associate.
+- Include at least two secondary personas for HR dashboard contrast, but avoid
+  returning to software-engineer-as-main-story.
+- Create fictional BDO contacts for HR, payroll, benefits, IT access,
+  compliance/LMS, branch manager, onboarding buddy, and branch operations.
+- Replace "30-60-90" with onboarding/ramp stages:
+  - Pre-start
+  - Day 1 Setup
+  - Week 1 Foundations
+  - Week 2 Practice and Feedback
+  - Day 30 Readiness Check
+- Include fictional cohort baselines where needed for story/demo support, such
+  as expected completion windows for access setup, first compliance module, and
+  buddy check-in.
+- Keep public BDO references broad and safe. Do not invent official real BDO
+  policies, real employees, real internal systems, or confidential procedures.
 
 Definition of done:
 
-- The project can be explained in 30 seconds.
-- The demo has one main employee journey and one HR payoff.
-- The story explains why agentic behavior is necessary.
+- App/demo wording uses AISHA/BDO/Alyssa, not Meridian/Maya/Meri.
+- BDO educational disclaimer appears in README/business-case and appropriate UI
+  or demo docs.
+- Tests pass or are updated to the new synthetic data.
+- Running the stale-wording search shows only intentional legacy notes:
 
-## Slice 1 - REST API endpoint
+```powershell
+rg -n "Meridian|Maya|Meri|Meridian Labs|30-60-90|Software Engineer" .
+uv run pytest
+```
+
+## Slice 2 - TDD Safeguards And Rebrand Regression Tests
+
+Goal:
+
+- Prevent stale narrative, duplicate concepts, or accidental surveillance
+  language from creeping back in.
+
+Likely tests:
+
+- A test that scans user-facing source/data/docs for forbidden old wording:
+  `Meridian`, `Maya`, `Meri`, `30-60-90`, and old role assumptions, allowing
+  only explicit legacy notes if needed.
+- Tests proving seed data contains Alyssa and the BDO fictional disclaimer where
+  expected.
+- Tests around plan/ramp phases so code does not assume only `day_60`/`day_90`
+  semantics.
+- Tests ensuring HR support summaries do not expose raw private pulse/chat text
+  by default.
+- Existing guardrail/pulse/state/tool tests updated to new data.
+
+Definition of done:
+
+- Rebrand consistency is enforced by tests.
+- Old narrative terms cannot silently reappear in user-facing content.
+- Tests still run without Ollama.
+
+## Slice 3 - UI/UX Redesign
+
+Goal:
+
+- Turn the Streamlit UI into AISHA's new-hire ramp cockpit and HR support
+  console.
+
+Inputs:
+
+- `ContextKnowledgeBase/AISHAStorySpine.md`
+- `ContextKnowledgeBase/UIUXBrief.md`
+- `app.py`
+
+New-hire view target:
+
+- First screen answers: What should Alyssa do next? What is blocked? Who can
+  help? What is the Day 30 readiness target?
+- Show onboarding/ramp stages without a laundry list.
+- Prompt chips should match the new story: access blocker, compliance module,
+  branch shadowing, who owns this, mark milestone done, I feel behind.
+- Keep citations visible as trust evidence.
+
+HR view target:
+
+- Lead with support cards, not tables.
+- Show support signals: delayed milestone, repeated blocker, missed buddy or
+  manager touchpoint, pulse trend, suggested support action.
+- Include privacy copy: "No private chat transcript shown by default."
+- Keep tables as drill-down only.
+
+Definition of done:
+
+- UI demonstrates the AISHA story in 6-8 beats.
+- Demo controls remain available but secondary.
+- HR view feels supportive, not punitive or surveillance-oriented.
+
+## Slice 4 - REST API Endpoint
 
 Goal:
 
@@ -73,12 +195,7 @@ Definition of done:
 - API can answer a mocked or testable request.
 - README documents API run and example request.
 
-Risks:
-
-- Streaming does not need to be implemented for the API. A normal JSON response
-  is enough for the rubric.
-
-## Slice 2 - LLMOps monitoring
+## Slice 5 - LLMOps Monitoring
 
 Goal:
 
@@ -111,10 +228,9 @@ Definition of done:
 Important note:
 
 - If exact token usage is unavailable from Ollama/LangChain, estimate tokens
-  from text length and document that choice. The rubric asks for token usage
-  visibility; approximate is better than absent if disclosed.
+  from text length and document that choice.
 
-## Slice 3 - Dockerization
+## Slice 6 - Dockerization
 
 Goal:
 
@@ -140,12 +256,7 @@ Definition of done:
 - README includes one build command and one run command.
 - Instructions mention that models must be pulled and KB ingestion must run.
 
-Risk:
-
-- Bundling Ollama models into the app image is unnecessary and likely too
-  heavy. Keep Ollama external.
-
-## Slice 4 - Disambiguation and persistent memory
+## Slice 7 - Disambiguation And Persistent Memory
 
 Goal:
 
@@ -176,7 +287,7 @@ Definition of done:
   conversation memory.
 - Ambiguous action requests trigger clarification before mutation.
 
-## Slice 5 - Evaluation artifacts
+## Slice 8 - Evaluation Artifacts
 
 Goal:
 
@@ -190,6 +301,7 @@ Likely artifacts:
 - guardrail prompt/model ablation already mentioned in config/docs
 - retrieval sample queries and expected sources
 - failure modes and mitigations
+- AISHA privacy/support-not-surveillance evaluation notes
 
 Definition of done:
 
@@ -197,30 +309,14 @@ Definition of done:
 - Write-up has an evaluation section.
 - README points to evaluation docs.
 
-## Slice 6 - UI/UX redesign brief
+## Cross-Slice Rules
 
-Goal:
-
-- Give a design-focused chat a concrete list of what has to change, not a
-  vague "make it pretty."
-
-Inputs:
-
-- `ContextKnowledgeBase/UIUXBrief.md`
-- current `app.py`
-- final story spine from Slice 0
-
-Outputs:
-
-- Redesigned Streamlit flow or implementation plan.
-- Clear new-hire journey.
-- HR dashboard centered on actions and risk.
-
-## Cross-slice rules
-
+- Read `ContextCatalog.md` first and only load route-specific context.
 - Keep the simulated date behavior for demos.
 - Do not use wall-clock date in pulse/agent logic.
 - Keep citation format stable unless changing all citation contracts together.
-- Do not remove local-first positioning.
+- Keep local-first positioning.
 - Keep tests runnable without Ollama where possible.
+- Do not imply AISHA is affiliated with or representative of BDO.
+- Do not frame AISHA as surveillance, performance scoring, or an HR replacement.
 - Update this folder after each slice.

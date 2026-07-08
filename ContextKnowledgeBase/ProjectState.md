@@ -4,6 +4,26 @@ This is the current implementation state after auditing the repo against
 `Specification.pdf`, `README.md`, `PLAN.md`, `docs/BUSINESS_CASE.md`, and the
 source code.
 
+## Narrative target vs current implementation
+
+Target narrative:
+
+- Front-facing product: AISHA, AI Support for Hires and Associates.
+- Setting: fictionalized BDO educational demo with explicit disclaimer.
+- Main employee: Alyssa Reyes, Management Trainee / Branch Banking Associate.
+- Main value: faster productivity/time-to-ramp through onboarding and ramp
+  support.
+- Demo milestone: Day 30 supervised branch readiness.
+- HR view: support signals and suggested actions, not surveillance.
+
+Current implementation caveat:
+
+- The code/data still contain Meridian/Maya/Meri and 30-60-90 wording until the
+  BDO synthetic-data rebrand slice is implemented.
+- Do not treat Meridian/Maya as the target story. Use
+  `ContextKnowledgeBase/AISHAStorySpine.md` as the target source of truth.
+- After the rebrand, run the stale-wording validation from `AISHAStorySpine.md`.
+
 ## Implemented core
 
 ### Streamlit app

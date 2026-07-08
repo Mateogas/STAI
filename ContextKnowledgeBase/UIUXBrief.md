@@ -1,11 +1,12 @@
 # UI/UX Brief
 
-This brief describes what has to change in the user experience. It intentionally
-does not prescribe the visual implementation.
+This brief describes what has to change in the Streamlit experience after the
+AISHA/BDO/Alyssa story spine. It intentionally does not prescribe visual
+implementation details.
 
-## Current UX problem
+## Current UX Problem
 
-The current app works, but it feels like a technical demo:
+The current app works, but it still feels like a technical demo:
 
 - persona picker is a prototype stand-in but dominates the flow,
 - simulated date is exposed as a primary sidebar control,
@@ -13,107 +14,147 @@ The current app works, but it feels like a technical demo:
 - the new-hire experience is mostly an empty chat,
 - the HR dashboard is table-first rather than action-first,
 - sources and model/config details make sense to developers but not users,
-- the UI does not strongly express the product thesis.
+- the UI does not express the AISHA thesis,
+- current copy still reflects the older Meridian/Maya/Meri story until the
+  rebrand slice is completed.
 
-## Desired UX thesis
+## Desired UX Thesis
 
-The product should feel like:
+AISHA should feel like:
 
-- a new hire's "today in onboarding" cockpit,
-- a safe place to ask basic workplace questions,
-- a guide that helps the employee find people and finish next steps,
-- an HR early-warning console focused on who needs help.
+- Alyssa's "today in onboarding and ramp" cockpit,
+- a safe consultation agent for asking and unblocking,
+- a guide that helps the employee find the right human owner,
+- a manager/HR support console focused on ramp friction,
+- a privacy-conscious support loop, not a surveillance dashboard.
 
-## New-hire view: must change
+## New-Hire View: Must Change
 
-### 1. Start with the employee journey
+### 1. Start With Day 30 Readiness
 
 The first screen should answer:
 
-- What should I do today?
-- What is blocking me?
-- Who can help me?
-- What can I ask without feeling embarrassed?
+- What should Alyssa do next?
+- What is blocking her?
+- Who can help?
+- What does Day 30 supervised branch readiness require?
 
-### 2. Make the plan visible without making it a laundry list
+### 2. Replace 30-60-90 With Onboarding And Ramp Stages
 
-The 30-60-90 plan should be framed as progress through onboarding phases:
+Do not make "30-60-90 onboarding" the main visual. Use:
 
-- Day 1
-- Week 1
-- First 30 days
-- First 60 days
-- First 90 days
+- Pre-start
+- Day 1 Setup
+- Week 1 Foundations
+- Week 2 Practice and Feedback
+- Day 30 Readiness Check
 
-Avoid showing every task as the main visual at all times.
+Anything beyond Day 30 can be shown as ramp analytics, not onboarding.
 
-### 3. Make "ask Meri" contextual
+### 3. Make "Ask AISHA" Contextual
 
-Prompt chips should be tied to use cases:
+Prompt chips should be tied to the new demo:
 
-- Benefits and payslip decoder.
-- First-day logistics.
-- Find the right person.
-- Mark a task done.
-- I feel stuck/overwhelmed.
+- Help me unblock an access issue.
+- What does Day 30 readiness mean for my role?
+- Who owns this branch operations question?
+- Mark a ramp milestone done.
+- I feel behind on my onboarding.
+- What should I prepare before my manager check-in?
 
-### 4. Hide demo controls
+Avoid making payroll/benefits the hero use case. Those can exist, but they
+should not imply the employee is incapable of understanding basic information.
+
+### 4. Hide Demo Controls
 
 The simulated date and persona picker are necessary for the capstone demo, but
 they should feel like demo/admin controls, not the product itself.
 
-### 5. Treat citations as trust, not clutter
+### 5. Treat Citations As Trust, Not Clutter
 
 Sources are important, but they should be shown as evidence/trust affordances.
 Do not make the user feel like they are debugging retrieval.
 
-## HR view: must change
+### 6. Include The BDO Educational Disclaimer
 
-### 1. Lead with attention, not tables
+The UI or demo surface should make it clear that AISHA is an educational
+prototype and all BDO employee data, documents, org contacts, metrics, and
+interactions are fictionalized.
 
-The HR admin should first see:
+## HR View: Must Change
 
-- who is at risk,
-- why they are at risk,
-- what changed recently,
-- what action HR can take.
+### 1. Lead With Support Cards
 
-### 2. Turn pulse data into an action queue
+The HR/admin view should first show:
 
-Risk flags should become cards with:
+- who may need support,
+- what behavior-over-time signals changed,
+- what milestone is delayed,
+- what humane support action is suggested,
+- what privacy boundary is being respected.
 
-- employee,
-- week of onboarding,
-- last sentiment,
-- trend,
-- concern tags,
-- suggested next action,
-- link to escalation or outreach.
+### 2. Make The Aha Moment A Ramp-Delay Support Card
 
-### 3. Keep the table as drill-down
+Example card:
+
+```text
+Alyssa Reyes - Branch Banking Associate
+Ramp status: Needs support
+Signal: Day 1 access setup completed 2.1x slower than cohort baseline;
+compliance module overdue by 2 days; no buddy check-in logged this week;
+pulse confidence dropped from 4 to 2.
+Suggested action: Schedule a 15-minute buddy check-in and clarify Day 30
+readiness expectations.
+Privacy note: No private chat transcript shown by default.
+```
+
+### 3. Keep Tables As Drill-Down
 
 Tables are useful, but they should not be the primary dashboard story.
 
-### 4. Separate escalations from pulse risk
+### 4. Separate Explicit Escalations From Trend Signals
 
 Escalations are explicit help requests.
-Pulse risk is inferred early-warning data.
+Ramp-delay support signals are inferred from behavior over time.
 The UI should make that difference clear.
 
-## Demo flow to support
+### 5. Avoid Surveillance Language
+
+Do not use:
+
+- flight risk,
+- poor performer,
+- watched,
+- monitored,
+- productivity score,
+- belonging score,
+- desk time.
+
+Use:
+
+- support signal,
+- ramp friction,
+- delayed milestone,
+- missed touchpoint,
+- suggested support action,
+- privacy note.
+
+## Demo Flow To Support
 
 The UI should make this demo feel natural:
 
-1. New hire asks a "basic" question about payslip/benefits.
-2. Assistant answers with citations and plain-language tone.
-3. New hire asks who handles a concrete issue.
-4. Assistant finds a person and suggests an intro.
-5. New hire completes a task.
-6. A weekly pulse appears.
-7. New hire admits feeling overwhelmed.
-8. HR view surfaces risk and suggested action.
+1. Show the BDO educational disclaimer.
+2. Sign in as Alyssa Reyes, Management Trainee / Branch Banking Associate.
+3. Show Alyssa's onboarding/ramp cockpit and Day 30 readiness goal.
+4. Alyssa asks a grounded branch/compliance/ramp question and receives
+   citations.
+5. Alyssa asks who owns a blocker; AISHA finds the right person/team.
+6. Alyssa completes or updates a milestone.
+7. A weekly pulse appears; Alyssa reports low confidence or feeling behind.
+8. HR view surfaces a support card with trend signals and a suggested action,
+   with no private transcript shown by default.
 
-## Design constraints
+## Design Constraints
 
 - Keep it Streamlit unless a separate decision is made.
 - Keep local-first and privacy-friendly positioning.
@@ -122,13 +163,17 @@ The UI should make this demo feel natural:
 - Keep HR and new-hire views distinct.
 - Do not add authentication beyond the existing persona picker unless needed
   for the assignment.
+- Do not implement future integrations such as HRIS, LMS, calendar, SSO, or
+  absence-pattern data in the live demo unless a later slice explicitly scopes
+  them.
 
-## What not to optimize first
+## What Not To Optimize First
 
-- Pixel-perfect brand styling.
+- Pixel-perfect BDO brand styling.
 - Fancy animations.
 - More charts.
 - More generic dashboard metrics.
 - Model configuration UI.
+- Attendance or absence integrations.
 
-The main UX gap is flow and product framing, not visual decoration.
+The main UX gap is product flow and AISHA framing, not decoration.

@@ -1,5 +1,12 @@
 # STAI — Onboarding Agent for New Hires
 
+> Narrative update pending: the accepted front-facing product/story is now
+> AISHA (AI Support for Hires and Associates), using a fictionalized BDO
+> educational demo with Alyssa Reyes as the main employee. This README still
+> contains older Meridian/Maya demo wording until the BDO synthetic-data
+> rebrand slice is implemented. See
+> `ContextKnowledgeBase/AISHAStorySpine.md`.
+
 An **agentic AI assistant for new-hire onboarding**, focused on fresh graduates.
 Runs **fully local** — Ollama LLMs, Chroma vector store, SQLite state, Streamlit
 UI. No data leaves the machine. Built for the fictional company **Meridian

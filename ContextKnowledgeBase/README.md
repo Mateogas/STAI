@@ -19,13 +19,16 @@ Use this folder as the "instant context pack" for follow-up chats.
 
 For any new chat, read these first:
 
-1. `ProjectSynopsis.md` - north star, business framing, and product thesis.
-2. `ProjectState.md` - what exists in code and what is missing.
-3. `ImplementationPlan.md` - remaining work sliced into separate chats.
-4. `ModuleChecklist.md` - rubric mapping and evidence.
+1. `ContextCatalog.md` - routing guide for which context files to read by task.
+2. `AISHAStorySpine.md` - locked BDO/AISHA narrative, scope, and migration rules.
+3. Route-specific files listed in `ContextCatalog.md`.
 
 Then read the relevant specialist file:
 
+- `ProjectSynopsis.md` for the north star, business framing, and product thesis.
+- `ProjectState.md` for what exists in code and what is missing.
+- `ImplementationPlan.md` for remaining work sliced into separate chats.
+- `ModuleChecklist.md` for rubric mapping and evidence.
 - `UIUXBrief.md` for design/UI work.
 - `Changelog.md` for commit history and inherited state.
 - `ChatPrompts.md` for copy-paste prompts to start focused chats.
@@ -44,6 +47,14 @@ auditing the migration itself.
 Primary handoff:
 
 - `ContextKnowledgeBase/*.md`
+
+Routing source:
+
+- `ContextKnowledgeBase/ContextCatalog.md`
+
+Narrative source:
+
+- `ContextKnowledgeBase/AISHAStorySpine.md`
 
 Authoritative implementation:
 
@@ -72,5 +83,6 @@ When a chat changes code or product direction, update the relevant file here:
 - remaining task changed -> `ImplementationPlan.md`
 - module evidence changed -> `ModuleChecklist.md`
 - story/north star changed -> `ProjectSynopsis.md`
+- BDO/AISHA narrative or rebrand scope changed -> `AISHAStorySpine.md`
 - UI scope changed -> `UIUXBrief.md`
 - commit or major iteration happened -> `Changelog.md`

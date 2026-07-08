@@ -1,5 +1,12 @@
 # STAI — Business Case
 
+> Narrative update pending: the accepted front-facing product/story is now
+> AISHA (AI Support for Hires and Associates), using a fictionalized BDO
+> educational demo with Alyssa Reyes as the main employee. This business case
+> still contains older Meridian/Maya and attrition-first wording until the BDO
+> synthetic-data rebrand slice is implemented. See
+> `ContextKnowledgeBase/AISHAStorySpine.md`.
+
 **One-liner:** a local-first, agentic onboarding assistant that doesn't just
 hand new hires a checklist — it answers the questions they're afraid to ask,
 notices when they're about to quit, and tells HR before it happens.
