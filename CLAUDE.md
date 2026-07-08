@@ -53,6 +53,7 @@ Current narrative direction:
 uv sync                                  # install (Python 3.12 pinned)
 uv run python -m stai.ingestion          # (re)build Chroma KB from data/hr_docs (needs Ollama)
 uv run streamlit run app.py              # run the app
+uv run uvicorn stai.api:app --reload     # run the REST API (/health, /chat)
 uv run pytest                            # full suite - no Ollama needed (LLMs mocked)
 uv run pytest tests/test_pulse.py -k risk   # single file / keyword
 ```
@@ -73,6 +74,13 @@ turn so the system prompt carries persona + simulated date) -> tools mutate
 state and record into a `tools.RunCapture` -> `guardrails.apply_output_guardrails`
 (must-cite check + PII redaction) rewrites the streamed text before it is
 persisted.
+
+The same stages are packaged non-streaming in `service.run_chat_turn`, which
+the FastAPI app (`stai.api`: `GET /health`, `POST /chat`) reuses. Every turn
+(Streamlit or API) appends one JSON line to `data/observability.jsonl` via
+`stai.observability` (lengths/latency/tools/sources - never message text).
+Chat turns also persist to the SQLite `chat_messages` table, so conversations
+survive restarts; the API loads that history when a request carries none.
 
 Key cross-file contracts:
 

@@ -14,7 +14,8 @@ a **Management Trainee / Branch Banking Associate** ramping toward a **Day 30
 Readiness Check** for supervised branch customer interactions.
 
 Why this exists, who pays for it, and why agentic AI matters:
-[`docs/BUSINESS_CASE.md`](docs/BUSINESS_CASE.md).
+[`docs/BUSINESS_CASE.md`](docs/BUSINESS_CASE.md). What was evaluated and what
+the experiments found: [`docs/EVALUATION.md`](docs/EVALUATION.md).
 
 ## What it does
 
@@ -28,6 +29,9 @@ Why this exists, who pays for it, and why agentic AI matters:
 | Differentiator | Proactive pulse check-ins that surface support needs early |
 | Differentiator | People routing for IT access, payroll, benefits, compliance learning, manager, buddy, and branch operations |
 | Extra | Replies in the user's language; input/output guardrails for topic scope, injection, citations, and PII redaction |
+| Extra | REST API (`/health`, `/chat`) sharing the same guarded pipeline as the UI |
+| Extra | Persistent chat memory in SQLite - conversations survive app restarts |
+| Extra | Per-turn LLMOps run log (latency, token estimates, tools, sources, errors) |
 
 ## Ramp stages
 
@@ -84,6 +88,72 @@ All model names and knobs are env-overridable with `STAI_*`; see
 because it performed better on the topic battery than the smaller guardrail
 option documented in the original plan.
 
+## REST API
+
+The same guarded agent pipeline is exposed over HTTP:
+
+```powershell
+uv run uvicorn stai.api:app --reload
+```
+
+- `GET /health` - liveness, knowledge-base status, model names.
+- `POST /chat` - one agent turn. OpenAPI docs at `http://localhost:8000/docs`.
+
+```powershell
+curl -X POST http://localhost:8000/chat -H "Content-Type: application/json" -d '{
+  "employee_id": "emp-alyssa",
+  "message": "How do I file a leave request?",
+  "sim_date": "2026-07-07"
+}'
+```
+
+The response carries `answer`, `citations`, `sources`, `escalation_id`,
+`plan_changed`, and the input-guardrail `guardrail_category`. If no `history`
+is passed, the API uses (and appends to) the persistent chat memory in SQLite,
+so API conversations survive restarts.
+
+## Observability
+
+Every chat turn - Streamlit or API - appends one JSON line to
+`data/observability.jsonl`: route, model names, message/answer sizes, estimated
+tokens, latency, tools used, sources retrieved, guardrail category, and errors.
+Message *text* is deliberately never logged (support, not surveillance).
+
+```powershell
+Get-Content data/observability.jsonl -Tail 5
+```
+
+Why a local JSONL log instead of MLflow, and what the fields mean:
+[`docs/EVALUATION.md`](docs/EVALUATION.md) and `src/stai/observability.py`.
+
+## Docker
+
+The container holds the app only - Ollama stays on the host (the image makes
+no attempt to bundle it):
+
+```powershell
+docker build -t aisha-demo .
+docker run -p 8501:8501 -e STAI_OLLAMA_BASE_URL=http://host.docker.internal:11434 aisha-demo
+```
+
+For the REST API instead of the UI:
+
+```powershell
+docker run -p 8000:8000 -e STAI_OLLAMA_BASE_URL=http://host.docker.internal:11434 `
+  aisha-demo uv run uvicorn stai.api:app --host 0.0.0.0 --port 8000
+```
+
+Prerequisites on the Ollama side: the three models pulled (see Setup). First
+run only, build the knowledge base inside the container once Ollama is
+reachable:
+
+```powershell
+docker exec <container> uv run python -m stai.ingestion
+```
+
+On Linux, add `--add-host=host.docker.internal:host-gateway` or point
+`STAI_OLLAMA_BASE_URL` at your Ollama container.
+
 ## Demo script
 
 1. Sidebar: sign in as **Alyssa Reyes - Management Trainee / Branch Banking Associate**.
@@ -108,27 +178,51 @@ uv run pytest tests/test_pulse.py -k risk
 
 Tests are designed to run without Ollama. LLM calls are mocked or injectable.
 
+## Module ownership and evidence
+
+Full evidence table, experiments, failure modes, and privacy notes:
+[`docs/EVALUATION.md`](docs/EVALUATION.md).
+
+| Module | Where it lives | Tests |
+|---|---|---|
+| Prompt engineering | `src/stai/agent.py`, `src/stai/guardrails.py` | `test_guardrails.py` |
+| Structured outputs | `parse_verdict` / `parse_pulse` | `test_guardrails.py`, `test_pulse.py` |
+| RAG + citations | `ingestion.py`, `retriever.py` | `test_ingestion.py`, `test_agent_smoke.py` |
+| Guardrails | `src/stai/guardrails.py` | `test_guardrails.py` |
+| ReAct agent + tools | `agent.py`, `tools.py` | `test_agent_smoke.py`, `test_state_and_tools.py` |
+| Disambiguation | `find_task_matches` in `tools.py` | `test_disambiguation.py` |
+| Memory (session + persistent) | `state.py` (`chat_messages`), `app.py`, `api.py` | `test_memory.py` |
+| Chat UI | `app.py` | `test_app_boot.py` |
+| REST API | `src/stai/api.py`, `src/stai/service.py` | `test_api.py` |
+| LLMOps monitoring | `src/stai/observability.py` | `test_observability.py` |
+| Dockerization | `Dockerfile`, `.dockerignore` | build/run commands above |
+
 ## Layout
 
 ```text
 app.py                 Streamlit entry: new-hire chat + HR support dashboard
+Dockerfile             app container (connects to host Ollama)
 src/stai/
   config.py            pydantic-settings, env-overridable STAI_* settings
   models.py            Employee, ChecklistItem, PulseResult, GuardrailVerdict
   ingestion.py         hr_docs/*.md -> chunks -> Chroma
   retriever.py         similarity search + metadata filters
-  tools.py             five agent tools + RunCapture
+  tools.py             five agent tools + RunCapture + task disambiguation
   agent.py             ChatOllama agent + AISHA system prompt
   guardrails.py        input classifier, citation enforcement, PII redaction
   pulse.py             check-in scheduling, sentiment scoring, support flag
-  state.py             SQLite repo: employees, plans, escalations, pulses
+  state.py             SQLite repo: employees, plans, escalations, pulses, chat memory
+  service.py           one reusable guarded chat turn (used by the API)
+  api.py               FastAPI REST endpoint (/health, /chat)
+  observability.py     per-turn JSONL run log (LLMOps)
 data/
   hr_docs/             fictionalized BDO educational onboarding docs
   org.json             fictional org directory
   employees.json       demo new hires
   plans.json           role ramp templates
 docs/BUSINESS_CASE.md  market, wedge, "why not ChatGPT", ROI
-tests/                 pytest suite
+docs/EVALUATION.md     module evidence, experiments, failure modes, privacy
+tests/                 pytest suite (runs without Ollama)
 ```
 
 MIT (c) 2026 Mateogas

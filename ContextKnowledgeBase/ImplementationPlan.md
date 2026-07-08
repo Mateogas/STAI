@@ -6,13 +6,17 @@ windows. Use `ContextCatalog.md` to decide which files to read for each slice.
 ## Recommended Sequence
 
 1. Story spine and routing context - done.
-2. Generate fictionalized BDO synthetic data and replace Meridian/Maya/Meri.
+2. Generate fictionalized BDO synthetic data and replace the old demo
+   narrative - done (Slice 1).
 3. Add TDD safeguards for stale wording, rebrand consistency, and behavior
-   contracts.
-4. Redesign UI/UX around Alyssa's Day 30 readiness journey and HR support cards.
-5. Close hard rubric gaps: API, LLMOps, Docker.
-6. Strengthen partial modules: disambiguation and persistent memory.
-7. Produce evaluation/write-up artifacts and final README/spec alignment.
+   contracts - done (rebrand regression test plus per-module suites).
+4. Redesign UI/UX around Alyssa's Day 30 readiness journey and HR support
+   cards - remaining.
+5. Close hard rubric gaps: API, LLMOps, Docker - done (Slices 4-6).
+6. Strengthen partial modules: disambiguation and persistent memory - done
+   (Slice 7).
+7. Produce evaluation/write-up artifacts and final README/spec alignment -
+   done (Slice 8).
 
 The rebrand is now large enough that it should be treated as an implementation
 slice, not a copy pass. Do not mix unrelated architecture changes into the data
@@ -168,6 +172,9 @@ Definition of done:
 
 ## Slice 4 - REST API Endpoint
 
+Status: implemented (`src/stai/api.py`, `src/stai/service.py`,
+`tests/test_api.py`; run with `uv run uvicorn stai.api:app --reload`).
+
 Goal:
 
 - Expose the agent through a REST endpoint while reusing the existing pipeline.
@@ -199,6 +206,13 @@ Definition of done:
 - README documents API run and example request.
 
 ## Slice 5 - LLMOps Monitoring
+
+Status: implemented (`src/stai/observability.py`,
+`tests/test_observability.py`). Deviation from the plan below: a local JSONL
+run log was chosen over MLflow - the demo is local-first/offline and the
+rubric needs traces/latency/tokens/errors, not experiment tracking; the sink
+is isolated in `log_turn` so MLflow remains a one-function swap. Rationale
+documented in the module docstring and `docs/EVALUATION.md`.
 
 Goal:
 
@@ -235,6 +249,9 @@ Important note:
 
 ## Slice 6 - Dockerization
 
+Status: implemented (`Dockerfile`, `.dockerignore`, README instructions).
+Build not yet verified on a machine with Docker installed.
+
 Goal:
 
 - Package the app with documented build/run instructions.
@@ -260,6 +277,10 @@ Definition of done:
 - Instructions mention that models must be pulled and KB ingestion must run.
 
 ## Slice 7 - Disambiguation And Persistent Memory
+
+Status: implemented (`find_task_matches`/`ambiguous_task_matches` in
+`tools.py`, `chat_messages` table + repo methods in `state.py`, Streamlit and
+API integration; `tests/test_disambiguation.py`, `tests/test_memory.py`).
 
 Goal:
 
@@ -291,6 +312,9 @@ Definition of done:
 - Ambiguous action requests trigger clarification before mutation.
 
 ## Slice 8 - Evaluation Artifacts
+
+Status: implemented (`docs/EVALUATION.md`; README module ownership/evidence
+table and links).
 
 Goal:
 

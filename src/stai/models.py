@@ -90,6 +90,18 @@ class PulseRecord(PulseResult):
     raw_reply: str = ""
 
 
+class ChatMessage(BaseModel):
+    """One persisted chat turn (survives app restarts, unlike session state)."""
+
+    id: int
+    employee_id: str
+    role: Literal["user", "assistant"]
+    content: str
+    kind: str = ""  # "", "checkin", "refusal"
+    sources: list[dict] = Field(default_factory=list)
+    created_at: datetime
+
+
 class GuardrailVerdict(BaseModel):
     category: Literal["on_topic", "off_topic", "injection"]
     reason: str = ""

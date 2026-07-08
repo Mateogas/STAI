@@ -53,5 +53,8 @@ class Settings(BaseSettings):
     # --- pulse check-ins ---
     pulse_cadence_days: int = 7
 
+    # --- observability (see src/stai/observability.py) ---
+    obs_log_path: Path = _DATA / "observability.jsonl"
+
 
 settings = Settings()

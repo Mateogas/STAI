@@ -182,4 +182,5 @@ cython_debug/
 # STAI runtime artifacts
 data/chroma/
 data/stai.db
+data/observability.jsonl
 .env

@@ -138,6 +138,61 @@ Remaining follow-up:
 - Continue with module checklist gaps: API endpoint, LLMOps, Docker,
   evaluation artifact, persistent memory, and deterministic disambiguation.
 
+## 2026-07-09 - Module checklist close-out: API, LLMOps, Docker, memory, disambiguation, evaluation
+
+Files changed:
+
+- `pyproject.toml` (+ fastapi, uvicorn; dev + httpx)
+- `src/stai/service.py` (new: reusable guarded chat turn)
+- `src/stai/api.py` (new: FastAPI `GET /health`, `POST /chat`)
+- `src/stai/observability.py` (new: per-turn JSONL run log)
+- `src/stai/config.py` (`obs_log_path` setting)
+- `src/stai/state.py` (`chat_messages` table + add/list/clear methods)
+- `src/stai/models.py` (`ChatMessage` model)
+- `src/stai/tools.py` (`RunCapture.tool_calls`, `find_task_matches`,
+  `ambiguous_task_matches`, `complete_task` ambiguity refusal)
+- `app.py` (persistent chat memory load/persist, per-turn observability)
+- `Dockerfile`, `.dockerignore` (new)
+- `docs/EVALUATION.md` (new)
+- `README.md` (API/observability/Docker sections, module ownership table)
+- `.env.example`, `.gitignore` (observability log path)
+- `tests/test_api.py`, `tests/test_observability.py`, `tests/test_memory.py`,
+  `tests/test_disambiguation.py` (new)
+- `ContextKnowledgeBase/ProjectState.md`, `ImplementationPlan.md`,
+  `ModuleChecklist.md`
+
+Capability added:
+
+- REST API reusing the exact Streamlit pipeline stages, with injectable LLMs
+  and TestClient tests (no Ollama).
+- LLMOps observability: one JSON line per chat turn (route, models, token
+  estimates, latency, tools, sources, errors); JSONL chosen over MLflow for
+  the local-first demo, rationale documented; message text never logged.
+- Persistent conversation memory in SQLite, used by both Streamlit and the
+  API; survives restarts.
+- Deterministic task disambiguation: ambiguous references never mutate the
+  plan; the agent is handed candidates to ask one clarifying question.
+- Docker packaging with documented host-Ollama connection.
+- Evaluation/write-up artifact with module evidence, guardrail ablation,
+  retrieval checks, failure modes, and privacy notes.
+
+Preserved contracts: citation format `[source: filename.md]`, tool names,
+`RunCapture` (extended additively with `tool_calls`), simulated-date behavior,
+SQLite seed behavior, AISHA/BDO/Alyssa narrative and disclaimer,
+support-not-surveillance boundary, tests runnable without Ollama.
+
+Tests run:
+
+- `uv run pytest`: 86 passed (uv was installed to `~\.local\bin` during this
+  session; Python 3.12 provisioned by uv).
+- Stale-wording scan over `app.py src data README.md docs tests`: zero
+  matches. Remaining hits live only in `ContextKnowledgeBase` migration
+  notes/changelog, which the story spine explicitly allows.
+
+Remaining follow-up:
+
+- Slice 3 UI/UX redesign.
+
 ## Future changelog rule
 
 When a future chat finishes a task, append a short entry here:

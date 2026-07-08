@@ -21,6 +21,7 @@ from stai.config import settings
 from stai.models import (
     PHASE_LABELS,
     PHASE_ORDER,
+    ChatMessage,
     ChecklistItem,
     Employee,
     Escalation,
@@ -56,6 +57,15 @@ CREATE TABLE IF NOT EXISTS escalations (
     question    TEXT NOT NULL,
     details     TEXT DEFAULT '',
     status      TEXT NOT NULL DEFAULT 'open',
+    created_at  TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id TEXT NOT NULL REFERENCES employees(id),
+    role        TEXT NOT NULL,
+    content     TEXT NOT NULL,
+    kind        TEXT DEFAULT '',
+    sources     TEXT NOT NULL DEFAULT '[]',
     created_at  TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS pulse_checkins (
@@ -219,6 +229,52 @@ class Repo:
                 "UPDATE escalations SET status = 'resolved' WHERE id = ?", (escalation_id,)
             )
             return cur.rowcount > 0
+
+    # ---------------------------------------------------------- chat memory
+
+    def add_chat_message(
+        self,
+        employee_id: str,
+        role: str,
+        content: str,
+        kind: str = "",
+        sources: list[dict] | None = None,
+    ) -> ChatMessage:
+        created = datetime.now().isoformat(timespec="seconds")
+        with self._connect() as conn:
+            cur = conn.execute(
+                "INSERT INTO chat_messages (employee_id, role, content, kind, sources,"
+                " created_at) VALUES (?,?,?,?,?,?)",
+                (employee_id, role, content, kind, json.dumps(sources or []), created),
+            )
+            msg_id = cur.lastrowid
+        return ChatMessage(
+            id=msg_id, employee_id=employee_id, role=role, content=content,
+            kind=kind, sources=sources or [], created_at=created,
+        )
+
+    def list_chat_messages(
+        self, employee_id: str, limit: int | None = None
+    ) -> list[ChatMessage]:
+        """Chronological history; with ``limit``, only the most recent N."""
+        query = "SELECT * FROM chat_messages WHERE employee_id = ? ORDER BY id"
+        with self._connect() as conn:
+            rows = conn.execute(query, (employee_id,)).fetchall()
+        if limit is not None:
+            rows = rows[-limit:]
+        messages = []
+        for r in rows:
+            d = dict(r)
+            d["sources"] = json.loads(d["sources"] or "[]")
+            messages.append(ChatMessage(**d))
+        return messages
+
+    def clear_chat_messages(self, employee_id: str) -> int:
+        with self._connect() as conn:
+            cur = conn.execute(
+                "DELETE FROM chat_messages WHERE employee_id = ?", (employee_id,)
+            )
+            return cur.rowcount
 
     # ----------------------------------------------------------------- pulse
 

@@ -9,6 +9,7 @@ Run: uv run streamlit run app.py
 
 from __future__ import annotations
 
+import time
 from datetime import date
 
 import pandas as pd
@@ -20,6 +21,7 @@ from stai.agent import build_agent, stream_agent_text
 from stai.config import settings
 from stai.guardrails import REFUSALS, apply_output_guardrails, classify_input
 from stai.models import Employee
+from stai.observability import TurnRecord, estimate_tokens, log_turn
 from stai.state import Repo
 
 st.set_page_config(
@@ -158,32 +160,45 @@ def render_chat(employee: Employee) -> None:
         )
 
     msgs_key = f"messages_{employee.id}"
-    if msgs_key not in st.session_state:
-        st.session_state[msgs_key] = [
-            {
-                "role": "assistant",
-                "content": (
-                    f"Hi {employee.first_name}! I'm **AISHA**, your onboarding and ramp "
-                    "support assistant for this fictionalized BDO educational demo. "
-                    "Ask me about your ramp plan, branch readiness, payslips, benefits, "
-                    "policies, access blockers, or who can help."
-                ),
-            }
-        ]
-    messages: list[dict] = st.session_state[msgs_key]
-
     asked_key = f"pulse_asked_{employee.id}"
     pending_key = f"pulse_pending_{employee.id}"
+    if msgs_key not in st.session_state:
+        # Chat memory persists in SQLite; session state is just this render's cache.
+        persisted = repo.list_chat_messages(employee.id)
+        if persisted:
+            st.session_state[msgs_key] = [
+                {
+                    "role": m.role,
+                    "content": m.content,
+                    **({"kind": m.kind} if m.kind else {}),
+                    **({"sources": m.sources} if m.sources else {}),
+                }
+                for m in persisted
+            ]
+            if persisted[-1].kind == "checkin":
+                # Restart mid-check-in: treat the next reply as the pulse answer
+                # instead of asking again.
+                st.session_state[asked_key] = sim_date.isoformat()
+                st.session_state[pending_key] = True
+        else:
+            greeting = (
+                f"Hi {employee.first_name}! I'm **AISHA**, your onboarding and ramp "
+                "support assistant for this fictionalized BDO educational demo. "
+                "Ask me about your ramp plan, branch readiness, payslips, benefits, "
+                "policies, access blockers, or who can help."
+            )
+            repo.add_chat_message(employee.id, "assistant", greeting)
+            st.session_state[msgs_key] = [{"role": "assistant", "content": greeting}]
+    messages: list[dict] = st.session_state[msgs_key]
+
     if pulse.is_checkin_due(
         employee.start_date, sim_date, repo.last_checkin_date(employee.id)
     ) and st.session_state.get(asked_key) != sim_date.isoformat():
+        checkin_question = pulse.build_checkin_question(employee, sim_date)
         messages.append(
-            {
-                "role": "assistant",
-                "content": pulse.build_checkin_question(employee, sim_date),
-                "kind": "checkin",
-            }
+            {"role": "assistant", "content": checkin_question, "kind": "checkin"}
         )
+        repo.add_chat_message(employee.id, "assistant", checkin_question, kind="checkin")
         st.session_state[asked_key] = sim_date.isoformat()
         st.session_state[pending_key] = True
 
@@ -206,8 +221,10 @@ def render_chat(employee: Employee) -> None:
         return
 
     messages.append({"role": "user", "content": prompt})
+    repo.add_chat_message(employee.id, "user", prompt)
     show_message(messages[-1])
 
+    turn_started = time.perf_counter()
     was_pulse_reply = st.session_state.pop(pending_key, False)
     if was_pulse_reply:
         with st.spinner("Recording your check-in..."):
@@ -221,6 +238,19 @@ def render_chat(employee: Employee) -> None:
         if not verdict.allowed:
             refusal = REFUSALS[verdict.category]
             messages.append({"role": "assistant", "content": refusal, "kind": "refusal"})
+            repo.add_chat_message(employee.id, "assistant", refusal, kind="refusal")
+            log_turn(
+                TurnRecord(
+                    route="streamlit",
+                    employee_id=employee.id,
+                    agent_model=settings.agent_model,
+                    guardrail_model=settings.guardrail_model,
+                    message_chars=len(prompt),
+                    guardrail_category=verdict.category,
+                    refused=True,
+                    latency_ms=int((time.perf_counter() - turn_started) * 1000),
+                )
+            )
             show_message(messages[-1])
             return
 
@@ -241,6 +271,17 @@ def render_chat(employee: Employee) -> None:
                 f"`{settings.agent_model}` / `{settings.guardrail_model}` pulled?\n\n"
                 f"`{exc}`"
             )
+            log_turn(
+                TurnRecord(
+                    route="streamlit",
+                    employee_id=employee.id,
+                    agent_model=settings.agent_model,
+                    guardrail_model=settings.guardrail_model,
+                    message_chars=len(prompt),
+                    latency_ms=int((time.perf_counter() - turn_started) * 1000),
+                    error=f"{type(exc).__name__}: {exc}",
+                )
+            )
             messages.pop()
             return
 
@@ -257,6 +298,27 @@ def render_chat(employee: Employee) -> None:
             "content": grounded.answer,
             "sources": capture.sources or None,
         }
+    )
+    repo.add_chat_message(
+        employee.id, "assistant", grounded.answer, sources=capture.sources
+    )
+    log_turn(
+        TurnRecord(
+            route="streamlit",
+            employee_id=employee.id,
+            agent_model=settings.agent_model,
+            guardrail_model=settings.guardrail_model,
+            message_chars=len(prompt),
+            answer_chars=len(grounded.answer),
+            est_input_tokens=estimate_tokens(prompt),
+            est_output_tokens=estimate_tokens(grounded.answer),
+            latency_ms=int((time.perf_counter() - turn_started) * 1000),
+            guardrail_category="" if was_pulse_reply else "on_topic",
+            tools_used=list(capture.tool_calls),
+            sources=capture.source_names,
+            escalation_id=capture.escalation_id,
+            plan_changed=capture.plan_changed,
+        )
     )
     if capture.escalation_id:
         st.toast(

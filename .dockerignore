@@ -1,0 +1,25 @@
+# Keep the image to code + seed data; runtime artifacts are rebuilt inside.
+.git
+.gitattributes
+.venv
+.pytest_cache
+__pycache__
+**/__pycache__
+*.pyc
+.env
+
+# Runtime state - regenerate inside the container (ingestion + first boot).
+data/stai.db
+data/chroma/
+data/observability.jsonl
+
+# Not needed at runtime.
+tests/
+docs/
+ContextKnowledgeBase/
+Specification.pdf
+PLAN.md
+AGENTS.md
+CLAUDE.md
+ContextTransfer.md
+test.txt

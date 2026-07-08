@@ -49,6 +49,7 @@ class RunCapture:
     used_search: bool = False
     escalation_id: int | None = None
     plan_changed: bool = False
+    tool_calls: list[str] = field(default_factory=list)
 
     @property
     def source_names(self) -> list[str]:
@@ -93,16 +94,28 @@ def match_people(query: str, people: list[Person], top_n: int = 2) -> list[Perso
     return [p for _, p in scored[:top_n]]
 
 
-def match_task(query: str, items: list[ChecklistItem]) -> ChecklistItem | None:
-    """Resolve a task reference (id number or fuzzy title) to a plan item."""
+# Two open tasks whose match scores are closer than this are ambiguous:
+# the agent must ask instead of mutating the plan.
+AMBIGUITY_MARGIN = 0.1
+
+
+def find_task_matches(
+    query: str, items: list[ChecklistItem]
+) -> list[tuple[float, ChecklistItem]]:
+    """Score every plan item against a task reference, best first.
+
+    Returns ``(score, item)`` pairs with score >= 0.5. An exact numeric id is
+    a single perfect match. Open items get a small bonus so completed tasks
+    do not shadow their open twins.
+    """
     q = query.strip()
     if q.isdigit():
         wanted = int(q)
-        return next((i for i in items if i.id == wanted), None)
+        item = next((i for i in items if i.id == wanted), None)
+        return [(1.0, item)] if item else []
 
     q_tokens = _tokens(q)
-    best: ChecklistItem | None = None
-    best_score = 0.0
+    scored: list[tuple[float, ChecklistItem]] = []
     for item in items:
         t_tokens = _tokens(item.title)
         score = difflib.SequenceMatcher(None, q.lower(), item.title.lower()).ratio()
@@ -113,9 +126,31 @@ def match_task(query: str, items: list[ChecklistItem]) -> ChecklistItem | None:
             score = max(score, hits / len(q_tokens))
         if not item.done:
             score += 0.05
-        if score > best_score:
-            best, best_score = item, score
-    return best if best_score >= 0.5 else None
+        if score >= 0.5:
+            scored.append((score, item))
+    scored.sort(key=lambda pair: -pair[0])
+    return scored
+
+
+def match_task(query: str, items: list[ChecklistItem]) -> ChecklistItem | None:
+    """Resolve a task reference (id number or fuzzy title) to a plan item."""
+    matches = find_task_matches(query, items)
+    return matches[0][1] if matches else None
+
+
+def ambiguous_task_matches(
+    matches: list[tuple[float, ChecklistItem]]
+) -> list[ChecklistItem]:
+    """Open plan items a task reference matches too evenly to act on.
+
+    Returns the tied candidates when two or more *open* items score within
+    ``AMBIGUITY_MARGIN`` of each other; empty list means it is safe to act.
+    """
+    open_matches = [(s, i) for s, i in matches if not i.done]
+    if len(open_matches) >= 2 and open_matches[0][0] - open_matches[1][0] < AMBIGUITY_MARGIN:
+        best = open_matches[0][0]
+        return [i for s, i in open_matches if best - s < AMBIGUITY_MARGIN]
+    return []
 
 
 def build_tools(employee: Employee, repo: Repo, sim_date: date):
@@ -131,6 +166,7 @@ def build_tools(employee: Employee, repo: Repo, sim_date: date):
         'explainer', 'checklist', 'glossary'."""
         from stai.retriever import format_docs, retrieve
 
+        capture.tool_calls.append("search_knowledge_base")
         capture.used_search = True
         docs = retrieve(query, doc_type=doc_type or None)
         for doc in docs:
@@ -155,6 +191,7 @@ def build_tools(employee: Employee, repo: Repo, sim_date: date):
         numeric id, and completion state. Use when the user asks about tasks,
         progress, Day 30 readiness, or what to do next. The optional 'focus'
         argument is ignored; the full plan is returned."""
+        capture.tool_calls.append("get_my_plan")
         phases = repo.get_plan(employee.id)
         done, total = repo.progress(employee.id)
         lines = [f"{employee.name}'s onboarding and ramp plan - {done}/{total} tasks done:"]
@@ -169,9 +206,20 @@ def build_tools(employee: Employee, repo: Repo, sim_date: date):
     def complete_task(task: str) -> str:
         """Mark one onboarding or ramp task as done. Pass the task's numeric id
         or a distinctive fragment of its title, such as 'MFA', 'AML', or
-        'buddy feedback'."""
+        'buddy feedback'. If several open tasks match, nothing is changed and
+        you must ask the user which one they mean."""
+        capture.tool_calls.append("complete_task")
         items = repo.list_plan_items(employee.id)
-        item = match_task(task, items)
+        matches = find_task_matches(task, items)
+        ambiguous = ambiguous_task_matches(matches)
+        if ambiguous:
+            options = "; ".join(f"(id {i.id}) {i.title}" for i in ambiguous)
+            return (
+                f"AMBIGUOUS: {len(ambiguous)} open tasks match '{task}' and "
+                "nothing was marked done. Ask the user which one they mean, "
+                f"then call complete_task with its id: {options}"
+            )
+        item = matches[0][1] if matches else None
         if item is None:
             open_titles = "; ".join(f"(id {i.id}) {i.title}" for i in items if not i.done)
             return (
@@ -193,6 +241,7 @@ def build_tools(employee: Employee, repo: Repo, sim_date: date):
         """File a People Experience ticket when the handbook does not answer,
         when the user reports a serious concern, or when they explicitly ask
         for human support. Pass the user's question and useful context."""
+        capture.tool_calls.append("escalate_to_hr")
         esc = repo.add_escalation(employee.id, question, details)
         capture.escalation_id = esc.id
         return (
@@ -207,6 +256,7 @@ def build_tools(employee: Employee, repo: Repo, sim_date: date):
         (for example payroll, laptop access, AML learning, branch shadowing, or
         benefits enrollment) or find a named colleague. Returns role, team, and
         how to reach them."""
+        capture.tool_calls.append("find_person")
         matches = match_people(query, load_org())
         if not matches:
             return (
