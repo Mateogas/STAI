@@ -1250,6 +1250,45 @@ def build_prompt_chips(
     return chips[:5]
 
 
+def build_presentation_chips(
+    employee: Employee,
+    open_items: list[ChecklistItem],
+    blockers: list[dict],
+) -> list[tuple[str, str]]:
+    """Fast prompts mapped to the four-person presentation split."""
+    demo_task = next(
+        (item for item in open_items if text_has_any(item.title, BLOCKER_TERMS)),
+        open_items[0] if open_items else None,
+    )
+    blocker = blockers[0]["title"] if blockers else "my current access blocker"
+    task_action = (
+        f"mark task {demo_task.id} done"
+        if demo_task
+        else "tell me which task I should complete next"
+    )
+    return [
+        (
+            "A · RAG cites",
+            "How do I file a leave request? Please answer with handbook citations.",
+        ),
+        (
+            "B · Pulse signal",
+            "Honestly, I'm overwhelmed and still waiting on laptop access.",
+        ),
+        ("B · Guardrail", "What is the capital of France?"),
+        ("C · Ambiguous task", "Mark access task done."),
+        (
+            "C · Memory follow-up",
+            "Can you explain that again in simpler terms, based on what we just discussed?",
+        ),
+        (
+            "D · Agent tools",
+            "Read my plan, find who helps with laptop access, "
+            f"{task_action}, and file a People Experience escalation for {blocker}.",
+        ),
+    ]
+
+
 def queue_prompt(employee_id: str, prompt: str) -> None:
     st.session_state[f"queued_prompt_{employee_id}"] = prompt
     st.rerun()
@@ -1350,6 +1389,23 @@ def render_prompt_chips(
     for idx, (label, prompt) in enumerate(chips):
         if cols[idx].button(label, key=f"chip_{employee.id}_{idx}", type="secondary"):
             queue_prompt(employee.id, prompt)
+
+    st.markdown(
+        '<div class="aisha-mini-label" style="margin-top:10px;">Presentation chips</div>',
+        unsafe_allow_html=True,
+    )
+    demo_chips = build_presentation_chips(employee, open_items, blockers)
+    for row_start in range(0, len(demo_chips), 3):
+        row = demo_chips[row_start : row_start + 3]
+        cols = st.columns(len(row))
+        for offset, (label, prompt) in enumerate(row):
+            idx = row_start + offset
+            if cols[offset].button(
+                label,
+                key=f"demo_chip_{employee.id}_{idx}",
+                type="secondary",
+            ):
+                queue_prompt(employee.id, prompt)
 
 
 def render_chat_panel(

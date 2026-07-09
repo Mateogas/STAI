@@ -50,6 +50,9 @@ def test_app_boots_new_hire_readiness_cockpit():
     assert {"Next task", "Day 30 readiness", "Who can help?"} <= {
         button.label for button in at.button
     }
+    assert {"A · RAG cites", "B · Guardrail", "D · Agent tools"} <= {
+        button.label for button in at.button
+    }
 
 
 def test_hr_persona_renders_privacy_first_support_console():
