@@ -5,7 +5,6 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-WorkingDirectory=/opt/stai
-EnvironmentFile=/opt/stai/.env
+WorkingDirectory=/root/STAI
+EnvironmentFile=/root/STAI/.env
 ExecStart=/usr/bin/env uv run python -m stai.log_shipper
-User=stai
