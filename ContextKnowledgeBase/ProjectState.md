@@ -191,8 +191,11 @@ Implemented:
   CMD, API run documented) and `.dockerignore`.
 - Host Ollama connection via `STAI_OLLAMA_BASE_URL=http://host.docker.internal:11434`
   (Linux note included); the image does not bundle Ollama.
-- Build/run commands in README. Not yet verified with an actual `docker build`
-  on this machine (no Docker available in the dev environment).
+- Build/run commands in README. Verified 2026-07-09: `docker build` succeeds
+  (~2 GB image) and a container running `uvicorn stai.api:app` serves
+  `/health` with seeded employees (`kb_ready` false until ingestion runs
+  against a reachable Ollama). `UV_HTTP_TIMEOUT=300` is set in the Dockerfile
+  because slow links time out large wheel downloads at uv's 30s default.
 
 ### Disambiguation
 
@@ -218,10 +221,9 @@ evidence table.
 ## Current biggest risk
 
 The hard spec requirements (web UI, API, LLMOps, Docker, write-up, experiment
-findings, README) all have code and tests. Remaining risks:
+findings, README) all have code, tests, and a verified Docker build. Remaining
+risks:
 
-- The Docker build is documented but not yet executed on a machine with
-  Docker.
 - The Streamlit UI still reads as a dev surface; the UI/UX redesign
   (Slice 3, `UIUXBrief.md`) is the main remaining polish item.
 - Live-demo quality still depends on local Ollama models being pulled and the

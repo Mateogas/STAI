@@ -188,6 +188,10 @@ Tests run:
 - Stale-wording scan over `app.py src data README.md docs tests`: zero
   matches. Remaining hits live only in `ContextKnowledgeBase` migration
   notes/changelog, which the story spine explicitly allows.
+- `docker build -t aisha-demo .`: succeeded (~2 GB image); a container running
+  `uvicorn stai.api:app` served `/health` with the seeded employees. The first
+  build attempt hit a wheel-download timeout, fixed by `UV_HTTP_TIMEOUT=300`
+  in the Dockerfile.
 
 Remaining follow-up:
 

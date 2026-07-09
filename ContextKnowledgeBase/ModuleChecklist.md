@@ -28,7 +28,7 @@ Narrative status:
 | Chat UI | Met | Streamlit chat and HR dashboard in `app.py`. | Redesign flow for usability (Slice 3). |
 | API Endpoint | Met | FastAPI `GET /health` + `POST /chat` in `src/stai/api.py`, reusing the pipeline via `src/stai/service.py`; `tests/test_api.py`. | Keep. |
 | LLMOps Monitoring | Met | Per-turn JSONL run log in `src/stai/observability.py` (route, models, token estimates, latency, tools, sources, errors); wired into Streamlit and API; `tests/test_observability.py`. | Keep; JSONL-over-MLflow rationale documented. |
-| Dockerization | Met | `Dockerfile` + `.dockerignore`; host-Ollama connection and model pulls documented in README. | Verify `docker build` on a machine with Docker. |
+| Dockerization | Met | `Dockerfile` + `.dockerignore`; host-Ollama connection and model pulls documented in README. Build verified 2026-07-09; containerized API served `/health`. | Keep. |
 
 ## Hard requirements from Specification.pdf
 
@@ -43,8 +43,8 @@ The spec explicitly requires:
 - README with setup and architecture - met,
 - live demo - script in README; requires Ollama with the three models pulled.
 
-The remaining engineering gap from the spec list is verifying the Docker build
-on a machine with Docker installed; everything else has code and tests.
+All items on the spec list now have code, tests, and (for Docker) a verified
+build plus containerized `/health` smoke test.
 
 ## Defensible current claims
 

@@ -249,8 +249,10 @@ Important note:
 
 ## Slice 6 - Dockerization
 
-Status: implemented (`Dockerfile`, `.dockerignore`, README instructions).
-Build not yet verified on a machine with Docker installed.
+Status: implemented and verified (`Dockerfile`, `.dockerignore`, README
+instructions). `docker build` succeeded on 2026-07-09 and the containerized
+API served `/health`; `UV_HTTP_TIMEOUT=300` guards against wheel-download
+timeouts during the build.
 
 Goal:
 

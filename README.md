@@ -15,7 +15,8 @@ Readiness Check** for supervised branch customer interactions.
 
 Why this exists, who pays for it, and why agentic AI matters:
 [`docs/BUSINESS_CASE.md`](docs/BUSINESS_CASE.md). What was evaluated and what
-the experiments found: [`docs/EVALUATION.md`](docs/EVALUATION.md).
+the experiments found: [`docs/EVALUATION.md`](docs/EVALUATION.md). Architecture
+and agentic-flow diagrams: [`docs/ARCHITECTURE_DIAGRAMS.md`](docs/ARCHITECTURE_DIAGRAMS.md).
 
 ## What it does
 
