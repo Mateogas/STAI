@@ -32,16 +32,21 @@ def test_app_boots_new_hire_readiness_cockpit():
     assert not at.exception
 
     rendered = _rendered_text(at)
-    assert any("Day 30 readiness cockpit" in value for value in _values(at.header))
-    assert {"Next up", "Blocked / needs help", "Who can help", "Ask AISHA"} <= set(
-        _values(at.subheader)
-    )
-    assert "Goal · Day 30 readiness" in rendered
-    assert "Open tasks from the real ramp plan." in rendered
-    assert "Only open blocker-like tasks or help requests appear here." in rendered
+    assert "aisha-topbar" in rendered
+    assert "aisha-demo-strip" in rendered
+    assert "Day 30 readiness cockpit" in rendered
+    assert "Goal" in rendered and "Day 30 readiness" in rendered
+    assert "Next up" in rendered
+    assert "Open tasks on your ramp plan" in rendered
+    assert "Blocked · needs help" in rendered
+    assert "Who can help" in rendered
+    assert "aisha-chat-heading" in rendered
+    assert "Knows your ramp plan and the handbook" in rendered
     assert "Fictionalized BDO educational capstone" in rendered
     assert '[data-testid="stChatMessage"]' in rendered
-    assert 'margin: 0 0 18px' in rendered
+    assert len(at.selectbox) == 0
+    assert len(at.segmented_control) == 1
+    assert len(at.text_input) == 1
     assert {"Next task", "Day 30 readiness", "Who can help?"} <= {
         button.label for button in at.button
     }
@@ -50,7 +55,7 @@ def test_app_boots_new_hire_readiness_cockpit():
 def test_hr_persona_renders_privacy_first_support_console():
     at = AppTest.from_file(str(APP), default_timeout=90)
     at.run()
-    at.selectbox[0].set_value("hr_admin")
+    at.segmented_control[0].set_value("hr_admin")
     at.run()
 
     assert not at.exception

@@ -117,11 +117,21 @@ def inject_css() -> None:
             background: var(--aisha-bg);
         }
         [data-testid="stHeader"] {
-            background: var(--aisha-bg);
-            box-shadow: none;
+            display: none;
+            height: 0;
+        }
+        [data-testid="stToolbar"],
+        [data-testid="stDecoration"],
+        [data-testid="stStatusWidget"] {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
         }
         .block-container {
-            padding-top: 1.35rem;
+            padding-top: 0;
+            padding-bottom: 1.2rem;
+            padding-left: 1.75rem;
+            padding-right: 1.75rem;
             max-width: 1180px;
         }
         h1, h2, h3 {
@@ -140,9 +150,16 @@ def inject_css() -> None:
         .aisha-topbar {
             background: var(--aisha-navy);
             color: #ffffff;
-            border-radius: 0 0 18px 18px;
-            padding: 16px 22px;
-            margin: 0 0 18px;
+            width: 100vw;
+            margin-top: -16px;
+            margin-left: calc(50% - 50vw);
+            margin-right: calc(50% - 50vw);
+            margin-bottom: 0;
+        }
+        .aisha-topbar-inner {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 13px 28px;
             display: flex;
             align-items: center;
             gap: 16px;
@@ -215,12 +232,39 @@ def inject_css() -> None:
             font-size: 10.5px;
             line-height: 1.2;
         }
+        .aisha-demo-strip {
+            background: #081c3c;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            color: #9fb0cf;
+            width: 100vw;
+            margin-left: calc(50% - 50vw);
+            margin-right: calc(50% - 50vw);
+            margin-bottom: 0;
+        }
+        .aisha-demo-strip-inner {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 9px 28px;
+        }
+        .aisha-demo-label {
+            color: #6e7ea0;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1.1px;
+            text-transform: uppercase;
+            margin-bottom: 7px;
+        }
+        .aisha-page-kicker {
+            color: var(--aisha-muted);
+            font-size: 13px;
+            margin: -12px 0 14px;
+        }
         .aisha-hero {
             background: var(--aisha-navy);
             color: #ffffff;
             border-radius: 16px;
-            padding: 24px 26px;
-            margin-bottom: 14px;
+            padding: 28px 28px;
+            margin-bottom: 0;
         }
         .aisha-eyebrow {
             color: #f0c978;
@@ -294,10 +338,11 @@ def inject_css() -> None:
         }
         .aisha-footer {
             color: #8f8b80;
-            font-size: 11px;
+            font-size: 10.5px;
             line-height: 1.5;
-            margin: 24px auto 0;
-            max-width: 760px;
+            display: block;
+            width: min(760px, 100%);
+            margin: 18px auto 0 !important;
             text-align: center;
         }
         .aisha-chipline {
@@ -313,6 +358,97 @@ def inject_css() -> None:
             letter-spacing: 0.6px;
             text-transform: uppercase;
         }
+        div[data-testid="stHorizontalBlock"]:has(.st-key-persona_picker) {
+            background: #081c3c;
+            width: 100vw !important;
+            min-width: 100vw;
+            max-width: 100vw;
+            margin-left: calc(50% - 50vw);
+            margin-right: calc(50% - 50vw);
+            margin-bottom: 26px;
+            padding: 0 max(28px, calc((100vw - 1180px) / 2 + 28px)) 10px;
+        }
+        div[data-testid="stHorizontalBlock"]:has(.st-key-persona_picker) label,
+        div[data-testid="stHorizontalBlock"]:has(.st-key-persona_picker) p,
+        div[data-testid="stHorizontalBlock"]:has(.st-key-persona_picker) [data-testid="stMarkdownContainer"] {
+            color: #9fb0cf;
+        }
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .aisha-card-heading),
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .aisha-chat-heading) {
+            background: var(--aisha-card);
+            border: 1px solid var(--aisha-line);
+            border-radius: 16px;
+            box-shadow: none;
+            padding: 16px;
+        }
+        .aisha-card-heading {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 4px;
+        }
+        .aisha-card-heading h2 {
+            font-size: 20px;
+            line-height: 1.15;
+            margin: 0;
+        }
+        .aisha-task-row {
+            align-items: center;
+            border-bottom: 1px solid #eeeae2;
+            padding: 10px 0;
+        }
+        .aisha-task-row:last-child {
+            border-bottom: 0;
+        }
+        .aisha-task-id {
+            color: #0a2450;
+            font-weight: 800;
+        }
+        .aisha-task-title {
+            color: #0a2450;
+            font-weight: 750;
+            line-height: 1.35;
+        }
+        .aisha-chat-heading {
+            background: var(--aisha-navy);
+            color: #ffffff;
+            border-radius: 14px 14px 0 0;
+            margin: -1rem -1rem 0.25rem;
+            padding: 15px 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .aisha-chat-heading .aisha-logo {
+            width: 30px;
+            height: 30px;
+            border-radius: 9px;
+            font-size: 15px;
+        }
+        .aisha-chat-title {
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: 800;
+            line-height: 1.1;
+        }
+        .aisha-chat-subtitle {
+            color: #9fb0cf;
+            font-size: 11px;
+            margin-top: 2px;
+        }
+        .aisha-chat-body-note {
+            color: var(--aisha-muted);
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+        .aisha-composer {
+            border-top: 1px solid var(--aisha-line);
+            margin: 0 -1rem -1rem;
+            padding: 12px 14px 14px;
+            background: #ffffff;
+            border-radius: 0 0 14px 14px;
+        }
         [data-testid="stExpander"] {
             background: rgba(255, 253, 249, 0.62);
             border: 1px solid var(--aisha-line);
@@ -327,6 +463,7 @@ def inject_css() -> None:
             border: 1px solid var(--aisha-line);
             border-radius: 14px;
             color: var(--aisha-navy);
+            margin-bottom: 10px;
             padding: 0.75rem 0.85rem;
         }
         [data-testid="stChatMessage"] [data-testid="stMarkdownContainer"],
@@ -349,6 +486,16 @@ def inject_css() -> None:
             color: var(--aisha-muted);
             opacity: 1;
         }
+        .stTextInput input {
+            background: #f5f3ee;
+            border: 1px solid #e2ded4;
+            color: var(--aisha-navy);
+            border-radius: 10px;
+        }
+        .stTextInput input::placeholder {
+            color: var(--aisha-muted);
+            opacity: 1;
+        }
         .stButton > button,
         button[data-testid="stBaseButton-primary"],
         button[data-testid="stBaseButton-secondary"] {
@@ -365,7 +512,7 @@ def inject_css() -> None:
             color: var(--aisha-navy) !important;
         }
         @media (max-width: 900px) {
-            .aisha-topbar {
+            .aisha-topbar-inner {
                 align-items: flex-start;
                 flex-direction: column;
             }
@@ -375,6 +522,10 @@ def inject_css() -> None:
             }
             .aisha-persona-pill {
                 width: 100%;
+            }
+            .aisha-demo-strip-inner {
+                padding-left: 18px;
+                padding-right: 18px;
             }
         }
         </style>
@@ -636,19 +787,21 @@ def render_top_bar(persona_id: str, employees: list[Employee]) -> None:
     st.markdown(
         f"""
         <div class="aisha-topbar">
-          <div class="aisha-brand">
-            <div class="aisha-logo">A</div>
-            <div>
-              <div class="aisha-brand-title">AISHA</div>
-              <div class="aisha-brand-subtitle">AI Support for Hires and Associates</div>
+          <div class="aisha-topbar-inner">
+            <div class="aisha-brand">
+              <div class="aisha-logo">A</div>
+              <div>
+                <div class="aisha-brand-title">AISHA</div>
+                <div class="aisha-brand-subtitle">AI Support for Hires and Associates</div>
+              </div>
             </div>
-          </div>
-          <div class="aisha-topbar-note">{escape(SHORT_DISCLAIMER)}</div>
-          <div class="aisha-persona-pill">
-            <div class="aisha-avatar">{escape(avatar)}</div>
-            <div>
-              <div class="aisha-persona-name">{escape(name)}</div>
-              <div class="aisha-persona-role">{escape(role)}</div>
+            <div class="aisha-topbar-note">{escape(SHORT_DISCLAIMER)}</div>
+            <div class="aisha-persona-pill">
+              <div class="aisha-avatar">{escape(avatar)}</div>
+              <div>
+                <div class="aisha-persona-name">{escape(name)}</div>
+                <div class="aisha-persona-role">{escape(role)}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -657,16 +810,53 @@ def render_top_bar(persona_id: str, employees: list[Employee]) -> None:
     )
 
 
-def reset_demo() -> None:
-    get_repo.clear()
-    kb_ready.clear()
-    settings.db_path.unlink(missing_ok=True)
-    for key in list(st.session_state.keys()):
-        del st.session_state[key]
-    st.rerun()
+def demo_persona_short_label(pid: str, employees: list[Employee]) -> str:
+    if pid == HR_ADMIN:
+        return "HR"
+    employee = next(e for e in employees if e.id == pid)
+    return employee.first_name
 
 
 def render_demo_controls(employees: list[Employee]) -> None:
+    st.markdown(
+        """
+        <div class="aisha-demo-strip">
+          <div class="aisha-demo-strip-inner">
+            <div class="aisha-demo-label">Demo controls</div>
+        """,
+        unsafe_allow_html=True,
+    )
+    c1, c2, c3 = st.columns([0.50, 0.22, 0.28], vertical_alignment="center")
+    valid_personas = [employee.id for employee in employees] + [HR_ADMIN]
+    with c1:
+        selected = st.segmented_control(
+            "Persona",
+            valid_personas,
+            default=st.session_state["persona_id"],
+            format_func=lambda pid: demo_persona_short_label(pid, employees),
+            label_visibility="collapsed",
+            key="persona_picker",
+        )
+        if selected and selected != st.session_state["persona_id"]:
+            st.session_state["persona_id"] = selected
+            st.rerun()
+    with c2:
+        st.date_input(
+            "Simulated date",
+            key="sim_date",
+            label_visibility="collapsed",
+            help=(
+                "Demo prop: drives ramp stage labels and weekly pulse "
+                "check-in timing."
+            ),
+        )
+    with c3:
+        if st.button("Reset demo data", type="secondary", use_container_width=True):
+            reset_demo()
+    st.markdown("</div></div>", unsafe_allow_html=True)
+
+
+def render_legacy_demo_controls(employees: list[Employee]) -> None:
     with st.expander(":material/tune: Backstage demo controls", expanded=False):
         c1, c2, c3 = st.columns([2.4, 1.2, 1])
         with c1:
@@ -699,6 +889,14 @@ def render_demo_controls(employees: list[Employee]) -> None:
             f"`{settings.guardrail_model}`, embeddings `{settings.embed_model}`."
         )
 
+
+def reset_demo() -> None:
+    get_repo.clear()
+    kb_ready.clear()
+    settings.db_path.unlink(missing_ok=True)
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
+    st.rerun()
 
 def stage_rail_html(current_key: str) -> str:
     current_idx = PHASE_ORDER.index(current_key)
@@ -758,25 +956,41 @@ def complete_task_and_rerun(repo: Repo, employee_id: str, item_id: int) -> None:
 
 
 def render_next_up(employee: Employee, open_items: list[ChecklistItem], repo: Repo) -> None:
-    st.subheader("Next up")
-    st.markdown(
-        '<div class="aisha-section-note">Open tasks from the real ramp plan.</div>',
-        unsafe_allow_html=True,
-    )
-    if not open_items:
-        st.success("Everything in the ramp plan is marked done.", icon=":material/check_circle:")
-        return
+    with st.container(border=True):
+        st.markdown(
+            """
+            <div class="aisha-card-heading">
+              <h2>Next up</h2>
+              <span class="aisha-section-note">Open tasks on your ramp plan</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if not open_items:
+            st.success(
+                "Everything in the ramp plan is marked done.",
+                icon=":material/check_circle:",
+            )
+            return
 
-    for item in open_items[:5]:
-        with st.container(border=True):
-            c_id, c_text, c_action = st.columns([0.16, 0.60, 0.24], vertical_alignment="center")
-            c_id.markdown(f"**#{item.id}**")
-            c_text.markdown(f"**{item.title}**")
+        for item in open_items[:3]:
+            c_id, c_text, c_action = st.columns(
+                [0.12, 0.68, 0.20], vertical_alignment="center"
+            )
+            c_id.markdown(
+                f'<div class="aisha-task-id">#{item.id}</div>',
+                unsafe_allow_html=True,
+            )
+            c_text.markdown(
+                f'<div class="aisha-task-title">{escape(item.title)}</div>',
+                unsafe_allow_html=True,
+            )
             c_text.caption(f"{PHASE_LABELS.get(item.phase, item.phase)} · Not yet marked done")
             if c_action.button(
                 "Mark done",
                 key=f"complete_task_{employee.id}_{item.id}",
                 type="secondary",
+                use_container_width=True,
             ):
                 complete_task_and_rerun(repo, employee.id, item.id)
 
@@ -801,17 +1015,21 @@ def render_blockers(
 ) -> None:
     if not blockers:
         return
-    st.subheader("Blocked / needs help")
-    st.markdown(
-        '<div class="aisha-section-note">Only open blocker-like tasks or help requests appear here.</div>',
-        unsafe_allow_html=True,
-    )
-    for blocker in blockers:
-        helper: Person | None = blocker.get("helper")
-        helper_text = (
-            f"{helper.name} - {helper.role}" if helper else "People Experience"
+    with st.container(border=True):
+        st.markdown(
+            """
+            <div class="aisha-card-heading">
+              <h2>Blocked · needs help</h2>
+              <span class="aisha-section-note">Based on open tasks or help requests.</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
-        with st.container(border=True):
+        for blocker in blockers:
+            helper: Person | None = blocker.get("helper")
+            helper_text = (
+                f"{helper.name} · {helper.role}" if helper else "People Experience"
+            )
             c_text, c_action = st.columns([0.72, 0.28], vertical_alignment="center")
             c_text.markdown(f"**{blocker['title']}**")
             c_text.caption(
@@ -823,6 +1041,7 @@ def render_blockers(
                     "File support escalation",
                     key=f"escalate_task_{employee.id}_{item.id}",
                     type="primary",
+                    use_container_width=True,
                 ):
                     file_support_escalation(repo, employee, item)
             else:
@@ -831,17 +1050,28 @@ def render_blockers(
 
 def render_helpers(employee: Employee, open_items: list[ChecklistItem]) -> None:
     helpers = helper_list(employee, open_items)
-    st.subheader("Who can help")
-    if not helpers:
-        st.info("No org contacts found in the seeded directory.", icon=":material/person_search:")
-        return
-    cols = st.columns(2)
-    for idx, helper in enumerate(helpers):
-        with cols[idx % 2], st.container(border=True):
-            st.markdown(f"**{helper.name}**")
-            st.caption(f"{helper.role} · {helper.team}")
-            st.write(short_text("; ".join(helper.responsibilities), 110))
-            st.caption(f"{helper.slack} · {helper.email}")
+    with st.container(border=True):
+        st.markdown(
+            """
+            <div class="aisha-card-heading">
+              <h2>Who can help</h2>
+              <span class="aisha-section-note">People mapped from the seeded org directory.</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if not helpers:
+            st.info(
+                "No org contacts found in the seeded directory.",
+                icon=":material/person_search:",
+            )
+            return
+        cols = st.columns(2)
+        for idx, helper in enumerate(helpers[:4]):
+            with cols[idx % 2]:
+                st.markdown(f"**{helper.name}**")
+                st.caption(f"{helper.role} · {helper.team}")
+                st.write(short_text("; ".join(helper.responsibilities), 88))
 
 
 def build_prompt_chips(
@@ -985,29 +1215,50 @@ def render_chat_panel(
     open_items: list[ChecklistItem],
     blockers: list[dict],
 ) -> None:
-    st.subheader("Ask AISHA")
-    st.caption("Grounded chat with your ramp plan, tools, people lookup, and handbook sources.")
-    if not kb_ready():
-        st.warning(
-            "The handbook knowledge base is empty - run "
-            "`uv run python -m stai.ingestion` once, then reload.",
-            icon=":material/database:",
+    with st.container(border=True):
+        st.markdown(
+            """
+            <div class="aisha-chat-heading">
+              <div class="aisha-logo">A</div>
+              <div>
+                <div class="aisha-chat-title">Ask AISHA</div>
+                <div class="aisha-chat-subtitle">Knows your ramp plan and the handbook</div>
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
+        st.markdown(
+            '<div class="aisha-chat-body-note">Grounded chat with your ramp plan, tools, people lookup, and handbook sources.</div>',
+            unsafe_allow_html=True,
+        )
+        if not kb_ready():
+            st.warning(
+                "The handbook knowledge base is empty - run "
+                "`uv run python -m stai.ingestion` once, then reload.",
+                icon=":material/database:",
+            )
 
-    messages = ensure_chat_state(employee, repo, sim_date)
-    maybe_add_pulse_checkin(employee, repo, sim_date, messages)
+        messages = ensure_chat_state(employee, repo, sim_date)
+        maybe_add_pulse_checkin(employee, repo, sim_date, messages)
 
-    for msg in messages:
-        show_message(msg)
+        for msg in messages:
+            show_message(msg)
 
-    render_prompt_chips(employee, open_items, blockers)
+        st.markdown('<div class="aisha-composer">', unsafe_allow_html=True)
+        render_prompt_chips(employee, open_items, blockers)
+        queued = st.session_state.pop(f"queued_prompt_{employee.id}", None)
+        with st.form(f"chat_form_{employee.id}", clear_on_submit=True):
+            c_input, c_send = st.columns([0.84, 0.16], vertical_alignment="center")
+            typed = c_input.text_input(
+                "Ask AISHA",
+                placeholder="Ask about your ramp, tasks, policies, or who can help...",
+                label_visibility="collapsed",
+            )
+            submitted = c_send.form_submit_button("↑", use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
-    queued = st.session_state.pop(f"queued_prompt_{employee.id}", None)
-    prompt = st.chat_input(
-        "Ask about your ramp, tasks, policies, or who can help...",
-        submit_mode="disable",
-    )
-    prompt = prompt or queued
+    prompt = queued or (typed.strip() if submitted and typed.strip() else "")
     if not prompt:
         return
 
@@ -1129,8 +1380,15 @@ def render_new_hire_cockpit(
     sim_date: date,
     open_escalations: list[Escalation],
 ) -> None:
-    st.header(f"{employee.first_name}'s Day 30 readiness cockpit")
-    st.caption(f"{employee.role} · {employee.department} · start date {employee.start_date:%b %d, %Y}")
+    st.markdown(
+        (
+            '<div class="aisha-page-kicker">'
+            f"Day 30 readiness cockpit · {escape(employee.role)} · "
+            f"{escape(employee.department)} · start date {employee.start_date:%b %d, %Y}"
+            "</div>"
+        ),
+        unsafe_allow_html=True,
+    )
 
     items = repo.list_plan_items(employee.id)
     open_items = [item for item in items if not item.done]
@@ -1328,7 +1586,13 @@ def main() -> None:
         render_new_hire_cockpit(employee, repo, sim_date, open_escalations)
 
     st.markdown(
-        f'<p class="aisha-footer">{escape(DISCLAIMER)} AISHA is support, not surveillance.</p>',
+        (
+            '<p class="aisha-footer">'
+            "All employee records, documents, contacts, metrics, and interactions "
+            "are fictionalized for storytelling and evaluation. AISHA is support, "
+            "not surveillance."
+            "</p>"
+        ),
         unsafe_allow_html=True,
     )
 
