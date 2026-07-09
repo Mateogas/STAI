@@ -10,37 +10,35 @@
 <helmet>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; }
   ::selection { background: #C9962C; color: #fff; }
-  .aisha-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+  .aisha-scroll::-webkit-scrollbar { width: 9px; height: 9px; }
   .aisha-scroll::-webkit-scrollbar-thumb { background: #D9D5CB; border-radius: 8px; border: 3px solid transparent; background-clip: content-box; }
   a { color: #0B4DA2; }
   a:hover { color: #1466C9; }
+  details > summary { list-style: none; }
+  details > summary::-webkit-details-marker { display: none; }
 </style>
 </helmet>
-<div class="aisha-scroll" style="font-family:'Public Sans',system-ui,sans-serif;background:#F1EEE7;color:#0A2450;min-height:100vh;max-height:100vh;overflow-y:auto;">
+<div style="font-family:'Public Sans',system-ui,sans-serif;background:#F1EEE7;color:#0A2450;min-height:100vh;">
 
-  <!-- ============ PRODUCT TOP BAR ============ -->
-  <header style="position:sticky;top:0;z-index:20;background:#0A2450;color:#fff;border-bottom:3px solid #C9962C;">
-    <div style="max-width:1280px;margin:0 auto;padding:12px 28px;display:flex;align-items:center;gap:18px;">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <div style="width:38px;height:38px;border-radius:10px;background:#C9962C;display:flex;align-items:center;justify-content:center;font-family:'Schibsted Grotesk';font-weight:800;color:#0A2450;font-size:18px;letter-spacing:-0.5px;">A</div>
-        <div style="line-height:1.05;">
-          <div style="font-family:'Schibsted Grotesk';font-weight:700;font-size:19px;letter-spacing:-0.3px;">AISHA</div>
-          <div style="font-size:11px;color:#9FB0CF;letter-spacing:0.2px;">AI Support for Hires &amp; Associates</div>
+  <!-- ============ TOP BAR ============ -->
+  <header style="background:#0A2450;color:#fff;">
+    <div style="max-width:1180px;margin:0 auto;padding:13px 28px;display:flex;align-items:center;gap:16px;">
+      <div style="display:flex;align-items:center;gap:11px;">
+        <div style="width:36px;height:36px;border-radius:10px;background:#C9962C;display:flex;align-items:center;justify-content:center;font-family:'Schibsted Grotesk';font-weight:700;color:#0A2450;font-size:18px;">A</div>
+        <div style="line-height:1.1;">
+          <div style="font-family:'Schibsted Grotesk';font-weight:600;font-size:18px;letter-spacing:-0.2px;">AISHA</div>
+          <div style="font-size:10.5px;color:#9FB0CF;">AI Support for Hires &amp; Associates</div>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:9px;margin-left:6px;padding:5px 11px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);border-radius:999px;font-size:11px;color:#C7D2E6;">
-        <span style="width:6px;height:6px;border-radius:50%;background:#C9962C;"></span>
-        BDO educational demo
-      </div>
-      <div style="margin-left:auto;display:flex;align-items:center;gap:14px;">
-        <div style="font-size:11px;color:#8FA0BF;max-width:340px;line-height:1.35;text-align:right;">Educational capstone prototype — not affiliated with or endorsed by BDO Unibank. All data is fictionalized.</div>
-        <div style="display:flex;align-items:center;gap:9px;padding:6px 12px 6px 6px;background:rgba(255,255,255,0.06);border-radius:999px;">
-          <div style="width:30px;height:30px;border-radius:50%;background:{{ signedInAvatarBg }};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;">{{ signedInInitials }}</div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:16px;">
+        <div style="font-size:10.5px;color:#8FA0BF;max-width:300px;line-height:1.4;text-align:right;">Fictionalized BDO educational capstone — not affiliated with or endorsed by BDO Unibank.</div>
+        <div style="display:flex;align-items:center;gap:9px;padding:5px 12px 5px 5px;background:rgba(255,255,255,0.06);border-radius:999px;">
+          <div style="width:29px;height:29px;border-radius:50%;background:{{ signedInAvatarBg }};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;">{{ signedInInitials }}</div>
           <div style="line-height:1.1;">
             <div style="font-size:12px;font-weight:600;">{{ signedInName }}</div>
             <div style="font-size:10px;color:#9FB0CF;">{{ signedInRole }}</div>
@@ -49,26 +47,20 @@
       </div>
     </div>
 
-    <!-- ============ DEMO CONTROL STRIP (BACKSTAGE) ============ -->
+    <!-- ============ BACKSTAGE DEMO CONTROLS ============ -->
     <sc-if value="{{ showDemoBar }}" hint-placeholder-val="{{ true }}">
-    <div style="background:repeating-linear-gradient(135deg,#0B1730,#0B1730 14px,#0E1D3A 14px,#0E1D3A 28px);border-top:1px dashed rgba(201,150,44,0.5);">
-      <div style="max-width:1280px;margin:0 auto;padding:9px 28px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-        <div style="display:flex;align-items:center;gap:8px;font-family:'IBM Plex Mono';font-size:10.5px;letter-spacing:1.5px;color:#C9962C;text-transform:uppercase;font-weight:600;">
-          <span style="font-size:13px;">▚</span> Capstone demo controls · not part of the product
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;margin-left:4px;">
-          <span style="font-size:10.5px;color:#7E8DAB;font-family:'IBM Plex Mono';">SIGN IN AS</span>
-          <div style="display:flex;background:rgba(0,0,0,0.25);border-radius:8px;padding:3px;gap:2px;">
+    <div style="background:#081C3C;border-top:1px solid rgba(255,255,255,0.06);">
+      <div style="max-width:1180px;margin:0 auto;padding:8px 28px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+        <span style="font-family:'IBM Plex Mono';font-size:10px;letter-spacing:1.2px;color:#6E7EA0;text-transform:uppercase;">Demo controls</span>
+        <div style="display:flex;align-items:center;gap:5px;">
+          <div style="display:flex;background:rgba(0,0,0,0.22);border-radius:7px;padding:2px;gap:1px;">
             <sc-for list="{{ personas }}" as="p" hint-placeholder-count="4">
               <button onClick="{{ p.onClick }}" style="{{ p.pickerStyle }}">{{ p.short }}</button>
             </sc-for>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:6px;">
-          <span style="font-size:10.5px;color:#7E8DAB;font-family:'IBM Plex Mono';">SIM DATE</span>
-          <input type="date" value="{{ simDate }}" onChange="{{ onDateChange }}" style="background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.12);color:#D7DEEC;border-radius:7px;padding:5px 9px;font-size:12px;font-family:'IBM Plex Mono';" />
-        </div>
-        <button onClick="{{ onReset }}" style="margin-left:auto;background:transparent;border:1px solid rgba(255,255,255,0.18);color:#9FB0CF;border-radius:7px;padding:6px 12px;font-size:11px;cursor:pointer;font-family:'Public Sans';font-weight:600;">Reset demo data</button>
+        <input type="date" value="{{ simDate }}" onChange="{{ onDateChange }}" style="background:rgba(0,0,0,0.22);border:1px solid rgba(255,255,255,0.08);color:#B7C2D6;border-radius:6px;padding:4px 8px;font-size:11px;font-family:'IBM Plex Mono';" />
+        <button onClick="{{ onReset }}" style="margin-left:auto;background:transparent;border:1px solid rgba(255,255,255,0.14);color:#8695B3;border-radius:6px;padding:5px 11px;font-size:10.5px;cursor:pointer;font-family:'Public Sans';font-weight:500;">Reset demo data</button>
       </div>
     </div>
     </sc-if>
@@ -76,176 +68,100 @@
 
   <!-- ============ NEW-HIRE COCKPIT ============ -->
   <sc-if value="{{ isNewHire }}" hint-placeholder-val="{{ true }}">
-  <main style="max-width:1280px;margin:0 auto;padding:26px 28px 40px;">
-    <div style="display:grid;grid-template-columns:1fr 384px;gap:22px;align-items:start;">
+  <main style="max-width:1180px;margin:0 auto;padding:26px 28px 36px;">
+    <div style="display:grid;grid-template-columns:1fr 372px;gap:22px;align-items:start;">
 
-      <!-- LEFT: ramp cockpit -->
-      <div style="display:flex;flex-direction:column;gap:18px;min-width:0;">
+      <!-- LEFT -->
+      <div style="display:flex;flex-direction:column;gap:16px;min-width:0;">
 
-        <!-- Readiness hero -->
-        <section style="background:linear-gradient(120deg,#0A2450 0%,#123166 100%);color:#fff;border-radius:18px;padding:26px 28px;position:relative;overflow:hidden;">
-          <div style="position:absolute;right:-40px;top:-40px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(201,150,44,0.22),transparent 70%);"></div>
-          <div style="position:relative;display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;">
-            <div style="max-width:440px;">
-              <div style="display:inline-flex;align-items:center;gap:7px;background:rgba(201,150,44,0.16);border:1px solid rgba(201,150,44,0.4);color:#F0C978;border-radius:999px;padding:4px 11px;font-size:11px;font-weight:600;letter-spacing:0.3px;">GOAL · DAY 30 READINESS CHECK</div>
-              <h1 style="font-family:'Schibsted Grotesk';font-weight:700;font-size:27px;line-height:1.18;margin:14px 0 8px;letter-spacing:-0.5px;">{{ emp.heroTitle }}</h1>
-              <p style="margin:0;color:#B9C6DE;font-size:14px;line-height:1.5;">{{ emp.heroGoal }}</p>
-              <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;">
-                <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:11px;padding:10px 14px;">
-                  <div style="font-family:'Schibsted Grotesk';font-weight:700;font-size:20px;">{{ emp.daysToDay30 }}</div>
-                  <div style="font-size:10.5px;color:#9FB0CF;letter-spacing:0.3px;">DAYS TO CHECK</div>
-                </div>
-                <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:11px;padding:10px 14px;">
-                  <div style="font-family:'Schibsted Grotesk';font-weight:700;font-size:20px;">{{ emp.stageShort }}</div>
-                  <div style="font-size:10.5px;color:#9FB0CF;letter-spacing:0.3px;">CURRENT STAGE</div>
-                </div>
-                <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:11px;padding:10px 14px;">
-                  <div style="font-family:'Schibsted Grotesk';font-weight:700;font-size:20px;">{{ emp.weekLabel }}</div>
-                  <div style="font-size:10.5px;color:#9FB0CF;letter-spacing:0.3px;">OF RAMP</div>
-                </div>
-              </div>
-            </div>
-            <!-- Readiness ring -->
-            <div style="display:flex;flex-direction:column;align-items:center;gap:8px;min-width:140px;">
-              <div style="position:relative;width:132px;height:132px;border-radius:50%;background:conic-gradient(#C9962C {{ emp.readyDeg }}, rgba(255,255,255,0.12) 0);display:flex;align-items:center;justify-content:center;">
-                <div style="width:104px;height:104px;border-radius:50%;background:#0C295A;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-                  <div style="font-family:'Schibsted Grotesk';font-weight:700;font-size:30px;line-height:1;">{{ emp.readyCount }}<span style="font-size:16px;color:#8FA0BF;">/{{ emp.readyTotal }}</span></div>
-                  <div style="font-size:10px;color:#9FB0CF;letter-spacing:0.4px;margin-top:3px;">READINESS<br/>CRITERIA MET</div>
-                </div>
-              </div>
-              <div style="font-size:11px;color:#9FB0CF;text-align:center;">Supervised branch readiness</div>
-            </div>
+        <!-- Day 30 readiness summary -->
+        <section style="background:#0A2450;color:#fff;border-radius:16px;padding:24px 26px;">
+          <div style="display:inline-flex;align-items:center;gap:7px;color:#F0C978;font-size:11px;font-weight:600;letter-spacing:0.4px;margin-bottom:12px;">
+            <span style="width:6px;height:6px;border-radius:50%;background:#C9962C;"></span>GOAL · DAY 30 READINESS
           </div>
-        </section>
-
-        <!-- Stage rail -->
-        <section style="background:#fff;border:1px solid #E7E4DC;border-radius:16px;padding:18px 20px;">
-          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;">
-            <h2 style="font-family:'Schibsted Grotesk';font-weight:600;font-size:15px;margin:0;letter-spacing:-0.2px;">Ramp stages</h2>
-            <span style="font-size:12px;color:#6B6A63;">{{ emp.progressDone }} of {{ emp.progressTotal }} milestones done · {{ emp.progressPct }}%</span>
+          <h1 style="font-family:'Schibsted Grotesk';font-weight:600;font-size:23px;line-height:1.25;margin:0 0 16px;letter-spacing:-0.3px;max-width:520px;">{{ emp.heroTitle }}</h1>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
+            <span style="font-size:12px;color:#B9C6DE;">{{ emp.stageName }} · {{ emp.progressDone }} of {{ emp.progressTotal }} tasks done</span>
+            <span style="font-family:'Schibsted Grotesk';font-weight:600;font-size:15px;">{{ emp.progressPct }}%</span>
           </div>
-          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;">
+          <div style="height:8px;border-radius:5px;background:rgba(255,255,255,0.12);overflow:hidden;">
+            <div style="height:100%;border-radius:5px;background:#C9962C;width:{{ emp.progressPct }}%;"></div>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:16px;">
             <sc-for list="{{ emp.stages }}" as="s" hint-placeholder-count="5">
-              <div style="{{ s.wrapStyle }}">
-                <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px;">
-                  <span style="{{ s.dotStyle }}"></span>
-                  <span style="{{ s.statusStyle }}">{{ s.statusLabel }}</span>
-                </div>
-                <div style="font-size:12.5px;font-weight:600;line-height:1.25;color:#0A2450;">{{ s.label }}</div>
-                <div style="font-size:10.5px;color:#8A887F;margin-top:2px;">{{ s.sub }}</div>
-                <div style="height:4px;border-radius:3px;background:#EEEBE3;margin-top:9px;overflow:hidden;">
-                  <div style="height:100%;border-radius:3px;background:{{ s.barColor }};width:{{ s.barWidth }};"></div>
-                </div>
-                <div style="font-size:10px;color:#8A887F;margin-top:5px;">{{ s.countLabel }}</div>
+              <div style="flex:1;text-align:center;">
+                <div style="height:4px;border-radius:3px;background:{{ s.railColor }};margin-bottom:6px;"></div>
+                <div style="font-size:9.5px;color:{{ s.labelColor }};line-height:1.2;font-weight:{{ s.labelWeight }};">{{ s.short }}</div>
               </div>
             </sc-for>
           </div>
         </section>
 
-        <!-- Answer grid: next / blocked / who -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-
-          <!-- What's next -->
-          <section style="background:#fff;border:1px solid #E7E4DC;border-radius:16px;padding:18px 20px;">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
-              <span style="width:26px;height:26px;border-radius:8px;background:#E4EDF9;color:#0B4DA2;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">→</span>
-              <h2 style="font-family:'Schibsted Grotesk';font-weight:600;font-size:15px;margin:0;">What's next</h2>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:10px;">
-              <sc-for list="{{ emp.nextActions }}" as="n" hint-placeholder-count="3">
-                <div style="display:flex;gap:11px;padding:11px 12px;border:1px solid #EDEAE2;border-radius:11px;background:#FCFBF9;">
-                  <span style="{{ n.tagStyle }}">{{ n.tag }}</span>
-                  <div style="min-width:0;">
-                    <div style="font-size:13px;font-weight:600;line-height:1.3;">{{ n.title }}</div>
-                    <div style="font-size:11.5px;color:#8A887F;margin-top:3px;">{{ n.meta }} · {{ n.owner }}</div>
-                  </div>
+        <!-- Next up -->
+        <section style="background:#fff;border:1px solid #E7E4DC;border-radius:16px;padding:20px 22px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+            <h2 style="font-family:'Schibsted Grotesk';font-weight:600;font-size:16px;margin:0;">Next up</h2>
+            <span style="font-size:11.5px;color:#8A887F;">Open tasks on your ramp plan</span>
+          </div>
+          <div style="display:flex;flex-direction:column;">
+            <sc-for list="{{ emp.nextActions }}" as="n" hint-placeholder-count="3">
+              <div style="{{ n.rowStyle }}">
+                <button onClick="{{ n.onDone }}" style="width:22px;height:22px;border-radius:50%;border:1.5px solid #C6C2B8;background:#fff;cursor:pointer;flex-shrink:0;color:transparent;font-size:12px;" title="Mark done">✓</button>
+                <div style="min-width:0;flex:1;">
+                  <div style="font-size:13.5px;font-weight:600;line-height:1.35;color:#0A2450;">{{ n.title }}</div>
+                  <div style="font-size:11.5px;color:#8A887F;margin-top:2px;">{{ n.meta }}</div>
                 </div>
-              </sc-for>
-            </div>
-            <button onClick="{{ onMarkDone }}" style="margin-top:13px;width:100%;background:#0B4DA2;color:#fff;border:none;border-radius:10px;padding:10px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:'Public Sans';">✓ Mark a milestone done</button>
-          </section>
+                <span style="{{ n.tagStyle }}">{{ n.tag }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </section>
 
-          <!-- What's blocked -->
-          <section style="background:#fff;border:1px solid #E7E4DC;border-radius:16px;padding:18px 20px;">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
-              <span style="width:26px;height:26px;border-radius:8px;background:#FBEFCF;color:#B7791F;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">!</span>
-              <h2 style="font-family:'Schibsted Grotesk';font-weight:600;font-size:15px;margin:0;">What's blocked</h2>
-            </div>
-            <sc-for list="{{ emp.blockers }}" as="b" hint-placeholder-count="1">
-              <div style="border:1px solid #F0DFB4;background:#FDF7E9;border-radius:12px;padding:13px 14px;margin-bottom:10px;">
-                <div style="display:flex;justify-content:space-between;align-items:start;gap:8px;">
-                  <div style="font-size:13px;font-weight:700;color:#0A2450;line-height:1.3;">{{ b.title }}</div>
-                  <span style="font-size:10px;font-weight:600;color:#B7791F;background:#FBEFCF;border-radius:6px;padding:3px 7px;white-space:nowrap;">{{ b.since }}</span>
+        <!-- Blocked / needs help -->
+        <sc-if value="{{ emp.hasBlockers }}" hint-placeholder-val="{{ true }}">
+        <section style="background:#FDF7E9;border:1px solid #F0DFB4;border-radius:16px;padding:20px 22px;">
+          <h2 style="font-family:'Schibsted Grotesk';font-weight:600;font-size:16px;margin:0 0 4px;">Blocked · needs help</h2>
+          <p style="margin:0 0 14px;font-size:11.5px;color:#8A6414;">Based on an open task or an escalation you filed.</p>
+          <sc-for list="{{ emp.blockers }}" as="b" hint-placeholder-count="1">
+            <div style="display:flex;gap:13px;align-items:start;">
+              <div style="min-width:0;flex:1;">
+                <div style="font-size:13.5px;font-weight:700;color:#0A2450;line-height:1.3;">{{ b.title }}</div>
+                <p style="margin:5px 0 0;font-size:12px;color:#6B6A63;line-height:1.45;">{{ b.desc }}</p>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
+                  <span style="font-size:10.5px;font-weight:600;color:#8A6414;background:#FBEFCF;border-radius:6px;padding:3px 8px;">{{ b.state }}</span>
+                  <span style="font-size:11.5px;color:#6B6A63;">Can help: <b style="color:#0A2450;">{{ b.owner }}</b> · {{ b.ownerRole }}</span>
                 </div>
-                <p style="margin:7px 0 0;font-size:12px;color:#6B6A63;line-height:1.45;">{{ b.desc }}</p>
-                <div style="display:flex;align-items:center;gap:8px;margin-top:11px;padding-top:11px;border-top:1px dashed #EBDCB6;">
-                  <div style="width:26px;height:26px;border-radius:50%;background:#0A2450;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;">{{ b.ownerInitials }}</div>
-                  <div style="line-height:1.2;min-width:0;">
-                    <div style="font-size:11.5px;font-weight:600;">{{ b.owner }}</div>
-                    <div style="font-size:10.5px;color:#8A887F;">{{ b.ownerRole }}</div>
-                  </div>
-                  <button onClick="{{ b.onFollowUp }}" style="margin-left:auto;background:#fff;border:1px solid #D9C486;color:#8A6414;border-radius:8px;padding:6px 11px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'Public Sans';">Ask AISHA to follow up</button>
+              </div>
+              <button onClick="{{ b.onEscalate }}" style="background:#0B4DA2;color:#fff;border:none;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Public Sans';white-space:nowrap;flex-shrink:0;">File support escalation</button>
+            </div>
+          </sc-for>
+        </section>
+        </sc-if>
+
+        <!-- Who can help -->
+        <section style="background:#fff;border:1px solid #E7E4DC;border-radius:16px;padding:20px 22px;">
+          <h2 style="font-family:'Schibsted Grotesk';font-weight:600;font-size:16px;margin:0 0 15px;">Who can help</h2>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <sc-for list="{{ emp.helpers }}" as="h" hint-placeholder-count="4">
+              <div style="display:flex;align-items:center;gap:11px;">
+                <div style="width:34px;height:34px;border-radius:50%;background:{{ h.avatarBg }};color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;">{{ h.initials }}</div>
+                <div style="min-width:0;line-height:1.3;">
+                  <div style="font-size:13px;font-weight:600;">{{ h.name }}</div>
+                  <div style="font-size:11px;color:#8A887F;">{{ h.role }}</div>
                 </div>
               </div>
             </sc-for>
-            <sc-if value="{{ emp.noBlockers }}" hint-placeholder-val="{{ false }}">
-              <div style="text-align:center;padding:18px;color:#2F7A54;font-size:13px;font-weight:600;">✓ Nothing blocked right now</div>
-            </sc-if>
-          </section>
-        </div>
-
-        <!-- Who can help + Day 30 criteria -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-          <section style="background:#fff;border:1px solid #E7E4DC;border-radius:16px;padding:18px 20px;">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
-              <span style="width:26px;height:26px;border-radius:8px;background:#E4F1E9;color:#2F7A54;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">◍</span>
-              <h2 style="font-family:'Schibsted Grotesk';font-weight:600;font-size:15px;margin:0;">Who can help</h2>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:9px;">
-              <sc-for list="{{ emp.helpers }}" as="h" hint-placeholder-count="4">
-                <div style="display:flex;align-items:center;gap:11px;">
-                  <div style="width:34px;height:34px;border-radius:50%;background:{{ h.avatarBg }};color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">{{ h.initials }}</div>
-                  <div style="min-width:0;line-height:1.25;">
-                    <div style="font-size:13px;font-weight:600;">{{ h.name }}</div>
-                    <div style="font-size:11px;color:#8A887F;">{{ h.role }}</div>
-                  </div>
-                  <div style="margin-left:auto;font-family:'IBM Plex Mono';font-size:10.5px;color:#0B4DA2;white-space:nowrap;">{{ h.slack }}</div>
-                </div>
-              </sc-for>
-            </div>
-          </section>
-
-          <section style="background:#fff;border:1px solid #E7E4DC;border-radius:16px;padding:18px 20px;">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-              <span style="width:26px;height:26px;border-radius:8px;background:#FBF3DE;color:#C9962C;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">★</span>
-              <h2 style="font-family:'Schibsted Grotesk';font-weight:600;font-size:15px;margin:0;">Day 30 readiness requires</h2>
-            </div>
-            <p style="margin:0 0 12px;font-size:11px;color:#8A887F;">To handle supervised branch customer interactions with confidence.</p>
-            <div style="display:flex;flex-direction:column;gap:8px;">
-              <sc-for list="{{ emp.criteria }}" as="c" hint-placeholder-count="5">
-                <div style="display:flex;gap:10px;align-items:start;">
-                  <span style="{{ c.checkStyle }}">{{ c.checkMark }}</span>
-                  <span style="font-size:12px;line-height:1.4;color:{{ c.textColor }};">{{ c.label }}</span>
-                </div>
-              </sc-for>
-            </div>
-          </section>
-        </div>
+          </div>
+        </section>
       </div>
 
-      <!-- RIGHT: contextual AISHA chat -->
-      <aside style="position:sticky;top:118px;background:#fff;border:1px solid #E7E4DC;border-radius:18px;overflow:hidden;display:flex;flex-direction:column;max-height:calc(100vh - 140px);">
-        <div style="background:#0A2450;color:#fff;padding:15px 18px;">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <div style="width:30px;height:30px;border-radius:9px;background:#C9962C;color:#0A2450;display:flex;align-items:center;justify-content:center;font-family:'Schibsted Grotesk';font-weight:800;font-size:15px;">A</div>
-            <div style="line-height:1.15;">
-              <div style="font-family:'Schibsted Grotesk';font-weight:600;font-size:15px;">Ask AISHA</div>
-              <div style="font-size:10.5px;color:#9FB0CF;">Contextual to your ramp state</div>
-            </div>
-          </div>
-          <div style="margin-top:11px;display:flex;align-items:center;gap:7px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:9px;padding:7px 10px;font-size:10.5px;color:#C7D2E6;line-height:1.4;">
-            <span style="color:#C9962C;font-size:12px;">◆</span>
-            <span>Aware of: <b style="color:#E8EDF6;">{{ emp.contextLine }}</b></span>
+      <!-- RIGHT: Ask AISHA -->
+      <aside style="position:sticky;top:18px;background:#fff;border:1px solid #E7E4DC;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;height:calc(100vh - 40px);">
+        <div style="background:#0A2450;color:#fff;padding:15px 18px;display:flex;align-items:center;gap:10px;">
+          <div style="width:30px;height:30px;border-radius:9px;background:#C9962C;color:#0A2450;display:flex;align-items:center;justify-content:center;font-family:'Schibsted Grotesk';font-weight:700;font-size:15px;">A</div>
+          <div style="line-height:1.2;">
+            <div style="font-family:'Schibsted Grotesk';font-weight:600;font-size:15px;">Ask AISHA</div>
+            <div style="font-size:10.5px;color:#9FB0CF;">Knows your ramp plan &amp; the handbook</div>
           </div>
         </div>
 
@@ -255,13 +171,13 @@
               <div style="{{ m.bubbleStyle }}">
                 <div style="{{ m.textStyle }}">{{ m.text }}</div>
                 <sc-if value="{{ m.hasEvidence }}" hint-placeholder-val="{{ false }}">
-                  <div style="margin-top:9px;padding-top:9px;border-top:1px solid #E7E4DC;">
-                    <div style="font-family:'IBM Plex Mono';font-size:9px;letter-spacing:0.8px;color:#8A887F;text-transform:uppercase;margin-bottom:6px;">✦ Evidence used</div>
+                  <div style="margin-top:10px;padding-top:9px;border-top:1px solid #E7E4DC;">
+                    <div style="font-family:'IBM Plex Mono';font-size:9px;letter-spacing:0.6px;color:#8A887F;text-transform:uppercase;margin-bottom:6px;">Sources</div>
                     <div style="display:flex;flex-direction:column;gap:5px;">
                       <sc-for list="{{ m.evidence }}" as="e" hint-placeholder-count="1">
                         <div style="display:flex;gap:7px;align-items:baseline;background:#F3F1EB;border:1px solid #E7E4DC;border-radius:7px;padding:6px 9px;">
-                          <span style="font-family:'IBM Plex Mono';font-size:9.5px;color:#0B4DA2;white-space:nowrap;">{{ e.source }}</span>
-                          <span style="font-size:10.5px;color:#6B6A63;line-height:1.3;">{{ e.title }}</span>
+                          <span style="color:#0B4DA2;font-size:11px;flex-shrink:0;">◆</span>
+                          <span style="font-size:11px;color:#4A4A44;line-height:1.35;">{{ e.title }}</span>
                         </div>
                       </sc-for>
                     </div>
@@ -274,157 +190,148 @@
 
         <div style="border-top:1px solid #E7E4DC;padding:12px 14px;background:#fff;">
           <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:11px;">
-            <sc-for list="{{ chips }}" as="c" hint-placeholder-count="6">
-              <button onClick="{{ c.onClick }}" style="background:#F1EEE7;border:1px solid #E2DED4;color:#274270;border-radius:999px;padding:6px 11px;font-size:11px;font-weight:500;cursor:pointer;font-family:'Public Sans';white-space:nowrap;" style-hover="background:#E4EDF9;border-color:#B9CBE8;">{{ c.label }}</button>
+            <sc-for list="{{ chips }}" as="c" hint-placeholder-count="4">
+              <button onClick="{{ c.onClick }}" style="background:#F1EEE7;border:1px solid #E2DED4;color:#274270;border-radius:999px;padding:6px 12px;font-size:11.5px;font-weight:500;cursor:pointer;font-family:'Public Sans';" style-hover="background:#E4EDF9;border-color:#B9CBE8;">{{ c.label }}</button>
             </sc-for>
           </div>
           <div style="display:flex;align-items:center;gap:8px;background:#F5F3EE;border:1px solid #E2DED4;border-radius:11px;padding:9px 12px;">
-            <input placeholder="Ask about policies, access, ramp, or who can help…" style="flex:1;border:none;background:transparent;font-size:12.5px;color:#0A2450;outline:none;font-family:'Public Sans';" />
+            <input placeholder="Ask about your ramp, tasks, or policies…" style="flex:1;border:none;background:transparent;font-size:12.5px;color:#0A2450;outline:none;font-family:'Public Sans';" />
             <button style="width:30px;height:30px;border-radius:8px;background:#0B4DA2;color:#fff;border:none;cursor:pointer;font-size:14px;flex-shrink:0;">↑</button>
           </div>
         </div>
       </aside>
     </div>
 
-    <div style="margin-top:22px;text-align:center;font-size:11px;color:#9A988E;line-height:1.5;max-width:760px;margin-left:auto;margin-right:auto;">
-      AISHA is an educational capstone prototype. It is not affiliated with, endorsed by, or representative of BDO Unibank. All employee records, onboarding documents, org contacts, metrics, and interactions are fictionalized for storytelling and evaluation.
-    </div>
+    <p style="margin:20px auto 0;text-align:center;font-size:10.5px;color:#9A988E;line-height:1.5;max-width:680px;">All employee records, documents, contacts, metrics, and interactions are fictionalized for storytelling and evaluation. AISHA is support, not surveillance.</p>
   </main>
   </sc-if>
 
   <!-- ============ HR SUPPORT CONSOLE ============ -->
   <sc-if value="{{ isHR }}" hint-placeholder-val="{{ false }}">
-  <main style="max-width:1280px;margin:0 auto;padding:26px 28px 40px;">
-    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:20px;">
-      <div>
-        <h1 style="font-family:'Schibsted Grotesk';font-weight:700;font-size:24px;margin:0;letter-spacing:-0.4px;">People Experience · Support console</h1>
-        <p style="margin:6px 0 0;font-size:13px;color:#6B6A63;max-width:560px;line-height:1.5;">AISHA surfaces ramp friction so you can offer help early — <b style="color:#0A2450;">enough signal to support, not enough detail to police.</b> No private chat transcripts are shown by default.</p>
+  <main style="max-width:1180px;margin:0 auto;padding:26px 28px 36px;">
+    <div style="margin-bottom:20px;">
+      <h1 style="font-family:'Schibsted Grotesk';font-weight:600;font-size:23px;margin:0;letter-spacing:-0.3px;">People Experience · Support Console</h1>
+      <p style="margin:6px 0 0;font-size:13px;color:#6B6A63;max-width:560px;line-height:1.5;">Enough signal to offer help — not enough detail to police. No private chats shown.</p>
+    </div>
+
+    <!-- 3 metrics -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;">
+      <div style="background:#fff;border:1px solid #E7E4DC;border-radius:14px;padding:16px 18px;">
+        <div style="font-family:'Schibsted Grotesk';font-weight:600;font-size:26px;line-height:1;">{{ hr.activeCount }}</div>
+        <div style="font-size:11.5px;color:#8A887F;margin-top:5px;">Hires ramping</div>
       </div>
-      <div style="display:flex;gap:10px;">
-        <div style="background:#fff;border:1px solid #E7E4DC;border-radius:12px;padding:11px 16px;text-align:center;min-width:96px;">
-          <div style="font-family:'Schibsted Grotesk';font-weight:700;font-size:22px;">{{ hr.activeCount }}</div>
-          <div style="font-size:10.5px;color:#8A887F;letter-spacing:0.2px;">HIRES RAMPING</div>
-        </div>
-        <div style="background:#FDF7E9;border:1px solid #F0DFB4;border-radius:12px;padding:11px 16px;text-align:center;min-width:96px;">
-          <div style="font-family:'Schibsted Grotesk';font-weight:700;font-size:22px;color:#B7791F;">{{ hr.supportCount }}</div>
-          <div style="font-size:10.5px;color:#8A6414;letter-spacing:0.2px;">MAY NEED SUPPORT</div>
-        </div>
-        <div style="background:#fff;border:1px solid #E7E4DC;border-radius:12px;padding:11px 16px;text-align:center;min-width:96px;">
-          <div style="font-family:'Schibsted Grotesk';font-weight:700;font-size:22px;">{{ hr.escalationCount }}</div>
-          <div style="font-size:10.5px;color:#8A887F;letter-spacing:0.2px;">HELP REQUESTS</div>
-        </div>
+      <div style="background:#FDF7E9;border:1px solid #F0DFB4;border-radius:14px;padding:16px 18px;">
+        <div style="font-family:'Schibsted Grotesk';font-weight:600;font-size:26px;line-height:1;color:#B7791F;">{{ hr.supportCount }}</div>
+        <div style="font-size:11.5px;color:#8A6414;margin-top:5px;">May need support</div>
+      </div>
+      <div style="background:#fff;border:1px solid #E7E4DC;border-radius:14px;padding:16px 18px;">
+        <div style="font-family:'Schibsted Grotesk';font-weight:600;font-size:26px;line-height:1;">{{ hr.escalationCount }}</div>
+        <div style="font-size:11.5px;color:#8A887F;margin-top:5px;">Open help requests</div>
       </div>
     </div>
 
-    <!-- SUPPORT CARDS (lead) -->
-    <div style="display:flex;align-items:center;gap:9px;margin:4px 0 14px;">
-      <h2 style="font-family:'Schibsted Grotesk';font-weight:600;font-size:16px;margin:0;">Hires who may need support</h2>
-      <span style="font-size:11px;color:#8A887F;background:#EFEDE6;border-radius:999px;padding:3px 10px;">Ranked by ramp friction · behavior over time</span>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:26px;">
-      <sc-for list="{{ hr.cards }}" as="c" hint-placeholder-count="3">
-        <section style="{{ c.cardStyle }}">
-          <div style="display:flex;justify-content:space-between;align-items:start;gap:10px;">
-            <div style="display:flex;align-items:center;gap:11px;min-width:0;">
-              <div style="width:38px;height:38px;border-radius:50%;background:{{ c.avatarBg }};color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;">{{ c.initials }}</div>
-              <div style="min-width:0;line-height:1.25;">
-                <div style="font-size:14px;font-weight:700;color:#0A2450;">{{ c.name }}</div>
-                <div style="font-size:11px;color:#8A887F;">{{ c.role }}</div>
-              </div>
-            </div>
-            <span style="{{ c.statusStyle }}">{{ c.statusLabel }}</span>
-          </div>
+    <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:16px;align-items:start;">
 
-          <div style="margin-top:14px;">
-            <div style="font-family:'IBM Plex Mono';font-size:9px;letter-spacing:1px;color:#8A887F;text-transform:uppercase;margin-bottom:6px;">Signal · behavior over time</div>
-            <div style="display:flex;flex-direction:column;gap:6px;">
-              <sc-for list="{{ c.signals }}" as="s" hint-placeholder-count="2">
-                <div style="display:flex;gap:8px;align-items:baseline;">
-                  <span style="width:5px;height:5px;border-radius:50%;background:{{ s.dot }};margin-top:6px;flex-shrink:0;"></span>
-                  <span style="font-size:12px;color:#4A4A44;line-height:1.4;">{{ s.text }}</span>
-                </div>
-              </sc-for>
+      <!-- May need support card -->
+      <section style="background:#fff;border:1px solid #F0DFB4;border-radius:16px;padding:22px 24px;">
+        <div style="display:flex;justify-content:space-between;align-items:start;gap:10px;margin-bottom:16px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:42px;height:42px;border-radius:50%;background:#C9962C;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;">AR</div>
+            <div style="line-height:1.3;">
+              <div style="font-size:15px;font-weight:700;color:#0A2450;">Alyssa Reyes</div>
+              <div style="font-size:11.5px;color:#8A887F;">Management Trainee / Branch Banking Associate</div>
             </div>
           </div>
-
-          <div style="margin-top:14px;padding:11px 12px;background:{{ c.actionBg }};border:1px solid {{ c.actionBorder }};border-radius:10px;">
-            <div style="font-family:'IBM Plex Mono';font-size:9px;letter-spacing:1px;color:{{ c.actionLabelColor }};text-transform:uppercase;margin-bottom:4px;">Suggested support action</div>
-            <div style="font-size:12.5px;color:#0A2450;line-height:1.45;font-weight:500;">{{ c.action }}</div>
-          </div>
-
-          <div style="margin-top:12px;display:flex;gap:8px;">
-            <button style="flex:1;background:#0B4DA2;color:#fff;border:none;border-radius:9px;padding:8px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:'Public Sans';">{{ c.primaryCta }}</button>
-            <button onClick="{{ c.onDrill }}" style="background:#fff;border:1px solid #DAD6CC;color:#4A4A44;border-radius:9px;padding:8px 12px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:'Public Sans';">Details</button>
-          </div>
-
-          <div style="margin-top:11px;display:flex;gap:7px;align-items:start;padding-top:11px;border-top:1px dashed #E4E0D6;">
-            <span style="font-size:12px;color:#8A887F;">🔒</span>
-            <span style="font-size:10.5px;color:#8A887F;line-height:1.4;">{{ c.privacy }}</span>
-          </div>
-        </section>
-      </sc-for>
-    </div>
-
-    <!-- Two columns: explicit escalations vs inferred trend signals -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:26px;">
-      <section style="background:#fff;border:1px solid #E7E4DC;border-radius:16px;padding:18px 20px;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-          <span style="width:26px;height:26px;border-radius:8px;background:#E4EDF9;color:#0B4DA2;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">✋</span>
-          <h2 style="font-family:'Schibsted Grotesk';font-weight:600;font-size:15px;margin:0;">Explicit help requests</h2>
+          <span style="font-size:10.5px;font-weight:700;color:#8A6414;background:#FBEFCF;border-radius:999px;padding:5px 11px;white-space:nowrap;">May need support</span>
         </div>
-        <p style="margin:0 0 14px 34px;font-size:11px;color:#8A887F;">Escalations the hire raised on purpose.</p>
-        <div style="display:flex;flex-direction:column;gap:10px;">
+
+        <div style="font-family:'IBM Plex Mono';font-size:9px;letter-spacing:0.8px;color:#8A887F;text-transform:uppercase;margin-bottom:8px;">Signals</div>
+        <div style="display:flex;flex-direction:column;gap:11px;margin-bottom:18px;">
+          <sc-for list="{{ hr.alyssaSignals }}" as="s" hint-placeholder-count="4">
+            <div style="display:flex;gap:9px;align-items:baseline;">
+              <span style="width:5px;height:5px;border-radius:50%;background:#B7791F;margin-top:6px;flex-shrink:0;"></span>
+              <span style="font-size:12.5px;color:#4A4A44;line-height:1.4;">{{ s }}</span>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="padding:13px 15px;background:#FDF7E9;border:1px solid #F0DFB4;border-radius:11px;margin-bottom:16px;">
+          <div style="font-family:'IBM Plex Mono';font-size:9px;letter-spacing:0.8px;color:#8A6414;text-transform:uppercase;margin-bottom:5px;">Suggested support action</div>
+          <div style="font-size:13px;color:#0A2450;line-height:1.45;">Reach out about the open access task, and check in on how Week 2 practice is feeling.</div>
+        </div>
+
+        <div style="display:flex;gap:10px;align-items:center;">
+          <button style="background:#0B4DA2;color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:'Public Sans';">File support escalation</button>
+          <span style="font-size:10.5px;color:#8A887F;line-height:1.4;">🔒 Summary from tasks, pulse &amp; escalations. No private chat shown.</span>
+        </div>
+      </section>
+
+      <!-- Explicit help requests -->
+      <section style="background:#fff;border:1px solid #E7E4DC;border-radius:16px;padding:22px 24px;">
+        <h2 style="font-family:'Schibsted Grotesk';font-weight:600;font-size:15px;margin:0 0 3px;">Explicit help requests</h2>
+        <p style="margin:0 0 15px;font-size:11.5px;color:#8A887F;">Escalations hires filed on purpose.</p>
+        <div style="display:flex;flex-direction:column;gap:11px;">
           <sc-for list="{{ hr.escalations }}" as="e" hint-placeholder-count="1">
-            <div style="border:1px solid #E7E4DC;border-radius:11px;padding:13px;">
-              <div style="display:flex;justify-content:space-between;gap:8px;">
+            <div style="border:1px solid #E7E4DC;border-radius:12px;padding:14px;">
+              <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
                 <div style="font-size:13px;font-weight:600;color:#0A2450;">{{ e.hire }}</div>
-                <span style="font-size:10px;color:#0B4DA2;background:#E4EDF9;border-radius:6px;padding:3px 8px;white-space:nowrap;">{{ e.team }}</span>
+                <span style="font-size:10px;color:#0B4DA2;background:#E4EDF9;border-radius:6px;padding:3px 8px;">{{ e.topic }}</span>
               </div>
-              <p style="margin:7px 0 0;font-size:12.5px;color:#4A4A44;line-height:1.4;">{{ e.text }}</p>
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
-                <span style="font-size:10.5px;color:#8A887F;font-family:'IBM Plex Mono';">Filed {{ e.when }}</span>
-                <button style="background:#0B4DA2;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Public Sans';">Assign owner</button>
-              </div>
-            </div>
-          </sc-for>
-        </div>
-      </section>
-
-      <section style="background:#fff;border:1px solid #E7E4DC;border-radius:16px;padding:18px 20px;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-          <span style="width:26px;height:26px;border-radius:8px;background:#FBEFCF;color:#B7791F;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">📉</span>
-          <h2 style="font-family:'Schibsted Grotesk';font-weight:600;font-size:15px;margin:0;">Ramp friction signals</h2>
-        </div>
-        <p style="margin:0 0 14px 34px;font-size:11px;color:#8A887F;">Inferred from milestones &amp; pulse over time — not requests.</p>
-        <div style="display:flex;flex-direction:column;gap:9px;">
-          <sc-for list="{{ hr.trends }}" as="t" hint-placeholder-count="3">
-            <div style="display:flex;gap:11px;align-items:center;padding:10px 12px;border:1px solid #EDEAE2;border-radius:11px;background:#FCFBF9;">
-              <span style="font-size:10px;font-weight:600;color:#B7791F;background:#FBEFCF;border-radius:6px;padding:4px 8px;white-space:nowrap;">{{ t.signal }}</span>
-              <div style="min-width:0;">
-                <div style="font-size:12.5px;font-weight:600;color:#0A2450;">{{ t.hire }}</div>
-                <div style="font-size:11px;color:#8A887F;">{{ t.detail }}</div>
+              <p style="margin:8px 0 0;font-size:12.5px;color:#4A4A44;line-height:1.45;">{{ e.text }}</p>
+              <div style="display:flex;justify-content:flex-end;margin-top:12px;">
+                <button style="background:#fff;border:1px solid #B9CBE8;color:#0B4DA2;border-radius:8px;padding:6px 13px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:'Public Sans';">Mark resolved</button>
               </div>
             </div>
           </sc-for>
+          <sc-if value="{{ hr.noEscalations }}" hint-placeholder-val="{{ false }}">
+            <div style="text-align:center;padding:16px;color:#8A887F;font-size:12.5px;">No open help requests.</div>
+          </sc-if>
         </div>
       </section>
     </div>
 
-    <!-- Drill-down table (collapsed) -->
-    <details style="background:#fff;border:1px solid #E7E4DC;border-radius:16px;padding:0;overflow:hidden;">
-      <summary style="cursor:pointer;padding:16px 20px;font-family:'Schibsted Grotesk';font-weight:600;font-size:14px;color:#0A2450;list-style:none;display:flex;align-items:center;justify-content:space-between;">
-        <span>Cohort ramp table <span style="font-weight:400;color:#8A887F;font-family:'Public Sans';font-size:12px;">— full detail, drill-down</span></span>
+    <!-- Pulse & support signals -->
+    <section style="background:#fff;border:1px solid #E7E4DC;border-radius:16px;padding:22px 24px;margin-top:16px;">
+      <h2 style="font-family:'Schibsted Grotesk';font-weight:600;font-size:15px;margin:0 0 3px;">Pulse &amp; support signals</h2>
+      <p style="margin:0 0 16px;font-size:11.5px;color:#8A887F;">From weekly pulse check-ins — score, trend, and concern tags only.</p>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">
+        <sc-for list="{{ hr.pulse }}" as="p" hint-placeholder-count="3">
+          <div style="border:1px solid #EDEAE2;border-radius:12px;padding:15px 16px;background:#FCFBF9;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:11px;">
+              <div style="font-size:13px;font-weight:600;color:#0A2450;">{{ p.hire }}</div>
+              <span style="{{ p.trendStyle }}">{{ p.trendLabel }}</span>
+            </div>
+            <div style="display:flex;align-items:baseline;gap:5px;margin-bottom:12px;">
+              <span style="font-family:'Schibsted Grotesk';font-weight:600;font-size:24px;color:{{ p.scoreColor }};">{{ p.score }}</span>
+              <span style="font-size:12px;color:#8A887F;">/ 5 pulse</span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px;">
+              <sc-for list="{{ p.tags }}" as="t" hint-placeholder-count="2">
+                <span style="font-size:10.5px;color:#6B6A63;background:#EFEDE6;border-radius:6px;padding:3px 8px;">{{ t }}</span>
+              </sc-for>
+              <sc-if value="{{ p.noTags }}" hint-placeholder-val="{{ false }}">
+                <span style="font-size:10.5px;color:#8A887F;">No concern tags</span>
+              </sc-if>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <!-- Drill-down table -->
+    <details style="background:#fff;border:1px solid #E7E4DC;border-radius:16px;margin-top:16px;overflow:hidden;">
+      <summary style="cursor:pointer;padding:16px 22px;font-family:'Schibsted Grotesk';font-weight:600;font-size:14px;color:#0A2450;display:flex;align-items:center;justify-content:space-between;">
+        <span>All hires <span style="font-weight:400;color:#8A887F;font-family:'Public Sans';font-size:12px;">— full ramp detail</span></span>
         <span style="font-size:12px;color:#8A887F;">▾</span>
       </summary>
-      <div style="padding:0 20px 18px;overflow-x:auto;">
+      <div style="padding:0 22px 18px;overflow-x:auto;">
         <table style="width:100%;border-collapse:collapse;font-size:12.5px;">
           <thead>
             <tr style="text-align:left;color:#8A887F;border-bottom:2px solid #EDEAE2;">
               <th style="padding:9px 8px;font-weight:600;">Hire</th>
               <th style="padding:9px 8px;font-weight:600;">Role</th>
-              <th style="padding:9px 8px;font-weight:600;">Started</th>
               <th style="padding:9px 8px;font-weight:600;">Stage</th>
-              <th style="padding:9px 8px;font-weight:600;">Ramp</th>
+              <th style="padding:9px 8px;font-weight:600;">Progress</th>
               <th style="padding:9px 8px;font-weight:600;">Pulse</th>
               <th style="padding:9px 8px;font-weight:600;">Status</th>
             </tr>
@@ -434,11 +341,10 @@
               <tr style="border-bottom:1px solid #F0EDE6;">
                 <td style="padding:10px 8px;font-weight:600;color:#0A2450;">{{ r.name }}</td>
                 <td style="padding:10px 8px;color:#6B6A63;">{{ r.role }}</td>
-                <td style="padding:10px 8px;color:#6B6A63;font-family:'IBM Plex Mono';font-size:11px;">{{ r.started }}</td>
                 <td style="padding:10px 8px;color:#6B6A63;">{{ r.stage }}</td>
                 <td style="padding:10px 8px;">
                   <div style="display:flex;align-items:center;gap:7px;">
-                    <div style="width:60px;height:5px;border-radius:3px;background:#EEEBE3;overflow:hidden;"><div style="height:100%;background:#0B4DA2;width:{{ r.pct }};"></div></div>
+                    <div style="width:56px;height:5px;border-radius:3px;background:#EEEBE3;overflow:hidden;"><div style="height:100%;background:#0B4DA2;width:{{ r.pct }};"></div></div>
                     <span style="font-size:11px;color:#8A887F;">{{ r.pct }}</span>
                   </div>
                 </td>
@@ -451,9 +357,7 @@
       </div>
     </details>
 
-    <div style="margin-top:22px;text-align:center;font-size:11px;color:#9A988E;line-height:1.5;max-width:760px;margin-left:auto;margin-right:auto;">
-      AISHA is an educational capstone prototype. It is not affiliated with, endorsed by, or representative of BDO Unibank. All employee records, documents, contacts, metrics, and interactions are fictionalized. AISHA is support, not surveillance — HR sees summaries and concern tags, never raw private chats by default.
-    </div>
+    <p style="margin:20px auto 0;text-align:center;font-size:10.5px;color:#9A988E;line-height:1.5;max-width:680px;">Fictionalized BDO educational capstone — not affiliated with or endorsed by BDO Unibank. HR sees summaries and concern tags, never raw private chats by default.</p>
   </main>
   </sc-if>
 
@@ -464,128 +368,78 @@ class Component extends DCLogic {
   state = {
     personaId: "emp-alyssa",
     simDate: "2026-07-20",
-    extraDone: 0,
+    doneIds: {},
     chats: {},
   };
 
   PEOPLE() {
     return {
-      irene: { name: "Irene Chua", role: "IT Access Coordinator", initials: "IC", slack: "@irene.it", bg: "#0B4DA2" },
-      rafael: { name: "Rafael Aquino", role: "Compliance Learning Officer", initials: "RA", slack: "@rafael.compliance", bg: "#2F7A54" },
-      mika: { name: "Mika Tan", role: "Buddy · Sr. Branch Associate", initials: "MT", slack: "@mika.buddy", bg: "#C9962C" },
-      carlo: { name: "Carlo Santos", role: "Branch Manager", initials: "CS", slack: "@carlo.branch", bg: "#123166" },
-      luis: { name: "Luis Navarro", role: "Buddy · Digital Support", initials: "LN", slack: "@luis.digital", bg: "#C9962C" },
-      patricia: { name: "Patricia Go", role: "Digital Channels Lead", initials: "PG", slack: "@patricia.digital", bg: "#123166" },
-      rina: { name: "Rina Mercado", role: "Branch Operations Lead", initials: "RM", slack: "@rina.ops", bg: "#123166" },
+      irene: { name: "Irene Chua", role: "IT Access Coordinator", initials: "IC", bg: "#0B4DA2" },
+      rafael: { name: "Rafael Aquino", role: "Compliance Learning Officer", initials: "RA", bg: "#2F7A54" },
+      mika: { name: "Mika Tan", role: "Buddy · Sr. Branch Associate", initials: "MT", bg: "#C9962C" },
+      carlo: { name: "Carlo Santos", role: "Branch Manager", initials: "CS", bg: "#123166" },
+      luis: { name: "Luis Navarro", role: "Buddy · Digital Support", initials: "LN", bg: "#C9962C" },
+      patricia: { name: "Patricia Go", role: "Digital Channels Lead", initials: "PG", bg: "#123166" },
+      rina: { name: "Rina Mercado", role: "Branch Operations Lead", initials: "RM", bg: "#123166" },
     };
   }
 
   EMP() {
-    const P = this.PEOPLE();
     return {
       "emp-alyssa": {
-        name: "Alyssa Reyes", first: "Alyssa", initials: "AR", avatarBg: "#C9962C",
+        name: "Alyssa Reyes", initials: "AR", avatarBg: "#C9962C",
         role: "Management Trainee / Branch Banking Associate",
-        heroTitle: "Get Alyssa ready for supervised branch customer interactions",
-        heroGoal: "Correct process awareness, compliance awareness, and confidence in who to ask when blocked — by the Day 30 check with Carlo Santos.",
-        daysToDay30: "16", stageShort: "Week 2", weekLabel: "Week 2", day30: "Aug 5",
-        readyCount: 1, readyTotal: 5, progressDone: 14, progressTotal: 25, progressPct: 56,
-        contextLine: "Week 2 · sandbox blocker · AML module overdue",
-        stagesRaw: [
-          { label: "Pre-start", sub: "Before Day 1", status: "done", done: 4, total: 4 },
-          { label: "Day 1 Setup", sub: "First day", status: "done", done: 5, total: 5 },
-          { label: "Week 1 Foundations", sub: "Days 2–7", status: "attention", done: 4, total: 6 },
-          { label: "Week 2 Practice", sub: "Days 8–14", status: "current", done: 1, total: 5 },
-          { label: "Day 30 Readiness", sub: "Aug 5", status: "upcoming", done: 0, total: 5 },
-        ],
+        heroTitle: "Getting Alyssa ready for supervised branch customer interactions",
+        stageName: "Week 2 · Practice & Feedback", progressDone: 14, progressTotal: 25,
+        stageIndex: 3,
         nextRaw: [
-          { title: "Complete AML Basics learning module", meta: "Overdue 2 days · ~20 min", owner: "Rafael Aquino", tag: "Compliance", tagKind: "urgent" },
-          { title: "Shadow 2 supervised customer interactions", meta: "This week", owner: "with Mika Tan", tag: "Practice", tagKind: "practice" },
-          { title: "Practice account inquiry handoff in sandbox", meta: "Blocked — needs access", owner: "Irene Chua", tag: "Blocked", tagKind: "blocked" },
+          { id: "aml", title: "Complete AML Basics learning module", meta: "~20 min · Compliance", tag: "Task open", kind: "compliance" },
+          { id: "shadow", title: "Shadow 2 supervised customer interactions", meta: "This week · with Mika Tan", tag: "Practice", kind: "practice" },
+          { id: "sandbox", title: "Get Core Banking training sandbox access", meta: "Needed for Week 2 practice", tag: "Blocked", kind: "blocked" },
         ],
         blockers: [
-          { title: "Core Banking training sandbox access", since: "Pending 6 days", desc: "Requested on Day 1, still not provisioned. This blocks your Week 2 handoff practice.", owner: "Irene Chua", ownerRole: "IT Access Coordinator", ownerInitials: "IC" },
+          { title: "Core Banking training sandbox access", desc: "Still an open task on your plan — not yet marked done. It blocks your Week 2 sandbox practice.", state: "Task still open", owner: "Irene Chua", ownerRole: "IT Access Coordinator" },
         ],
         helperKeys: ["carlo", "mika", "irene", "rafael"],
-        criteriaRaw: [
-          { label: "Demonstrate supervised customer greeting & routing", ready: false },
-          { label: "Explain when to escalate privacy, AML, or unusual transactions", ready: false },
-          { label: "Resolve open access or confidence blockers", ready: false },
-          { label: "Complete required compliance modules", ready: false },
-          { label: "Read the AISHA disclaimer & privacy note", ready: true },
-        ],
-        seed: [
-          { role: "aisha", text: "Hi Alyssa — you're in Week 2: Practice & Feedback. Two things need attention: your AML Basics module is overdue, and your sandbox access is still pending. Want to tackle either now?" },
-        ],
+        seed: [{ role: "aisha", text: "Hi Alyssa — you're in Week 2: Practice & Feedback. Two tasks are still open: your AML Basics module and your Core Banking sandbox access. Want help with either?" }],
       },
       "emp-jomar": {
-        name: "Jomar Dela Cruz", first: "Jomar", initials: "JD", avatarBg: "#2F7A54",
+        name: "Jomar Dela Cruz", initials: "JD", avatarBg: "#2F7A54",
         role: "Client Service Associate",
-        heroTitle: "Jomar is on pace for his Day 30 readiness check",
-        heroGoal: "Milestones are on schedule and pulse confidence is rising. Final focus: supervised queue triage sign-off with Carlo Santos.",
-        daysToDay30: "3", stageShort: "Day 30", weekLabel: "Week 3", day30: "Jul 22",
-        readyCount: 4, readyTotal: 4, progressDone: 17, progressTotal: 18, progressPct: 94,
-        contextLine: "Approaching Day 30 · on track",
-        stagesRaw: [
-          { label: "Pre-start", sub: "Before Day 1", status: "done", done: 3, total: 3 },
-          { label: "Day 1 Setup", sub: "First day", status: "done", done: 4, total: 4 },
-          { label: "Week 1 Foundations", sub: "Days 2–7", status: "done", done: 5, total: 5 },
-          { label: "Week 2 Practice", sub: "Days 8–14", status: "done", done: 4, total: 4 },
-          { label: "Day 30 Readiness", sub: "Jul 22", status: "current", done: 1, total: 4 },
-        ],
+        heroTitle: "Jomar is on pace for his Day 30 readiness conversation",
+        stageName: "Day 30 · Readiness", progressDone: 17, progressTotal: 18,
+        stageIndex: 4,
         nextRaw: [
-          { title: "Complete Day 30 Readiness Check", meta: "In 3 days", owner: "with Carlo Santos", tag: "Readiness", tagKind: "practice" },
-          { title: "Demonstrate supervised queue triage", meta: "Final sign-off", owner: "with Rina Mercado", tag: "Practice", tagKind: "practice" },
+          { id: "triage", title: "Demonstrate supervised queue triage", meta: "Final ramp task · with Rina Mercado", tag: "Practice", kind: "practice" },
         ],
         blockers: [],
         helperKeys: ["carlo", "rina"],
-        criteriaRaw: [
-          { label: "Demonstrate supervised queue triage", ready: true },
-          { label: "Explain document confidentiality expectations", ready: true },
-          { label: "Complete required modules", ready: true },
-          { label: "Agree on next branch operations ramp focus", ready: false },
-        ],
-        seed: [
-          { role: "aisha", text: "Nice work, Jomar — you're 3 days out from your Day 30 check and everything's on pace. Want a quick recap of what the readiness check covers?" },
-        ],
+        seed: [{ role: "aisha", text: "Nice work, Jomar — you're near your Day 30 readiness conversation and nearly every task is done. Want a recap of what's left?" }],
       },
       "emp-nina": {
-        name: "Nina Lim", first: "Nina", initials: "NL", avatarBg: "#0B4DA2",
+        name: "Nina Lim", initials: "NL", avatarBg: "#0B4DA2",
         role: "Digital Banking Support Associate",
         heroTitle: "Nina is ramping steadily on digital support triage",
-        heroGoal: "Making progress with a couple of workflow questions to work through before Day 30 ticket-triage readiness.",
-        daysToDay30: "9", stageShort: "Week 2", weekLabel: "Week 2", day30: "Jul 29",
-        readyCount: 2, readyTotal: 4, progressDone: 11, progressTotal: 17, progressPct: 65,
-        contextLine: "Week 2 · triage practice",
-        stagesRaw: [
-          { label: "Pre-start", sub: "Before Day 1", status: "done", done: 3, total: 3 },
-          { label: "Day 1 Setup", sub: "First day", status: "done", done: 5, total: 5 },
-          { label: "Week 1 Foundations", sub: "Days 2–7", status: "done", done: 5, total: 5 },
-          { label: "Week 2 Practice", sub: "Days 8–14", status: "current", done: 1, total: 4 },
-          { label: "Day 30 Readiness", sub: "Jul 29", status: "upcoming", done: 0, total: 4 },
-        ],
+        stageName: "Week 2 · Practice & Feedback", progressDone: 11, progressTotal: 17,
+        stageIndex: 3,
         nextRaw: [
-          { title: "Practice identifying branch escalation cases", meta: "This week", owner: "with Luis Navarro", tag: "Practice", tagKind: "practice" },
-          { title: "Review digital support ticket categories", meta: "Asked a few times", owner: "with Luis Navarro", tag: "Refresh", tagKind: "urgent" },
+          { id: "escal", title: "Practice identifying branch escalation cases", meta: "This week · with Luis Navarro", tag: "Practice", kind: "practice" },
+          { id: "cats", title: "Review digital support ticket categories", meta: "Refresher", tag: "Task open", kind: "compliance" },
         ],
         blockers: [],
         helperKeys: ["patricia", "luis"],
-        criteriaRaw: [
-          { label: "Demonstrate supervised ticket triage", ready: false },
-          { label: "Explain privacy-safe customer support boundaries", ready: true },
-          { label: "Complete required modules", ready: true },
-          { label: "Agree on next digital channels ramp focus", ready: false },
-        ],
-        seed: [
-          { role: "aisha", text: "Hi Nina — you're in Week 2. I noticed ticket triage categories have come up a few times; want a quick refresher, or shall I set up time with Luis?" },
-        ],
+        seed: [{ role: "aisha", text: "Hi Nina — you're in Week 2. Want a quick refresher on ticket triage categories, or shall I point you to Luis?" }],
       },
     };
   }
 
+  STAGES() {
+    return ["Pre-start", "Day 1", "Week 1", "Week 2", "Day 30"];
+  }
+
   setPersona(id) { this.setState({ personaId: id }); }
   onDateChange = (e) => this.setState({ simDate: e.target.value });
-  onReset = () => this.setState({ personaId: "emp-alyssa", simDate: "2026-07-20", extraDone: 0, chats: {} });
+  onReset = () => this.setState({ personaId: "emp-alyssa", simDate: "2026-07-20", doneIds: {}, chats: {} });
 
   pushChat(msgs) {
     const id = this.state.personaId;
@@ -593,24 +447,28 @@ class Component extends DCLogic {
     this.setState({ chats: { ...this.state.chats, [id]: [...cur, ...msgs] } });
   }
 
-  chipResponse(label) {
-    const R = {
-      "Access blocker": { text: "Your Core Banking training sandbox access is still pending (requested Day 1). The owner is Irene Chua, IT Access Coordinator — 1F IT Bar, @irene.it. I can draft a follow-up and file an escalation so HR sees it. Want me to?", evidence: [{ source: "it_access_systems.md", title: "IT Access & Systems — sandbox provisioning" }] },
-      "Day 30 readiness": { text: "Your Day 30 check with Carlo Santos covers 5 things: supervised greeting & routing, knowing when to escalate privacy/AML concerns, clearing open blockers, finishing compliance modules, and reading the privacy note. You've met 1 of 5 so far.", evidence: [{ source: "branch_readiness.md", title: "Day 30 Readiness Check — criteria" }] },
-      "Branch shadowing": { text: "You have 2 supervised customer interactions to shadow this week with your buddy Mika Tan (@mika.buddy, Service Area). Best window is during morning branch opening. Want me to note it for your next check-in?", evidence: [{ source: "branch_operations.md", title: "Branch shadowing & opening routines" }] },
-      "Compliance module": { text: "AML Basics is overdue by 2 days — it's about 20 minutes. Owner is Rafael Aquino, Compliance Learning Officer (@rafael.compliance, 3F Training Room). Finishing it clears one Day 30 readiness criterion.", evidence: [{ source: "compliance_learning.md", title: "AML basics & data-privacy modules" }] },
-      "Manager check-in": { text: "Your next check-in is with Carlo Santos. Come ready with: your sandbox blocker, shadowing progress, and one question. I can prep a short summary of where you are — want it?", evidence: [{ source: "manager_checkin.md", title: "Manager check-in — what to prepare" }] },
-    };
-    const r = R[label];
-    if (r) {
-      this.pushChat([{ role: "user", text: label }, { role: "aisha", text: r.text, evidence: r.evidence }]);
-    }
+  markDone(taskId) {
+    const id = this.state.personaId;
+    const cur = this.state.doneIds[id] || [];
+    if (cur.includes(taskId)) return;
+    this.setState({ doneIds: { ...this.state.doneIds, [id]: [...cur, taskId] } });
+    this.pushChat([{ role: "aisha", text: "Marked done and updated your ramp progress. Nice momentum — want to look at what's next?" }]);
   }
 
-  onMarkDone = () => {
-    this.setState({ extraDone: this.state.extraDone + 1 });
-    this.pushChat([{ role: "user", text: "Mark milestone done" }, { role: "aisha", text: "Done — I've marked \u201cPractice customer greeting & queue triage scripts\u201d complete and updated your Week 2 progress. Nice momentum. Want to pick the next one?" }]);
-  };
+  escalate(title) {
+    this.pushChat([{ role: "user", text: "File a support escalation for: " + title }, { role: "aisha", text: "Filed a People Experience support escalation for \u201c" + title + "\u201d. HR sees a short summary — not this chat. I'll keep it on your blocked list until it's resolved." }]);
+  }
+
+  chipResponse(label) {
+    const R = {
+      "What's blocking me?": { text: "Your Core Banking training sandbox access is still an open task — not yet marked done. Irene Chua (IT Access Coordinator) can help. If it's stuck, I can file a People Experience support escalation for you.", evidence: [{ title: "IT setup — accounts & access basics" }] },
+      "Day 30 readiness": { text: "Your Day 30 readiness conversation with Carlo Santos comes from your ramp plan: supervised greeting & routing, knowing when to escalate privacy/AML concerns, clearing open tasks, and finishing compliance modules. You've completed 1 of those areas so far.", evidence: [{ title: "Your ramp plan — Day 30 milestone checklist" }] },
+      "Who can help?": { text: "For your open items: Irene Chua for sandbox access, Rafael Aquino for the AML module, and your buddy Mika Tan for branch shadowing. Your manager Carlo Santos owns your Day 30 conversation.", evidence: [{ title: "Fictional org directory" }] },
+      "Compliance basics": { text: "Here's what the handbook says about confidentiality and conduct while you're ramping. Your AML Basics module is still an open task — Rafael Aquino (Compliance Learning Officer) is the owner.", evidence: [{ title: "Code of conduct — confidentiality & compliance basics" }] },
+    };
+    const r = R[label];
+    if (r) this.pushChat([{ role: "user", text: label }, { role: "aisha", text: r.text, evidence: r.evidence }]);
+  }
 
   bubbleStyles(role) {
     if (role === "user") {
@@ -624,186 +482,126 @@ class Component extends DCLogic {
     const isHR = id === "hr_admin";
     const P = this.PEOPLE();
     const EMP = this.EMP();
+    const showDemoBar = this.props.showDemoBar ?? true;
+    const showEvidence = this.props.showEvidence ?? true;
 
     const personaDefs = [
       { id: "emp-alyssa", short: "Alyssa" },
       { id: "emp-jomar", short: "Jomar" },
       { id: "emp-nina", short: "Nina" },
-      { id: "hr_admin", short: "HR admin" },
+      { id: "hr_admin", short: "HR" },
     ];
     const personas = personaDefs.map((d) => ({
       short: d.short,
       onClick: () => this.setPersona(d.id),
-      pickerStyle: (d.id === id
-        ? "background:#C9962C;color:#0A2450;"
-        : "background:transparent;color:#9FB0CF;") +
-        "border:none;border-radius:6px;padding:5px 11px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:'Public Sans';",
+      pickerStyle: (d.id === id ? "background:#C9962C;color:#0A2450;" : "background:transparent;color:#8695B3;") +
+        "border:none;border-radius:5px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Public Sans';",
     }));
 
-    const showDemoBar = this.props.showDemoBar ?? true;
-    const showEvidence = this.props.showEvidence ?? true;
-
-    // signed-in chip
     let signed = { name: "HR admin", role: "People Experience", initials: "HR", bg: "#123166" };
     if (!isHR) { const e = EMP[id]; signed = { name: e.name, role: e.role.split(" / ")[0], initials: e.initials, bg: e.avatarBg }; }
 
     const base = {
-      isNewHire: !isHR, isHR, personas, simDate: this.state.simDate,
-      showDemoBar, onDateChange: this.onDateChange, onReset: this.onReset,
+      isNewHire: !isHR, isHR, personas, simDate: this.state.simDate, showDemoBar,
+      onDateChange: this.onDateChange, onReset: this.onReset,
       signedInName: signed.name, signedInRole: signed.role, signedInInitials: signed.initials, signedInAvatarBg: signed.bg,
     };
 
     if (isHR) {
-      const statusPill = (kind) => {
-        const m = {
-          support: "background:#FBEFCF;color:#8A6414;",
-          monitor: "background:#E4EDF9;color:#0B4DA2;",
-          track: "background:#E4F1E9;color:#2F7A54;",
-        }[kind];
-        return m + "font-size:10.5px;font-weight:700;border-radius:999px;padding:4px 10px;white-space:nowrap;";
-      };
-      const cardBorder = { support: "#F0DFB4", monitor: "#E7E4DC", track: "#E7E4DC" };
-      const cards = [
-        {
-          name: "Alyssa Reyes", role: "Branch Banking Associate", initials: "AR", avatarBg: "#C9962C",
-          statusLabel: "Needs support", statusKind: "support",
-          signals: [
-            { text: "Day 1 access setup ran slower than the cohort norm", dot: "#B7791F" },
-            { text: "AML compliance module overdue by 2 days", dot: "#B7791F" },
-            { text: "No buddy check-in logged this week", dot: "#B7791F" },
-            { text: "Pulse confidence eased from 4 to 2", dot: "#B7791F" },
-          ],
-          action: "Schedule a 15-min buddy check-in with Mika Tan and clear the sandbox access blocker with IT.",
-          primaryCta: "Nudge buddy check-in",
-          privacy: "Summary only — no private chat shown. Based on milestone timing and pulse trend.",
-        },
-        {
-          name: "Nina Lim", role: "Digital Banking Support", initials: "NL", avatarBg: "#0B4DA2",
-          statusLabel: "Worth a look", statusKind: "monitor",
-          signals: [
-            { text: "Ticket-triage steps asked about a few times", dot: "#0B4DA2" },
-            { text: "One buddy check-in missed this week", dot: "#0B4DA2" },
-            { text: "Pulse steady at 3", dot: "#0B4DA2" },
-          ],
-          action: "A short triage-category refresher with Luis Navarro may help her feel more confident.",
-          primaryCta: "Suggest refresher",
-          privacy: "Summary only — no private chat shown. Based on repeated topic and pulse.",
-        },
-        {
-          name: "Jomar Dela Cruz", role: "Client Service Associate", initials: "JD", avatarBg: "#2F7A54",
-          statusLabel: "On track", statusKind: "track",
-          signals: [
-            { text: "Milestones on pace for Day 30", dot: "#2F7A54" },
-            { text: "Pulse confidence rising 4 → 5", dot: "#2F7A54" },
-            { text: "Approaching readiness check in 3 days", dot: "#2F7A54" },
-          ],
-          action: "No action needed — on schedule for his Day 30 check with Carlo Santos.",
-          primaryCta: "View ramp summary",
-          privacy: "Summary only — no private chat shown. Positive trend, no concern.",
-        },
-      ].map((c) => ({
-        ...c,
-        cardStyle: "background:#fff;border:1px solid " + cardBorder[c.statusKind] + ";border-radius:16px;padding:18px 18px;" + (c.statusKind === "support" ? "box-shadow:0 1px 0 #F0DFB4, 0 6px 20px rgba(183,121,31,0.08);" : ""),
-        statusStyle: statusPill(c.statusKind),
-        avatarBg: c.avatarBg,
-        actionBg: c.statusKind === "support" ? "#FDF7E9" : c.statusKind === "monitor" ? "#F4F8FD" : "#F1F7F3",
-        actionBorder: c.statusKind === "support" ? "#F0DFB4" : c.statusKind === "monitor" ? "#DCE7F6" : "#DBEBE1",
-        actionLabelColor: c.statusKind === "support" ? "#8A6414" : c.statusKind === "monitor" ? "#0B4DA2" : "#2F7A54",
-        onDrill: () => {},
-      }));
+      const trendPill = (kind) => ({
+        declining: "background:#FBEFCF;color:#8A6414;",
+        improving: "background:#E4F1E9;color:#2F7A54;",
+        stable: "background:#EFEDE6;color:#6B6A63;",
+      }[kind] + "font-size:10px;font-weight:600;border-radius:6px;padding:3px 8px;");
+      const statusPill = (kind) => ({
+        support: "background:#FBEFCF;color:#8A6414;",
+        monitor: "background:#EFEDE6;color:#6B6A63;",
+        track: "background:#E4F1E9;color:#2F7A54;",
+      }[kind] + "font-size:10.5px;font-weight:600;border-radius:999px;padding:4px 10px;white-space:nowrap;");
 
-      const rowStatus = (kind) => statusPill(kind);
+      const pulse = [
+        { hire: "Alyssa Reyes", score: "2", scoreColor: "#B7791F", trendLabel: "Declining", trendKind: "declining", tags: ["tools", "clarity"] },
+        { hire: "Nina Lim", score: "3", scoreColor: "#0A2450", trendLabel: "Stable", trendKind: "stable", tags: ["clarity"] },
+        { hire: "Jomar Dela Cruz", score: "5", scoreColor: "#2F7A54", trendLabel: "Improving", trendKind: "improving", tags: [] },
+      ].map((p) => ({ ...p, trendStyle: trendPill(p.trendKind), noTags: p.tags.length === 0 }));
+
       const cohort = [
-        { name: "Alyssa Reyes", role: "Branch Banking Assoc.", started: "Jul 06", stage: "Week 2", pct: "56%", pulse: "2/5", status: "Needs support", kind: "support" },
-        { name: "Nina Lim", role: "Digital Support", started: "Jun 29", stage: "Week 2", pct: "65%", pulse: "3/5", status: "Worth a look", kind: "monitor" },
-        { name: "Jomar Dela Cruz", role: "Client Service", started: "Jun 22", stage: "Day 30", pct: "94%", pulse: "5/5", status: "On track", kind: "track" },
-      ].map((r) => ({ ...r, statusStyle: rowStatus(r.kind) }));
+        { name: "Alyssa Reyes", role: "Branch Banking Assoc.", stage: "Week 2", pct: "56%", pulse: "2/5", status: "May need support", kind: "support" },
+        { name: "Nina Lim", role: "Digital Support", stage: "Week 2", pct: "65%", pulse: "3/5", status: "Steady", kind: "monitor" },
+        { name: "Jomar Dela Cruz", role: "Client Service", stage: "Day 30", pct: "94%", pulse: "5/5", status: "On track", kind: "track" },
+      ].map((r) => ({ ...r, statusStyle: statusPill(r.kind) }));
 
       return {
         ...base,
         hr: {
           activeCount: 3, supportCount: 1, escalationCount: 1,
-          cards,
+          alyssaSignals: [
+            "Core Banking sandbox access — task still open",
+            "AML Basics module — not yet marked done",
+            "Latest pulse 2/5, declining",
+            "Pulse concern tags: tools, clarity",
+          ],
           escalations: [
-            { hire: "Alyssa Reyes", team: "IT Access", text: "Requested help unblocking Core Banking training sandbox access.", when: "Jul 18, 09:24" },
+            { hire: "Alyssa Reyes", topic: "IT access", text: "Requested help getting Core Banking training sandbox access." },
           ],
-          trends: [
-            { hire: "Alyssa Reyes", signal: "Module overdue", detail: "AML Basics overdue 2 days" },
-            { hire: "Alyssa Reyes", signal: "Missed touchpoint", detail: "No buddy check-in this week" },
-            { hire: "Nina Lim", signal: "Repeated question", detail: "Ticket triage steps asked ~3×" },
-          ],
-          cohort,
+          noEscalations: false,
+          pulse, cohort,
         },
       };
     }
 
-    // ---- new-hire cockpit ----
+    // ---- new-hire ----
     const e = EMP[id];
-    const statusMap = {
-      done: { dot: "background:#2F7A54;", label: "Done", labelColor: "#2F7A54", bar: "#2F7A54" },
-      attention: { dot: "background:#C9962C;", label: "Attention", labelColor: "#B7791F", bar: "#C9962C" },
-      current: { dot: "background:#0B4DA2;box-shadow:0 0 0 3px #CFE0F5;", label: "In progress", labelColor: "#0B4DA2", bar: "#0B4DA2" },
-      upcoming: { dot: "background:#C7C4BB;", label: "Upcoming", labelColor: "#9A988E", bar: "#C7C4BB" },
-    };
-    const stages = e.stagesRaw.map((s) => {
-      const m = statusMap[s.status];
-      const pct = s.total ? Math.round((s.done / s.total) * 100) : 0;
+    const done = this.state.doneIds[id] || [];
+    const openTasks = e.nextRaw.filter((n) => !done.includes(n.id));
+    const doneCount = e.progressDone + done.length;
+    const pct = Math.round((doneCount / e.progressTotal) * 100);
+
+    const stageNames = this.STAGES();
+    const stages = stageNames.map((nm, i) => {
+      const st = i < e.stageIndex ? "done" : i === e.stageIndex ? "current" : "upcoming";
       return {
-        label: s.label, sub: s.sub, statusLabel: m.label,
-        dotStyle: "width:9px;height:9px;border-radius:50%;flex-shrink:0;" + m.dot,
-        statusStyle: "font-size:10px;font-weight:600;letter-spacing:0.2px;color:" + m.labelColor + ";",
-        barColor: m.bar, barWidth: pct + "%", countLabel: s.done + "/" + s.total + " done",
-        wrapStyle: "padding:12px 11px;border-radius:12px;border:1px solid " + (s.status === "current" ? "#B9CBE8" : "#EDEAE2") + ";background:" + (s.status === "current" ? "#F4F8FD" : "#FCFBF9") + ";",
+        short: nm,
+        railColor: st === "done" ? "#C9962C" : st === "current" ? "#C9962C" : "rgba(255,255,255,0.14)",
+        labelColor: st === "upcoming" ? "#6E7EA0" : "#E8EDF6",
+        labelWeight: st === "current" ? "700" : "400",
       };
     });
 
     const tagStyle = (kind) => {
-      const m = { urgent: "background:#FBEFCF;color:#B7791F;", practice: "background:#E4EDF9;color:#0B4DA2;", blocked: "background:#F1EEE7;color:#8A887F;", refresh: "background:#FBEFCF;color:#B7791F;" }[kind] || "background:#E4EDF9;color:#0B4DA2;";
-      return m + "font-size:9.5px;font-weight:700;border-radius:6px;padding:4px 7px;height:fit-content;white-space:nowrap;flex-shrink:0;letter-spacing:0.2px;";
+      const m = { compliance: "background:#FBEFCF;color:#B7791F;", practice: "background:#E4EDF9;color:#0B4DA2;", blocked: "background:#F1EEE7;color:#8A887F;" }[kind] || "background:#E4EDF9;color:#0B4DA2;";
+      return m + "font-size:9.5px;font-weight:600;border-radius:6px;padding:4px 8px;height:fit-content;white-space:nowrap;flex-shrink:0;";
     };
-    const nextActions = e.nextRaw.map((n) => ({ ...n, tagStyle: tagStyle(n.tagKind) }));
-
-    const helpers = e.helperKeys.map((k) => ({ name: P[k].name, role: P[k].role, initials: P[k].initials, slack: P[k].slack, avatarBg: P[k].bg }));
-
-    const criteria = e.criteriaRaw.map((c) => ({
-      label: c.label,
-      checkMark: c.ready ? "✓" : "",
-      checkStyle: "width:18px;height:18px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;margin-top:1px;" + (c.ready ? "background:#2F7A54;color:#fff;" : "background:#F1EEE7;border:1.5px solid #DAD6CC;color:transparent;"),
-      textColor: c.ready ? "#0A2450" : "#6B6A63",
+    const nextActions = openTasks.map((n, i) => ({
+      title: n.title, meta: n.meta, tag: n.tag, tagStyle: tagStyle(n.kind),
+      onDone: () => this.markDone(n.id),
+      rowStyle: "display:flex;gap:12px;align-items:center;padding:12px 0;" + (i < openTasks.length - 1 ? "border-bottom:1px solid #F0EDE6;" : ""),
     }));
 
-    const readyDeg = Math.round((e.readyCount / e.readyTotal) * 360) + "deg";
+    const helpers = e.helperKeys.map((k) => ({ name: P[k].name, role: P[k].role, initials: P[k].initials, avatarBg: P[k].bg }));
 
-    const chips = ["Access blocker", "Day 30 readiness", "Branch shadowing", "Compliance module", "Manager check-in"].map((l) => ({
-      label: l, onClick: () => this.chipResponse(l),
-    }));
-    chips.push({ label: "Mark milestone done", onClick: this.onMarkDone });
+    const blockers = e.blockers.map((b) => ({ ...b, onEscalate: () => this.escalate(b.title) }));
+
+    const chipLabels = id === "emp-alyssa"
+      ? ["What's blocking me?", "Day 30 readiness", "Who can help?", "Compliance basics"]
+      : ["Day 30 readiness", "Who can help?", "Compliance basics"];
+    const chips = chipLabels.map((l) => ({ label: l, onClick: () => this.chipResponse(l) }));
 
     const rawChat = (this.state.chats[id] && this.state.chats[id].length) ? this.state.chats[id] : e.seed;
     const chat = rawChat.map((m) => {
       const s = this.bubbleStyles(m.role);
-      return {
-        text: m.text, rowStyle: s.row, bubbleStyle: s.bubble, textStyle: s.txt,
-        hasEvidence: showEvidence && !!(m.evidence && m.evidence.length),
-        evidence: m.evidence || [],
-      };
+      return { text: m.text, rowStyle: s.row, bubbleStyle: s.bubble, textStyle: s.txt, hasEvidence: showEvidence && !!(m.evidence && m.evidence.length), evidence: m.evidence || [] };
     });
 
     return {
       ...base,
       emp: {
-        heroTitle: e.heroTitle, heroGoal: e.heroGoal, daysToDay30: e.daysToDay30,
-        stageShort: e.stageShort, weekLabel: e.weekLabel,
-        readyCount: e.readyCount, readyTotal: e.readyTotal, readyDeg,
-        progressDone: e.progressDone + this.state.extraDone,
-        progressTotal: e.progressTotal,
-        progressPct: Math.round(((e.progressDone + this.state.extraDone) / e.progressTotal) * 100),
-        contextLine: e.contextLine,
-        stages, nextActions, blockers: e.blockers, noBlockers: e.blockers.length === 0,
-        helpers, criteria,
+        heroTitle: e.heroTitle, stageName: e.stageName,
+        progressDone: doneCount, progressTotal: e.progressTotal, progressPct: pct,
+        stages, nextActions, helpers,
+        blockers, hasBlockers: blockers.length > 0,
       },
       chat, chips,
-      onMarkDone: this.onMarkDone,
     };
   }
 }
