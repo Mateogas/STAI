@@ -381,6 +381,20 @@ def inject_css() -> None:
             box-shadow: none;
             padding: 16px;
         }
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .aisha-chat-heading) {
+            max-height: calc(100vh - 190px);
+            overflow-y: auto;
+            position: sticky;
+            top: 18px;
+        }
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .aisha-chat-heading) [data-testid="stForm"] {
+            background: #ffffff;
+            bottom: -16px;
+            margin: 0 -1rem -1rem;
+            padding: 12px 14px 14px;
+            position: sticky;
+            z-index: 5;
+        }
         .aisha-card-heading {
             display: flex;
             align-items: baseline;
@@ -448,6 +462,122 @@ def inject_css() -> None:
             padding: 12px 14px 14px;
             background: #ffffff;
             border-radius: 0 0 14px 14px;
+        }
+        .aisha-people-grid {
+            display: grid;
+            gap: 10px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            margin-top: 8px;
+        }
+        .aisha-person-chip {
+            align-items: center;
+            background: #fbfaf7;
+            border: 1px solid #e7e4dc;
+            border-radius: 13px;
+            display: flex;
+            gap: 10px;
+            min-width: 0;
+            padding: 10px 11px;
+        }
+        .aisha-person-avatar {
+            align-items: center;
+            background: var(--aisha-navy);
+            border-radius: 999px;
+            color: #ffffff;
+            display: flex;
+            flex: 0 0 34px;
+            font-size: 11px;
+            font-weight: 800;
+            height: 34px;
+            justify-content: center;
+            width: 34px;
+        }
+        .aisha-person-name {
+            color: var(--aisha-navy);
+            font-size: 13px;
+            font-weight: 800;
+            line-height: 1.2;
+        }
+        .aisha-person-role {
+            color: var(--aisha-muted);
+            font-size: 11px;
+            line-height: 1.3;
+            margin-top: 2px;
+        }
+        .aisha-metric-grid {
+            display: grid;
+            gap: 14px;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            margin: 18px 0 22px;
+        }
+        .aisha-metric-card {
+            background: #fffdf9;
+            border: 1px solid #e7e4dc;
+            border-radius: 14px;
+            padding: 16px 18px;
+        }
+        .aisha-metric-card.warn {
+            background: #fdf7e9;
+            border-color: #f0dfb4;
+        }
+        .aisha-metric-value {
+            color: var(--aisha-navy);
+            font-size: 29px;
+            font-weight: 850;
+            line-height: 1;
+        }
+        .aisha-metric-card.warn .aisha-metric-value {
+            color: #b7791f;
+        }
+        .aisha-metric-label {
+            color: var(--aisha-muted);
+            font-size: 11.5px;
+            margin-top: 6px;
+        }
+        .aisha-support-card {
+            background: #fffdf9;
+            border: 1px solid #e7e4dc;
+            border-radius: 16px;
+            margin-bottom: 13px;
+            padding: 18px 18px 16px;
+        }
+        .aisha-support-card-head {
+            align-items: start;
+            display: flex;
+            gap: 12px;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+        .aisha-status-pill {
+            background: #fbefcf;
+            border-radius: 999px;
+            color: #8a6414;
+            flex-shrink: 0;
+            font-size: 10.5px;
+            font-weight: 800;
+            padding: 5px 10px;
+        }
+        .aisha-signal-list {
+            color: #4a4a44;
+            font-size: 12.5px;
+            line-height: 1.45;
+            margin: 0 0 12px 18px;
+            padding: 0;
+        }
+        .aisha-action-note {
+            background: #fdf7e9;
+            border: 1px solid #f0dfb4;
+            border-radius: 11px;
+            color: #0a2450;
+            font-size: 12.5px;
+            line-height: 1.45;
+            padding: 11px 13px;
+        }
+        .aisha-privacy-note {
+            color: #8a887f;
+            font-size: 10.8px;
+            line-height: 1.4;
+            margin-top: 10px;
         }
         [data-testid="stExpander"] {
             background: rgba(255, 253, 249, 0.62);
@@ -1066,12 +1196,23 @@ def render_helpers(employee: Employee, open_items: list[ChecklistItem]) -> None:
                 icon=":material/person_search:",
             )
             return
-        cols = st.columns(2)
-        for idx, helper in enumerate(helpers[:4]):
-            with cols[idx % 2]:
-                st.markdown(f"**{helper.name}**")
-                st.caption(f"{helper.role} · {helper.team}")
-                st.write(short_text("; ".join(helper.responsibilities), 88))
+        chips = []
+        for helper in helpers[:6]:
+            chips.append(
+                f"""
+                <div class="aisha-person-chip">
+                  <div class="aisha-person-avatar">{escape(initials(helper.name))}</div>
+                  <div>
+                    <div class="aisha-person-name">{escape(helper.name)}</div>
+                    <div class="aisha-person-role">{escape(helper.role)} · {escape(helper.team)}</div>
+                  </div>
+                </div>
+                """
+            )
+        st.markdown(
+            f'<div class="aisha-people-grid">{"".join(chips)}</div>',
+            unsafe_allow_html=True,
+        )
 
 
 def build_prompt_chips(
@@ -1247,6 +1388,7 @@ def render_chat_panel(
 
         st.markdown('<div class="aisha-composer">', unsafe_allow_html=True)
         render_prompt_chips(employee, open_items, blockers)
+        st.markdown("</div>", unsafe_allow_html=True)
         queued = st.session_state.pop(f"queued_prompt_{employee.id}", None)
         with st.form(f"chat_form_{employee.id}", clear_on_submit=True):
             c_input, c_send = st.columns([0.84, 0.16], vertical_alignment="center")
@@ -1256,7 +1398,6 @@ def render_chat_panel(
                 label_visibility="collapsed",
             )
             submitted = c_send.form_submit_button("↑", use_container_width=True)
-        st.markdown("</div>", unsafe_allow_html=True)
 
     prompt = queued or (typed.strip() if submitted and typed.strip() else "")
     if not prompt:
@@ -1425,19 +1566,32 @@ def render_support_cards(profiles: list[dict]) -> None:
 
     for profile in flagged:
         employee: Employee = profile["employee"]
-        with st.container(border=True):
-            c_title, c_badge = st.columns([0.76, 0.24], vertical_alignment="center")
-            c_title.markdown(f"**{employee.name}**")
-            c_title.caption(f"{employee.role} · {profile['stage']}")
-            c_badge.warning("May need support", icon=":material/priority_high:")
-            st.markdown('<div class="aisha-mini-label">Signals</div>', unsafe_allow_html=True)
-            for signal in profile["signals"]:
-                st.markdown(f"- {signal}")
-            st.info(profile["action"], icon=":material/volunteer_activism:")
-            st.caption(
-                "Privacy note: summary from tasks, pulse, and escalations. "
-                "No private chat transcript shown."
-            )
+        signal_items = "".join(
+            f"<li>{escape(signal)}</li>" for signal in profile["signals"]
+        )
+        st.markdown(
+            f"""
+            <section class="aisha-support-card">
+              <div class="aisha-support-card-head">
+                <div style="display:flex;align-items:center;gap:11px;min-width:0;">
+                  <div class="aisha-person-avatar">{escape(initials(employee.name))}</div>
+                  <div style="min-width:0;">
+                    <div class="aisha-person-name">{escape(employee.name)}</div>
+                    <div class="aisha-person-role">{escape(employee.role)} · {escape(profile["stage"])}</div>
+                  </div>
+                </div>
+                <span class="aisha-status-pill">May need support</span>
+              </div>
+              <div class="aisha-mini-label">Signals</div>
+              <ul class="aisha-signal-list">{signal_items}</ul>
+              <div class="aisha-action-note">{escape(profile["action"])}</div>
+              <div class="aisha-privacy-note">
+                Privacy note: summary from tasks, pulse, and escalations. No private chat transcript shown.
+              </div>
+            </section>
+            """,
+            unsafe_allow_html=True,
+        )
 
 
 def render_help_requests(
@@ -1540,13 +1694,25 @@ def render_dashboard(
     profiles = build_support_profiles(employees, repo, sim_date, open_escalations)
     support_count = sum(1 for profile in profiles if profile["needs_support"])
 
-    m1, m2, m3 = st.columns(3)
-    with m1:
-        render_metric("Hires ramping", len(employees))
-    with m2:
-        render_metric("May need support", support_count)
-    with m3:
-        render_metric("Open help requests", len(open_escalations))
+    st.markdown(
+        f"""
+        <div class="aisha-metric-grid">
+          <div class="aisha-metric-card">
+            <div class="aisha-metric-value">{len(employees)}</div>
+            <div class="aisha-metric-label">Hires ramping</div>
+          </div>
+          <div class="aisha-metric-card warn">
+            <div class="aisha-metric-value">{support_count}</div>
+            <div class="aisha-metric-label">May need support</div>
+          </div>
+          <div class="aisha-metric-card">
+            <div class="aisha-metric-value">{len(open_escalations)}</div>
+            <div class="aisha-metric-label">Open help requests</div>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     primary, explicit = st.columns([1.15, 1], gap="large")
     with primary:
