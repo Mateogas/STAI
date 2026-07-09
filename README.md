@@ -18,7 +18,21 @@ Why this exists, who pays for it, and why agentic AI matters:
 the experiments found: [`docs/EVALUATION.md`](docs/EVALUATION.md). Architecture
 and agentic-flow diagrams: [`docs/ARCHITECTURE_DIAGRAMS.md`](docs/ARCHITECTURE_DIAGRAMS.md).
 
-## What it does
+## Project Overview
+
+AISHA demonstrates a complete local-first agentic AI support loop for new-hire
+onboarding and early ramp. The prototype combines a conversational UI, RAG,
+tool use, persistent state, guardrails, an API endpoint, basic LLMOps logging,
+and Docker packaging.
+
+The core demo story is simple: Alyssa should reach her **Day 30 Readiness
+Check** with less confusion. AISHA helps by answering from fictionalized
+handbook documents, citing sources, reading and updating Alyssa's ramp plan,
+routing her to the right human owner, filing People Experience escalations,
+and surfacing HR support signals without turning the assistant into
+surveillance.
+
+### What it does
 
 | | Feature |
 |---|---|
@@ -48,7 +62,15 @@ demo uses role-based onboarding and ramp stages:
 Anything beyond Day 30 is treated as later ramp analytics, not the live
 onboarding demo.
 
-## Architecture
+## Architecture Diagram
+
+Rendered diagrams are available in [`docs/assets/`](docs/assets/) and the
+editable Mermaid source lives in
+[`docs/ARCHITECTURE_DIAGRAMS.md`](docs/ARCHITECTURE_DIAGRAMS.md).
+
+![AISHA system architecture](docs/assets/aisha-system-architecture.png)
+
+### Chat Turn Summary
 
 ```text
 Streamlit app.py -> guardrails.classify_input
@@ -69,7 +91,7 @@ weekly check-in is due; the reply is sentiment-scored and stored; the HR view
 flags low or declining scores as support signals. HR sees summaries and concern
 tags, not private chat transcripts by default.
 
-## Setup
+## Setup Instructions
 
 Prerequisites: [Ollama](https://ollama.com) running and
 [uv](https://docs.astral.sh/uv/) installed.
@@ -169,7 +191,7 @@ stays alive independent of whether the API/Streamlit services are up: see
 `deploy/stai-log-shipper.service` and `deploy/stai-log-shipper.timer`
 (`systemctl enable --now stai-log-shipper.timer`).
 
-## Docker
+## Dockerfile / Container Setup
 
 The container holds the app only - Ollama stays on the host (the image makes
 no attempt to bundle it):
@@ -221,24 +243,37 @@ uv run pytest tests/test_pulse.py -k risk
 
 Tests are designed to run without Ollama. LLM calls are mocked or injectable.
 
-## Module ownership and evidence
+## Module Ownership Table
 
 Full evidence table, experiments, failure modes, and privacy notes:
-[`docs/EVALUATION.md`](docs/EVALUATION.md).
+[`docs/EVALUATION.md`](docs/EVALUATION.md). Presenter notes and Q&A scripts are
+in [`docs/MODULE_PRESENTATION_GUIDE.md`](docs/MODULE_PRESENTATION_GUIDE.md).
 
-| Module | Where it lives | Tests |
-|---|---|---|
-| Prompt engineering | `src/stai/agent.py`, `src/stai/guardrails.py` | `test_guardrails.py` |
-| Structured outputs | `parse_verdict` / `parse_pulse` | `test_guardrails.py`, `test_pulse.py` |
-| RAG + citations | `ingestion.py`, `retriever.py` | `test_ingestion.py`, `test_agent_smoke.py` |
-| Guardrails | `src/stai/guardrails.py` | `test_guardrails.py` |
-| ReAct agent + tools | `agent.py`, `tools.py` | `test_agent_smoke.py`, `test_state_and_tools.py` |
-| Disambiguation | `find_task_matches` in `tools.py` | `test_disambiguation.py` |
-| Memory (session + persistent) | `state.py` (`chat_messages`), `app.py`, `api.py` | `test_memory.py` |
-| Chat UI | `app.py` | `test_app_boot.py` |
-| REST API | `src/stai/api.py`, `src/stai/service.py` | `test_api.py` |
-| LLMOps monitoring | `src/stai/observability.py` | `test_observability.py` |
-| Dockerization | `Dockerfile`, `.dockerignore` | build/run commands above |
+Suggested 8-module presentation split, two modules per person:
+
+| Owner | Module | Demo line | Code evidence and inline comments | Tests / proof |
+|---|---|---|---|---|
+| Person A | Prompt Engineering | AISHA's persona, scope, citation, privacy, and tool rules are injected per turn. | `src/stai/agent.py` (`SYSTEM_PROMPT_TEMPLATE`, `render_system_prompt` docstring); `src/stai/guardrails.py` classifier prompt and few-shot examples. | `tests/test_guardrails.py` |
+| Person A | RAG | Ask a handbook question and show `[source: filename.md]` citations plus the Sources expander. | `src/stai/ingestion.py` loads/chunks docs; `src/stai/retriever.py` formats citations; `data/hr_docs/*.md` contains the fictionalized handbook. | `tests/test_ingestion.py`, `tests/test_agent_smoke.py` |
+| Person B | Structured Outputs | Pulse and guardrail classifiers return JSON that is parsed into typed models. | `src/stai/models.py` Pydantic models; `src/stai/pulse.py` `parse_pulse`; `src/stai/guardrails.py` `parse_verdict`. | `tests/test_pulse.py`, `tests/test_guardrails.py` |
+| Person B | Guardrails | Ask off-topic and prompt-injection questions, then show scoped refusal. | `src/stai/guardrails.py` input classifier, refusals, citation enforcement, and PII redaction comments/docstrings. | `tests/test_guardrails.py` |
+| Person C | Disambiguation | Ask AISHA to complete a vague task; it should ask which task instead of guessing. | `src/stai/tools.py` comments around `AMBIGUITY_MARGIN`, `find_task_matches`, and `ambiguous_task_matches`. | `tests/test_disambiguation.py` |
+| Person C | Memory | Refresh/switch views after a chat or task update; state persists in SQLite. | `src/stai/state.py` `chat_messages` table and repo methods; `app.py` history loading; `src/stai/api.py` persisted API history comments. | `tests/test_memory.py` |
+| Person D | ReAct Agent | Ask for plan, owner lookup, task completion, and escalation in sequence. | `src/stai/agent.py` `create_agent` / `create_react_agent`; `src/stai/tools.py` five tool definitions and `RunCapture`. | `tests/test_agent_smoke.py` |
+| Person D | Tool Use | Show local tools: KB search, plan read/update, person lookup, escalation. | `src/stai/tools.py` `search_knowledge_base`, `get_my_plan`, `complete_task`, `find_person`, `escalate_to_hr`. | `tests/test_state_and_tools.py` |
+
+Additional required engineering modules:
+
+| Module | Status | Demo / command | Code evidence and inline comments | Tests / proof |
+|---|---|---|---|---|
+| Chat UI | Met | `uv run streamlit run app.py`; show Alyssa chat and HR admin dashboard. | `app.py` Streamlit entry point and rendering helpers. | `tests/test_app_boot.py` |
+| API Endpoint | Met | `uv run uvicorn stai.api:app --reload`, then open `http://localhost:8000/docs`. | `src/stai/api.py` FastAPI schemas/endpoints; `src/stai/service.py` shared guarded turn pipeline. | `tests/test_api.py` |
+| LLMOps Monitoring | Met | `Get-Content data/observability.jsonl -Tail 5` after a chat turn. | `src/stai/observability.py` explains JSONL-over-MLflow rationale and token estimates; `src/stai/log_shipper.py` optional MLflow relay shipping. | `tests/test_observability.py`, `tests/test_log_shipper.py` |
+| Dockerization | Met | `docker build -t aisha-demo .`; `docker run -p 8501:8501 -e STAI_OLLAMA_BASE_URL=http://host.docker.internal:11434 aisha-demo`. | `Dockerfile` has inline comments for build/run/API commands and why Ollama stays outside the image; `.dockerignore` keeps the image focused. | Manual build/run documented above |
+| SQL Agent | Not claimed | Explain that SQLite is accessed through safe repository methods, not LLM-generated SQL. | `src/stai/state.py` typed SQLite repository methods. | Listed as not met in `ContextKnowledgeBase/ModuleChecklist.md` |
+
+When presenting, be explicit that **SQL Agent is not implemented** and **Tool
+Use is local internal tool use**, not a real third-party BDO system integration.
 
 ## Layout
 
