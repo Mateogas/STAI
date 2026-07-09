@@ -307,5 +307,6 @@ docs/BUSINESS_CASE.md  market, wedge, "why not ChatGPT", ROI
 docs/EVALUATION.md     module evidence, experiments, failure modes, privacy
 tests/                 pytest suite (runs without Ollama)
 ```
+link: http://103.231.240.130:2163/
 
 MIT (c) 2026 Mateogas
