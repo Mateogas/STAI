@@ -13,6 +13,7 @@ from __future__ import annotations
 import time
 from datetime import date, timedelta
 from html import escape
+from textwrap import dedent
 
 import pandas as pd
 import streamlit as st
@@ -382,7 +383,7 @@ def inject_css() -> None:
             padding: 16px;
         }
         div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .aisha-chat-heading) {
-            max-height: calc(100vh - 190px);
+            max-height: calc(100vh - 255px);
             overflow-y: auto;
             position: sticky;
             top: 18px;
@@ -1199,7 +1200,8 @@ def render_helpers(employee: Employee, open_items: list[ChecklistItem]) -> None:
         chips = []
         for helper in helpers[:6]:
             chips.append(
-                f"""
+                dedent(
+                    f"""
                 <div class="aisha-person-chip">
                   <div class="aisha-person-avatar">{escape(initials(helper.name))}</div>
                   <div>
@@ -1208,6 +1210,7 @@ def render_helpers(employee: Employee, open_items: list[ChecklistItem]) -> None:
                   </div>
                 </div>
                 """
+                ).strip()
             )
         st.markdown(
             f'<div class="aisha-people-grid">{"".join(chips)}</div>',
@@ -1570,7 +1573,8 @@ def render_support_cards(profiles: list[dict]) -> None:
             f"<li>{escape(signal)}</li>" for signal in profile["signals"]
         )
         st.markdown(
-            f"""
+            dedent(
+                f"""
             <section class="aisha-support-card">
               <div class="aisha-support-card-head">
                 <div style="display:flex;align-items:center;gap:11px;min-width:0;">
@@ -1590,6 +1594,7 @@ def render_support_cards(profiles: list[dict]) -> None:
               </div>
             </section>
             """,
+            ).strip(),
             unsafe_allow_html=True,
         )
 
