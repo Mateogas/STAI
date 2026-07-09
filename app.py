@@ -110,12 +110,29 @@ def inject_css() -> None:
             background: var(--aisha-bg);
             color: var(--aisha-navy);
         }
+        html,
+        body,
+        [data-testid="stAppViewContainer"],
+        [data-testid="stMain"] {
+            background: var(--aisha-bg);
+        }
+        [data-testid="stHeader"] {
+            background: var(--aisha-bg);
+            box-shadow: none;
+        }
         .block-container {
-            padding-top: 1rem;
+            padding-top: 1.35rem;
             max-width: 1180px;
         }
         h1, h2, h3 {
+            color: var(--aisha-navy);
             letter-spacing: 0;
+        }
+        .stMarkdown,
+        .stCaptionContainer,
+        [data-testid="stMarkdownContainer"],
+        [data-testid="stCaptionContainer"] {
+            color: var(--aisha-navy);
         }
         [data-testid="stSidebar"] {
             display: none;
@@ -125,7 +142,7 @@ def inject_css() -> None:
             color: #ffffff;
             border-radius: 0 0 18px 18px;
             padding: 16px 22px;
-            margin: -1rem 0 12px;
+            margin: 0 0 18px;
             display: flex;
             align-items: center;
             gap: 16px;
@@ -214,6 +231,7 @@ def inject_css() -> None:
             margin-bottom: 10px;
         }
         .aisha-hero h1 {
+            color: #ffffff;
             font-size: 25px;
             line-height: 1.25;
             margin: 0 0 16px;
@@ -294,6 +312,57 @@ def inject_css() -> None:
             font-weight: 650;
             letter-spacing: 0.6px;
             text-transform: uppercase;
+        }
+        [data-testid="stExpander"] {
+            background: rgba(255, 253, 249, 0.62);
+            border: 1px solid var(--aisha-line);
+            border-radius: 10px;
+        }
+        [data-testid="stExpander"] summary,
+        [data-testid="stExpander"] summary p {
+            color: var(--aisha-navy);
+        }
+        [data-testid="stChatMessage"] {
+            background: var(--aisha-card);
+            border: 1px solid var(--aisha-line);
+            border-radius: 14px;
+            color: var(--aisha-navy);
+            padding: 0.75rem 0.85rem;
+        }
+        [data-testid="stChatMessage"] [data-testid="stMarkdownContainer"],
+        [data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] p,
+        [data-testid="stChatMessage"] [data-testid="stChatMessageContent"],
+        [data-testid="stChatMessage"] p,
+        [data-testid="stChatMessage"] li {
+            color: var(--aisha-navy);
+        }
+        [data-testid="stChatMessage"] a {
+            color: var(--aisha-blue);
+        }
+        [data-testid="stChatInput"],
+        [data-testid="stChatInput"] textarea,
+        [data-testid="stChatInput"] [contenteditable="true"] {
+            background: var(--aisha-card);
+            color: var(--aisha-navy);
+        }
+        [data-testid="stChatInput"] textarea::placeholder {
+            color: var(--aisha-muted);
+            opacity: 1;
+        }
+        .stButton > button,
+        button[data-testid="stBaseButton-primary"],
+        button[data-testid="stBaseButton-secondary"] {
+            background: var(--aisha-card) !important;
+            border: 1px solid #d8d2c6 !important;
+            color: var(--aisha-navy) !important;
+            box-shadow: none !important;
+        }
+        .stButton > button:hover,
+        button[data-testid="stBaseButton-primary"]:hover,
+        button[data-testid="stBaseButton-secondary"]:hover {
+            background: #fff8e8 !important;
+            border-color: var(--aisha-gold) !important;
+            color: var(--aisha-navy) !important;
         }
         @media (max-width: 900px) {
             .aisha-topbar {

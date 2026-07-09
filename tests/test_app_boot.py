@@ -40,6 +40,8 @@ def test_app_boots_new_hire_readiness_cockpit():
     assert "Open tasks from the real ramp plan." in rendered
     assert "Only open blocker-like tasks or help requests appear here." in rendered
     assert "Fictionalized BDO educational capstone" in rendered
+    assert '[data-testid="stChatMessage"]' in rendered
+    assert 'margin: 0 0 18px' in rendered
     assert {"Next task", "Day 30 readiness", "Who can help?"} <= {
         button.label for button in at.button
     }
