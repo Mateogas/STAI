@@ -1,0 +1,19 @@
+# Optional: only needed once you want HTTPS + a browsable MLflow UI instead
+# of the plain-IP mode in docker-compose.yml. Uncomment the caddy service
+# there, remove relay-api's "ports:" mapping (Caddy fronts it instead), then:
+#
+#   docker compose up -d caddy
+#
+# and point STAI_LOG_SERVER_URL at https://relay.yourdomain.com/log-batch.
+
+relay.yourdomain.com {
+    reverse_proxy relay-api:8080
+}
+
+mlflow.yourdomain.com {
+    basicauth {
+        # generate with: caddy hash-password
+        youruser <bcrypt-hash-of-password>
+    }
+    reverse_proxy mlflow-server:5000
+}

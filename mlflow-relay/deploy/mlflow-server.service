@@ -1,0 +1,16 @@
+[Unit]
+Description=MLflow tracking backend + UI (bound to localhost only - no auth of its own)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/mlflow-relay
+ExecStart=/opt/mlflow-relay/.venv/bin/mlflow server \
+  --backend-store-uri sqlite:////opt/mlflow-relay/data/mlflow.db \
+  --default-artifact-root /opt/mlflow-relay/data/artifacts \
+  --host 127.0.0.1 --port 5000
+Restart=on-failure
+User=mlflow-relay
+
+[Install]
+WantedBy=multi-user.target

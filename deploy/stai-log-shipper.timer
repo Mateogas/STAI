@@ -1,0 +1,10 @@
+[Unit]
+Description=Run stai-log-shipper.service on an interval (default matches STAI_LOG_SHIP_INTERVAL_SECONDS=300)
+
+[Timer]
+OnBootSec=60
+OnUnitActiveSec=300
+Unit=stai-log-shipper.service
+
+[Install]
+WantedBy=timers.target

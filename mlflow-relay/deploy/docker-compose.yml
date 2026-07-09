@@ -1,0 +1,40 @@
+# Minimal viable deployment: relay-api bound to a plain external port, no
+# TLS/domain required (see README.md "Plain-IP deployment"). Add the caddy
+# service + Caddyfile below once you want HTTPS / a browsable MLflow UI.
+services:
+  mlflow-server:
+    image: python:3.12-slim
+    command: >
+      sh -c "pip install --no-cache-dir mlflow &&
+             mlflow server --backend-store-uri sqlite:////data/mlflow.db
+             --default-artifact-root /data/artifacts --host 0.0.0.0 --port 5000"
+    volumes:
+      - mlflow-data:/data
+    expose:
+      - "5000"
+    restart: unless-stopped
+
+  relay-api:
+    build: ..
+    environment:
+      - RELAY_MLFLOW_TRACKING_URI=http://mlflow-server:5000
+      - RELAY_SHARED_SECRET=${RELAY_SHARED_SECRET}
+    ports:
+      # Plain-IP mode: exposed directly. Point STAI_LOG_SERVER_URL at
+      # http://<this-host>:8080/log-batch. Remove this once Caddy fronts it.
+      - "8080:8080"
+    depends_on:
+      - mlflow-server
+    restart: unless-stopped
+
+  # caddy:
+  #   image: caddy:2
+  #   ports: ["443:443", "80:80"]
+  #   volumes:
+  #     - ./Caddyfile:/etc/caddy/Caddyfile
+  #     - caddy-data:/data
+  #   depends_on: [relay-api, mlflow-server]
+
+volumes:
+  mlflow-data:
+  # caddy-data:

@@ -149,6 +149,26 @@ Get-Content data/observability.jsonl -Tail 5
 Why a local JSONL log instead of MLflow, and what the fields mean:
 [`docs/EVALUATION.md`](docs/EVALUATION.md) and `src/stai/observability.py`.
 
+### Shipping logs to a remote MLflow relay
+
+This box has no spare inbound ports to run an MLflow UI locally, so instead
+`src/stai/log_shipper.py` periodically rotates `observability.jsonl` out of
+the way and POSTs its records to a relay API on a separate server, which
+replays them into a real MLflow backend + UI (see the standalone
+`mlflow-relay/` project). One chat turn becomes one MLflow run.
+
+```powershell
+# STAI_LOG_SERVER_URL unset (default) => shipping is a no-op
+$env:STAI_LOG_SERVER_URL = "http://<relay-host>:8080/log-batch"
+$env:STAI_LOG_SHARED_SECRET = "change-me"
+uv run python -m stai.log_shipper
+```
+
+On the LXC deployment this runs on a timer, not in-process, so shipping
+stays alive independent of whether the API/Streamlit services are up: see
+`deploy/stai-log-shipper.service` and `deploy/stai-log-shipper.timer`
+(`systemctl enable --now stai-log-shipper.timer`).
+
 ## Docker
 
 The container holds the app only - Ollama stays on the host (the image makes
@@ -226,7 +246,9 @@ Full evidence table, experiments, failure modes, and privacy notes:
 app.py                 Streamlit entry: new-hire chat + HR support dashboard
 Dockerfile             app container (connects to host Ollama)
 deploy/
-  stai-api.service     systemd unit for the REST API on the LXC deployment
+  stai-api.service          systemd unit for the REST API on the LXC deployment
+  stai-log-shipper.service  systemd unit: one shipping pass (see log_shipper.py)
+  stai-log-shipper.timer    triggers the above on an interval
 src/stai/
   config.py            pydantic-settings, env-overridable STAI_* settings
   models.py            Employee, ChecklistItem, PulseResult, GuardrailVerdict
@@ -240,6 +262,7 @@ src/stai/
   service.py           one reusable guarded chat turn (used by the API)
   api.py               FastAPI REST endpoint (/health, /chat)
   observability.py     per-turn JSONL run log (LLMOps)
+  log_shipper.py       ships observability.jsonl to a remote MLflow relay
 data/
   hr_docs/             fictionalized BDO educational onboarding docs
   org.json             fictional org directory

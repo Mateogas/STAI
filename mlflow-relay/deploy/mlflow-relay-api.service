@@ -1,0 +1,18 @@
+[Unit]
+Description=AISHA MLflow log relay API
+After=network.target mlflow-server.service
+Requires=mlflow-server.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/mlflow-relay
+EnvironmentFile=/opt/mlflow-relay/.env
+# 0.0.0.0 is required if this port is reached via an LXC NAT forward (same
+# reasoning as the STAI repo's stai-api.service - uvicorn's 127.0.0.1
+# default isn't reachable through the forward).
+ExecStart=/opt/mlflow-relay/.venv/bin/uvicorn relay.api:app --host 0.0.0.0 --port 8080
+Restart=on-failure
+User=mlflow-relay
+
+[Install]
+WantedBy=multi-user.target

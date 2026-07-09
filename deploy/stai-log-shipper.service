@@ -1,0 +1,11 @@
+[Unit]
+Description=STAI observability log shipper (one-shot, triggered by stai-log-shipper.timer)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/stai
+EnvironmentFile=/opt/stai/.env
+ExecStart=/usr/bin/env uv run python -m stai.log_shipper
+User=stai

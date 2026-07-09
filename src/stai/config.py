@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -55,6 +56,12 @@ class Settings(BaseSettings):
 
     # --- observability (see src/stai/observability.py) ---
     obs_log_path: Path = _DATA / "observability.jsonl"
+
+    # --- log shipping to a remote MLflow relay (see src/stai/log_shipper.py) ---
+    # Unset by default: shipping is a no-op until a relay URL is configured.
+    log_server_url: str | None = None
+    log_shared_secret: SecretStr | None = None
+    log_ship_interval_seconds: int = 300
 
 
 settings = Settings()
