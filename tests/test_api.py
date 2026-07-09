@@ -49,6 +49,11 @@ def test_health(client):
     assert "fictionalized" in body["disclaimer"]
 
 
+def test_cors_allows_cross_origin_requests(client):
+    resp = client.get("/health", headers={"Origin": "https://example.com"})
+    assert resp.headers["access-control-allow-origin"] == "*"
+
+
 def test_chat_unknown_employee_is_404(client):
     resp = client.post(
         "/chat", json={"employee_id": "emp-nobody", "message": "hi", "sim_date": SIM}

@@ -28,6 +28,7 @@ from functools import lru_cache
 from typing import Literal
 
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from stai.config import settings
@@ -44,6 +45,14 @@ app = FastAPI(
     title="AISHA - AI Support for Hires and Associates",
     description=DISCLAIMER,
     version="0.1.0",
+)
+
+# Public demo API - callable by any external site, not just server-to-server.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 

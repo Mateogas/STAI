@@ -91,7 +91,8 @@ option documented in the original plan.
 
 ## REST API
 
-The same guarded agent pipeline is exposed over HTTP:
+The same guarded agent pipeline is exposed over HTTP, with permissive CORS
+enabled so any external site can call it directly, not just server-to-server:
 
 ```powershell
 uv run uvicorn stai.api:app --reload
@@ -112,6 +113,27 @@ The response carries `answer`, `citations`, `sources`, `escalation_id`,
 `plan_changed`, and the input-guardrail `guardrail_category`. If no `history`
 is passed, the API uses (and appends to) the persistent chat memory in SQLite,
 so API conversations survive restarts.
+
+### Real deployment (LXC on Proxmox, no Docker)
+
+The live deployment is an LXC container with exactly three external port
+forwards, so the API and Streamlit each need an explicit, distinct port
+rather than relying on defaults:
+
+| External | Internal | Serves |
+|---|---|---|
+| 2123 | 22 | SSH |
+| 2143 | 7860 | REST API |
+| 2163 | 8000 | Streamlit |
+
+```powershell
+uv run uvicorn stai.api:app --host 0.0.0.0 --port 7860
+```
+
+`--host 0.0.0.0` is required - uvicorn's default (`127.0.0.1`) isn't reachable
+through the NAT port forward. See `deploy/stai-api.service` for a systemd
+unit that keeps this running persistently, matching however the box already
+keeps Streamlit alive.
 
 ## Observability
 
@@ -203,6 +225,8 @@ Full evidence table, experiments, failure modes, and privacy notes:
 ```text
 app.py                 Streamlit entry: new-hire chat + HR support dashboard
 Dockerfile             app container (connects to host Ollama)
+deploy/
+  stai-api.service     systemd unit for the REST API on the LXC deployment
 src/stai/
   config.py            pydantic-settings, env-overridable STAI_* settings
   models.py            Employee, ChecklistItem, PulseResult, GuardrailVerdict
