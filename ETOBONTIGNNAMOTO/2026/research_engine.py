@@ -180,6 +180,8 @@ Rules:
 4. Every factual mechanism must be backed by one or more verbatim excerpts copied from SOURCE PAGES, with the exact supplied filename and page number.
 5. Never invent an excerpt, page, formula, or missing link. Put unsupported candidates in gaps as "NOT FOUND: <concept>" and do not repeat them as established terminology.
 6. Return only JSON matching the supplied schema. Set question_id exactly as requested.
+7. Process every candidate concept explicitly. For each candidate, either (a) copy its exact supported source terminology into terminology and include a verbatim evidence excerpt that proves it, or (b) add "NOT FOUND: <exact candidate>" to gaps. Never silently skip a candidate.
+8. Use multiple evidence entries when one excerpt cannot verify every supported candidate.
 """
 
 
@@ -381,6 +383,72 @@ def validate_finding_evidence(
     return finding.model_copy(update={"evidence": valid, "gaps": gaps})
 
 
+def ensure_candidate_dispositions(
+    finding: ResearchFinding,
+    candidate_concepts: tuple[str, ...],
+    available_pages: list[PageRecord],
+) -> ResearchFinding:
+    terminology = list(finding.terminology)
+    evidence = list(finding.evidence)
+    gaps = list(finding.gaps)
+
+    def supported_text() -> str:
+        return _normalized_text(
+            " ".join(
+                [
+                    finding.mechanism,
+                    *terminology,
+                    *(item.excerpt for item in evidence),
+                ]
+            )
+        )
+
+    for concept in candidate_concepts:
+        normalized_concept = _normalized_text(concept)
+        if normalized_concept in supported_text():
+            continue
+        if any(normalized_concept in _normalized_text(gap) for gap in gaps):
+            continue
+
+        exact_match: EvidenceExcerpt | None = None
+        for page in available_pages:
+            clean = re.sub(r"\s+", " ", page.text).strip()
+            index = clean.lower().find(concept.lower())
+            if index < 0:
+                continue
+            left_boundary = clean.rfind(". ", 0, index)
+            left = left_boundary + 2 if left_boundary >= 0 else 0
+            right = clean.find(". ", index + len(concept))
+            if right < 0:
+                right = min(len(clean), index + len(concept) + 500)
+            else:
+                right += 1
+            excerpt = clean[left:right].strip()
+            exact_match = EvidenceExcerpt(
+                filename=page.filename,
+                page=page.page,
+                excerpt=excerpt[:1000],
+            )
+            break
+
+        if exact_match is not None and _excerpt_exists(
+            exact_match.excerpt,
+            next(
+                page.text
+                for page in available_pages
+                if page.filename == exact_match.filename and page.page == exact_match.page
+            ),
+        ):
+            terminology.append(concept)
+            evidence.append(exact_match)
+        else:
+            gaps.append(f"NOT FOUND: {concept}")
+
+    return finding.model_copy(
+        update={"terminology": terminology, "evidence": evidence, "gaps": gaps}
+    )
+
+
 class OllamaClient:
     def __init__(
         self,
@@ -441,7 +509,12 @@ class OllamaClient:
             "messages": wire_messages,
             "stream": False,
             "format": schema,
-            "options": {"temperature": 0, "seed": 42},
+            "options": {
+                "temperature": 0,
+                "seed": 42,
+                "num_ctx": 6144,
+                "num_predict": 900 if response_model is ResearchFinding else 1400,
+            },
         }
         last_error: Exception | None = None
         for attempt in range(1, 3):
@@ -544,7 +617,12 @@ def make_researcher_node(client: OllamaClient):
         try:
             for question in state["questions"]:
                 selected = retrieve_for_researcher(state["pages"], question)
-                source_pages = format_source_pages(selected, _query_text(question))
+                source_pages = format_source_pages(
+                    selected,
+                    _query_text(question),
+                    per_page_chars=900,
+                    total_chars=7500,
+                )
                 user_prompt = f"""QUESTION ID: {question.id}
 QUESTION: {question.question}
 CANDIDATE CONCEPTS TO VERIFY:
@@ -563,6 +641,9 @@ SOURCE PAGES:
                 if raw.question_id != question.id:
                     raw = raw.model_copy(update={"question_id": question.id})
                 finding = validate_finding_evidence(raw, selected)
+                finding = ensure_candidate_dispositions(
+                    finding, question.candidate_concepts, selected
+                )
                 findings.append(finding)
                 page_list = ",".join(str(page.page) for page in selected)
                 logs.append(
@@ -637,7 +718,7 @@ def _critic_sources(state: EngineState) -> str:
         selected = retrieve_for_critic(state["pages"], question, state["draft"])
         query = f"{question.question}\n{state['draft']}"
         formatted = format_source_pages(
-            selected, query, per_page_chars=1500, total_chars=7000
+            selected, query, per_page_chars=550, total_chars=2000
         )
         block = f"QUESTION {question.id}: {question.question}\n{formatted}"
         blocks.append(block)

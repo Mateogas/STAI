@@ -18,6 +18,7 @@ from research_engine import (
     POISON_LIE,
     benchmark_note_failures,
     editorial_routing_gate,
+    ensure_candidate_dispositions,
     retrieve_for_critic,
     retrieve_for_researcher,
     run_engine,
@@ -140,6 +141,21 @@ class EvidenceTests(unittest.TestCase):
         validated = validate_finding_evidence(finding, self.pages)
         self.assertEqual(validated.evidence, [])
         self.assertTrue(validated.mechanism.startswith("NOT FOUND"))
+
+    def test_skipped_candidate_is_repaired_from_exact_source_text(self) -> None:
+        finding = ResearchFinding(
+            question_id="test",
+            mechanism="The model skipped one supported candidate.",
+            terminology=[],
+            evidence=[],
+            gaps=[],
+        )
+        repaired = ensure_candidate_dispositions(
+            finding, ("routing bias", "missing concept"), self.pages
+        )
+        self.assertIn("routing bias", repaired.terminology)
+        self.assertTrue(any("routing bias" in item.excerpt for item in repaired.evidence))
+        self.assertIn("NOT FOUND: missing concept", repaired.gaps)
 
     def test_structured_parser_accepts_json_code_fence(self) -> None:
         draft = "A sufficiently long structured technical draft for schema validation."
