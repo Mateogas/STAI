@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AISHA journey prototype</title>
+  <!-- Three variants of the replacement guidance and validation journey, switchable via ?variant=, in a disposable standalone surface beside app.py. -->
+  <style>
+    :root {
+      color-scheme: light;
+      --navy: #0a2450;
+      --blue: #0b4da2;
+      --gold: #c9962c;
+      --ink: #15223a;
+      --muted: #657083;
+      --paper: #fffdfa;
+      --canvas: #f2efe8;
+      --line: #dedbd2;
+      --soft-blue: #e9f0fb;
+      --soft-gold: #fff4d8;
+      --soft-green: #e8f4eb;
+      --green: #28683e;
+      --red: #a63a32;
+      --shadow: 0 16px 44px rgba(10, 36, 80, .12);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--canvas); color: var(--ink); }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid #58a6ff; outline-offset: 2px; }
+    .prototype-banner {
+      padding: 6px 16px;
+      background: #071b3d;
+      color: #d6deee;
+      font-size: 12px;
+      text-align: center;
+    }
+    .app-shell { min-height: calc(100vh - 28px); padding-bottom: 84px; }
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      min-height: 64px;
+      padding: 10px max(20px, calc((100vw - 1220px) / 2));
+      background: var(--navy);
+      color: white;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; min-width: 190px; }
+    .logo { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 10px; background: var(--gold); color: var(--navy); font-weight: 800; }
+    .brand strong { display: block; }
+    .brand small { color: #aebbd4; }
+    .role-switch { display: flex; gap: 4px; margin-left: auto; padding: 4px; border-radius: 10px; background: rgba(255,255,255,.09); }
+    .role-switch button { padding: 7px 11px; border: 0; border-radius: 7px; background: transparent; color: #dce5f5; }
+    .role-switch button[aria-pressed="true"] { background: white; color: var(--navy); font-weight: 700; }
+    .identity { padding-left: 14px; border-left: 1px solid rgba(255,255,255,.18); font-size: 13px; }
+    .identity span { display: block; color: #aebbd4; font-size: 11px; }
+    .main { width: min(1220px, calc(100% - 32px)); margin: 22px auto; }
+    .variant[hidden], .role-view[hidden], .state-panel[hidden] { display: none !important; }
+    .card { border: 1px solid var(--line); border-radius: 14px; background: var(--paper); box-shadow: 0 5px 20px rgba(10,36,80,.05); }
+    .eyebrow { margin: 0 0 6px; color: var(--blue); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    h1 { margin: 0; font-size: clamp(25px, 3vw, 38px); line-height: 1.15; }
+    h2 { margin: 0 0 12px; font-size: 20px; }
+    h3 { margin: 0 0 7px; font-size: 15px; }
+    p { line-height: 1.5; }
+    .muted { color: var(--muted); }
+    .small { font-size: 12px; }
+    .pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 999px; background: var(--soft-blue); color: #17477e; font-size: 11px; font-weight: 700; }
+    .pill.warn { background: var(--soft-gold); color: #6d5000; }
+    .pill.good { background: var(--soft-green); color: var(--green); }
+    .button { min-height: 38px; padding: 8px 12px; border: 1px solid #9ca8b9; border-radius: 9px; background: white; color: var(--ink); }
+    .button.primary { border-color: var(--blue); background: var(--blue); color: white; }
+    .button.quiet { border-color: transparent; background: transparent; color: var(--blue); }
+    .citation { color: #12599b; font-weight: 700; white-space: normal; }
+    .disclaimer { margin: 26px auto 0; max-width: 800px; color: var(--muted); font-size: 11px; text-align: center; }
+    .prototype-switcher {
+      position: fixed;
+      z-index: 20;
+      left: 50%;
+      bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 310px;
+      padding: 8px;
+      transform: translateX(-50%);
+      border: 1px solid #53627a;
+      border-radius: 999px;
+      background: #071b3d;
+      color: white;
+      box-shadow: 0 12px 35px rgba(0,0,0,.25);
+    }
+    .prototype-switcher button { display: grid; place-items: center; width: 38px; height: 38px; border: 0; border-radius: 50%; background: #173461; color: white; font-size: 20px; }
+    .prototype-label { flex: 1; text-align: center; font-size: 13px; font-weight: 700; }
+    .prototype-label small { display: block; color: #aebbd4; font-weight: 400; }
+
+    /* Variant A: dialogue */
+    .dialogue-layout { display: grid; grid-template-columns: 250px minmax(0, 1fr) 270px; gap: 14px; min-height: 650px; }
+    .dialogue-nav, .dialogue-context { padding: 18px; }
+    .profile-block { padding-bottom: 15px; border-bottom: 1px solid var(--line); }
+    .profile-block strong { display: block; }
+    .dialogue-nav nav { display: grid; gap: 6px; margin-top: 15px; }
+    .dialogue-nav nav button { padding: 10px 11px; border: 0; border-radius: 9px; background: transparent; color: var(--ink); text-align: left; }
+    .dialogue-nav nav button[aria-pressed="true"] { background: var(--soft-blue); color: var(--blue); font-weight: 700; }
+    .dialogue-chat { display: flex; flex-direction: column; overflow: hidden; }
+    .chat-head { padding: 18px 20px; border-bottom: 1px solid var(--line); }
+    .chat-body { flex: 1; padding: 22px; background: #faf9f5; }
+    .bubble { max-width: 82%; margin-bottom: 13px; padding: 13px 15px; border-radius: 13px; background: white; border: 1px solid var(--line); line-height: 1.5; }
+    .bubble.user { margin-left: auto; background: var(--soft-blue); border-color: #c9d8ef; }
+    .bubble strong.speaker { display: block; margin-bottom: 5px; color: var(--blue); font-size: 11px; text-transform: uppercase; }
+    .source-drawer { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 12px; }
+    .chat-compose { display: flex; gap: 8px; padding: 14px; border-top: 1px solid var(--line); }
+    .chat-compose input { flex: 1; min-width: 0; padding: 10px 12px; border: 1px solid #aab2bf; border-radius: 9px; }
+    .context-list { display: grid; gap: 10px; }
+    .context-item { padding: 11px; border-radius: 10px; background: #f5f2eb; }
+    .context-item > span, .context-item > strong { display: block; }
+
+    /* Variant B: guided */
+    .guided-hero { display: grid; grid-template-columns: 1fr auto; gap: 22px; align-items: end; padding: 28px; background: var(--navy); color: white; border-radius: 16px; }
+    .guided-hero .eyebrow { color: #f3cc70; }
+    .guided-hero p { margin-bottom: 0; color: #c8d3e6; }
+    .stage-strip { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+    .stage-strip span { padding: 7px 9px; border-radius: 8px; background: rgba(255,255,255,.1); font-size: 11px; }
+    .guided-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 13px; margin-top: 14px; }
+    .guided-action { padding: 18px; text-align: left; }
+    .guided-action button { margin-top: 10px; }
+    .guided-flow { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 14px; margin-top: 14px; }
+    .stepper { padding: 18px; }
+    .step { display: grid; grid-template-columns: 28px 1fr; gap: 9px; margin: 0 0 16px; color: var(--muted); }
+    .step-number { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: #e7e5df; font-weight: 700; }
+    .step.active { color: var(--ink); font-weight: 700; }
+    .step.active .step-number { background: var(--gold); color: var(--navy); }
+    .guided-detail { padding: 22px; }
+    .answer-block { padding: 15px; border-left: 4px solid var(--blue); background: #f4f7fb; }
+    .choice-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .upload-box { padding: 22px; border: 2px dashed #9aa5b5; border-radius: 12px; background: #fbfaf7; text-align: center; }
+
+    /* Variant C: workbench */
+    .workbench-head { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+    .workbench-layout { display: grid; grid-template-columns: 330px minmax(0, 1fr); min-height: 650px; overflow: hidden; }
+    .inbox { border-right: 1px solid var(--line); background: #f8f6f1; }
+    .inbox-header { padding: 16px; border-bottom: 1px solid var(--line); }
+    .inbox-tabs { display: flex; gap: 6px; margin-top: 10px; }
+    .inbox-tabs button { padding: 6px 8px; border: 0; border-radius: 7px; background: #ece9e2; color: var(--ink); font-size: 11px; }
+    .inbox-row { width: 100%; padding: 14px 16px; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--ink); text-align: left; }
+    .inbox-row.active { background: white; box-shadow: inset 4px 0 0 var(--blue); }
+    .inbox-row strong { display: block; margin: 4px 0; }
+    .work-detail { padding: 22px; }
+    .fact-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin: 14px 0; }
+    .fact { padding: 10px; border-radius: 9px; background: #f2f4f7; }
+    .fact span { display: block; color: var(--muted); font-size: 11px; }
+    .timeline { margin-top: 18px; padding-left: 18px; border-left: 2px solid #d5dbe4; }
+    .timeline-item { position: relative; margin-bottom: 18px; }
+    .timeline-item::before { content: ""; position: absolute; left: -24px; top: 3px; width: 10px; height: 10px; border: 2px solid white; border-radius: 50%; background: var(--blue); box-shadow: 0 0 0 1px #9facbd; }
+    .privacy-box { padding: 12px; border-radius: 10px; background: var(--soft-green); color: #28583a; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-size: 11px; text-transform: uppercase; }
+
+    @media (max-width: 900px) {
+      .dialogue-layout { grid-template-columns: 190px minmax(0, 1fr); }
+      .dialogue-context { display: none; }
+      .guided-actions { grid-template-columns: 1fr; }
+      .guided-flow { grid-template-columns: 1fr; }
+      .stepper { display: flex; gap: 8px; overflow-x: auto; }
+      .step { min-width: 170px; }
+    }
+    @media (max-width: 650px) {
+      .topbar { flex-wrap: wrap; }
+      .role-switch { order: 3; width: 100%; margin-left: 0; }
+      .role-switch button { flex: 1; }
+      .identity { margin-left: auto; }
+      .main { width: min(100% - 18px, 1220px); margin-top: 10px; }
+      .dialogue-layout, .workbench-layout { grid-template-columns: 1fr; }
+      .dialogue-nav, .inbox { border: 0; }
+      .dialogue-nav nav { grid-template-columns: repeat(4, minmax(0,1fr)); }
+      .dialogue-nav nav button { padding: 8px 4px; font-size: 11px; text-align: center; }
+      .profile-block { display: none; }
+      .bubble { max-width: 94%; }
+      .guided-hero { grid-template-columns: 1fr; }
+      .workbench-head { align-items: start; flex-direction: column; }
+      .fact-grid { grid-template-columns: 1fr; }
+      .prototype-switcher { min-width: min(330px, calc(100% - 20px)); }
+    }
+  </style>
+</head>
+<body>
+  <div class="prototype-banner">PROTOTYPE — disposable journey exploration; no data is sent, saved, or uploaded</div>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand"><span class="logo">A</span><div><strong>AISHA</strong><small>AI Support for Hires and Associates</small></div></div>
+      <div class="role-switch" aria-label="View as">
+        <button type="button" data-role="hire" aria-pressed="true">New Hire</button>
+        <button type="button" data-role="hr" aria-pressed="false">HR User</button>
+      </div>
+      <div class="identity"><strong>Alyssa Reyes</strong><span>Branch Banking Associate</span></div>
+    </header>
+
+    <main class="main">
+      <section class="variant" data-variant="A">
+        <div class="role-view" data-role-view="hire">
+          <div class="dialogue-layout">
+            <aside class="dialogue-nav card">
+              <div class="profile-block"><p class="eyebrow">Today</p><strong>Week 1 Foundations</strong><span class="muted small">Active handbook v1.0</span></div>
+              <nav aria-label="Support journeys">
+                <button type="button" data-state="answer" aria-pressed="true">Ask AISHA</button>
+                <button type="button" data-state="clarify" aria-pressed="false">Clarify</button>
+                <button type="button" data-state="certificate" aria-pressed="false">Validate</button>
+                <button type="button" data-state="history" aria-pressed="false">History</button>
+              </nav>
+            </aside>
+            <section class="dialogue-chat card">
+              <div class="chat-head"><p class="eyebrow">Dialogue</p><h2>Ask safely, then act with confidence</h2></div>
+              <div class="chat-body state-panel" data-state-panel="answer">
+                <div class="bubble user">Is August 21 a holiday, and do I get holiday pay?</div>
+                <div class="bubble"><strong class="speaker">AISHA</strong>August 21, 2026 is Ninoy Aquino Day. <span class="muted small">Based on Nager.</span><br><br>Holiday-pay treatment follows the applicable payroll policy and its attendance conditions. <span class="citation">[PAY-004 · AISHA Handbook v1.0 · p. 22]</span><div class="source-drawer"><strong>Evidence</strong><br>PAY-004 · page 22 · Applies · Policy authority</div></div>
+              </div>
+              <div class="chat-body state-panel" data-state-panel="clarify" hidden>
+                <div class="bubble user">HR said I may be regular now. Does the regular cutoff apply?</div>
+                <div class="bubble"><strong class="speaker">AISHA</strong>Your Hire Profile still shows Probationary. Has an HR User officially confirmed the change to Regular, or is it still pending?<div class="choice-row"><button class="button">Officially confirmed</button><button class="button">Still pending</button><button class="button">I’m not sure</button></div></div>
+              </div>
+              <div class="chat-body state-panel" data-state-panel="certificate" hidden>
+                <div class="bubble"><strong class="speaker">AISHA</strong>Your absence policy allows a local completeness check. The file and extracted text are not retained. <span class="citation">[HRP-011 · AISHA Handbook v1.0 · p. 79]</span></div>
+                <div class="upload-box"><h3>Select an absence medical certificate</h3><p class="muted small">PDF, JPG, or PNG · local processing · no diagnosis extraction</p><input type="file" accept="application/pdf,image/jpeg,image/png"></div>
+              </div>
+              <div class="chat-body state-panel" data-state-panel="history" hidden>
+                <h3>Validation history</h3><div class="context-item"><span class="pill warn">Needs human review</span><p><strong>Required date remained ambiguous after retry</strong><br><span class="muted small">HRP-011 · Aug 10, 2026 · Private</span></p><button class="button">Share result with HR</button></div>
+              </div>
+              <form class="chat-compose" onsubmit="return false"><label for="dialogue-input" class="muted small" style="position:absolute;left:-9999px">Ask AISHA</label><input id="dialogue-input" placeholder="Ask about Payroll, Resource Access, or HR Policies"><button class="button primary">Send</button></form>
+            </section>
+            <aside class="dialogue-context card"><p class="eyebrow">Current context</p><div class="context-list"><div class="context-item"><span class="muted small">Profile</span><strong>Probationary · Branch</strong></div><div class="context-item"><span class="muted small">Support boundary</span><strong>No automatic changes or escalation</strong></div><div class="context-item"><span class="muted small">Sources</span><strong>Policy metadata only</strong></div></div></aside>
+          </div>
+        </div>
+        <div class="role-view" data-role-view="hr" hidden>
+          <div class="workbench-head"><div><p class="eyebrow">Dialogue · HR view</p><h1>Requests Alyssa chose to share</h1></div><span class="pill good">No private chat or documents</span></div>
+          <div class="dialogue-layout" style="grid-template-columns:260px 1fr">
+            <aside class="dialogue-nav card"><nav><button aria-pressed="true">Escalations (1)</button><button>Shared results (1)</button><button>Attribute requests (1)</button></nav></aside>
+            <section class="card" style="padding:22px"><span class="pill warn">Open</span><h2 style="margin-top:12px">Payroll cutoff applicability needs confirmation</h2><p>Hire-approved summary: “Please confirm whether my Employment Classification is now Regular before I follow PAY-006.”</p><div class="fact-grid"><div class="fact"><span>Route</span>Payroll Help</div><div class="fact"><span>Policy</span>PAY-006</div><div class="fact"><span>Shared content</span>Approved summary only</div></div></section>
+          </div>
+        </div>
+      </section>
+
+      <section class="variant" data-variant="B" hidden>
+        <div class="role-view" data-role-view="hire">
+          <section class="guided-hero">
+            <div><p class="eyebrow">Guided</p><h1>What do you need help with today?</h1><p>AISHA walks Alyssa through one policy-backed outcome at a time.</p><div class="stage-strip"><span>Payroll</span><span>Resource Access</span><span>HR Policies</span></div></div>
+            <span class="pill good">Handbook v1.0 active</span>
+          </section>
+          <div class="guided-actions">
+            <article class="guided-action card"><span class="pill">Guidance</span><h3 style="margin-top:12px">Understand a policy</h3><p class="muted small">Ask, clarify if needed, then receive claim-level citations.</p><button class="button primary" data-guided-state="answer">Start policy guidance</button></article>
+            <article class="guided-action card"><span class="pill warn">Validation</span><h3 style="margin-top:12px">Check a certificate</h3><p class="muted small">Confirm applicability before selecting a local file.</p><button class="button" data-guided-state="certificate">Start certificate check</button></article>
+            <article class="guided-action card"><span class="pill good">Follow-up</span><h3 style="margin-top:12px">Review my history</h3><p class="muted small">See retained result-only records and sharing state.</p><button class="button" data-guided-state="history">Open history</button></article>
+          </div>
+          <div class="guided-flow">
+            <aside class="stepper card">
+              <div class="step active"><span class="step-number">1</span><span>Choose the supported topic</span></div>
+              <div class="step"><span class="step-number">2</span><span>Resolve one ambiguity</span></div>
+              <div class="step"><span class="step-number">3</span><span>Review evidence or result</span></div>
+              <div class="step"><span class="step-number">4</span><span>Choose any human follow-up</span></div>
+            </aside>
+            <section class="guided-detail card state-panel" data-guided-panel="answer">
+              <p class="eyebrow">Step 3 · Review evidence</p><h2>Holiday date and holiday-pay policy</h2><div class="answer-block"><p>August 21, 2026 is Ninoy Aquino Day. <span class="muted small">Based on Nager.</span></p><p>Holiday-pay treatment follows the applicable payroll conditions. <span class="citation">[PAY-004 · AISHA Handbook v1.0 · p. 22]</span></p></div><div class="choice-row"><button class="button">Ask a follow-up</button><button class="button">Show evidence</button><button class="button">Request HR help</button></div>
+            </section>
+            <section class="guided-detail card state-panel" data-guided-panel="certificate" hidden>
+              <p class="eyebrow">Step 2 · Local check</p><h2>Select an absence medical certificate</h2><p>Policy requirement confirmed for Alyssa. <span class="citation">[HRP-011 · AISHA Handbook v1.0 · p. 79]</span></p><div class="upload-box"><input type="file" accept="application/pdf,image/jpeg,image/png"><p class="muted small">Ephemeral processing. Original submission remains a separate HR route.</p></div>
+            </section>
+            <section class="guided-detail card state-panel" data-guided-panel="history" hidden>
+              <p class="eyebrow">Retained outcomes</p><h2>My validation results</h2><table><thead><tr><th>Date</th><th>Outcome</th><th>Policy</th><th>Sharing</th></tr></thead><tbody><tr><td>Aug 10</td><td><span class="pill warn">Needs human review</span></td><td>HRP-011 · p. 79</td><td>Private · <button class="button quiet">Share</button></td></tr></tbody></table>
+            </section>
+          </div>
+        </div>
+        <div class="role-view" data-role-view="hr" hidden>
+          <section class="guided-hero"><div><p class="eyebrow">Guided · HR queue</p><h1>Handle one consented support workflow at a time</h1><p>Each record shows only the fields needed for the next humane action.</p></div><span class="pill good">Privacy boundary active</span></section>
+          <div class="guided-flow"><aside class="stepper card"><div class="step active"><span class="step-number">1</span><span>Review approved summary</span></div><div class="step"><span class="step-number">2</span><span>Confirm profile or policy owner</span></div><div class="step"><span class="step-number">3</span><span>Resolve and timestamp</span></div></aside><section class="guided-detail card"><span class="pill warn">Attribute request</span><h2 style="margin-top:12px">Employment Classification change</h2><div class="fact-grid"><div class="fact"><span>Current</span>Probationary</div><div class="fact"><span>Proposed</span>Regular</div><div class="fact"><span>Policy impact</span>PAY-006</div></div><div class="choice-row"><button class="button primary">Approve revision</button><button class="button">Reject request</button></div></section></div>
+        </div>
+      </section>
+
+      <section class="variant" data-variant="C" hidden>
+        <div class="role-view" data-role-view="hire">
+          <div class="workbench-head"><div><p class="eyebrow">Workbench</p><h1>My AISHA support workspace</h1><p class="muted">Questions, checks, and human follow-ups remain visibly separate.</p></div><button class="button primary">New question</button></div>
+          <div class="workbench-layout card">
+            <aside class="inbox"><div class="inbox-header"><strong>Recent activity</strong><div class="inbox-tabs"><button>All</button><button>Guidance</button><button>Checks</button></div></div><button class="inbox-row active" data-work-state="answer"><span class="pill">Grounded answer</span><strong>Holiday pay on August 21</strong><span class="muted small">PAY-004 · Today</span></button><button class="inbox-row" data-work-state="clarify"><span class="pill warn">Needs your answer</span><strong>Regular payroll cutoff</strong><span class="muted small">Profile confirmation needed</span></button><button class="inbox-row" data-work-state="certificate"><span class="pill warn">Human review</span><strong>Certificate completeness</strong><span class="muted small">HRP-011 · Private</span></button></aside>
+            <section class="work-detail state-panel" data-work-panel="answer"><span class="pill">Grounded answer</span><h2 style="margin-top:12px">Holiday pay on August 21</h2><p>August 21, 2026 is Ninoy Aquino Day. <span class="muted small">Based on Nager.</span></p><p>Holiday-pay treatment follows the applicable payroll conditions. <span class="citation">[PAY-004 · AISHA Handbook v1.0 · p. 22]</span></p><div class="fact-grid"><div class="fact"><span>Applicability</span>Applies</div><div class="fact"><span>Authority</span>Policy page</div><div class="fact"><span>Version</span>Handbook v1.0</div></div><h3>Activity</h3><div class="timeline"><div class="timeline-item"><strong>Grounded answer created</strong><br><span class="muted small">All policy claims validated against retrieved evidence</span></div><div class="timeline-item"><strong>No human case created</strong><br><span class="muted small">Escalation requires your explicit approval</span></div></div></section>
+            <section class="work-detail state-panel" data-work-panel="clarify" hidden><span class="pill warn">Needs your answer</span><h2 style="margin-top:12px">Confirm one Hire Attribute</h2><p>Your Hire Profile still shows Probationary. Has an HR User officially confirmed Regular status?</p><div class="choice-row"><button class="button">Officially confirmed</button><button class="button">Still pending</button><button class="button">I’m not sure</button></div><p class="privacy-box small">No profile mutation or policy conclusion occurs until this is resolved and HR confirms any revision.</p></section>
+            <section class="work-detail state-panel" data-work-panel="certificate" hidden><span class="pill warn">Needs human review</span><h2 style="margin-top:12px">Certificate completeness result</h2><div class="fact-grid"><div class="fact"><span>Reason</span>Date ambiguous after retry</div><div class="fact"><span>Policy</span>HRP-011 · p. 79</div><div class="fact"><span>Sharing</span>Private</div></div><p class="privacy-box small">AISHA retained no file, image, OCR text, or diagnosis. Official document submission is a separate route.</p><div class="choice-row"><button class="button primary">Share result with HR</button><button class="button">Delete result</button><button class="button">View official route</button></div></section>
+          </div>
+        </div>
+        <div class="role-view" data-role-view="hr" hidden>
+          <div class="workbench-head"><div><p class="eyebrow">Workbench · HR support</p><h1>Consented records requiring action</h1></div><span class="pill good">0 documents · 0 transcripts</span></div>
+          <div class="workbench-layout card"><aside class="inbox"><div class="inbox-header"><strong>Action queue</strong><div class="inbox-tabs"><button>Open 3</button><button>Resolved</button></div></div><button class="inbox-row active"><span class="pill warn">Escalation</span><strong>Payroll applicability</strong><span class="muted small">Alyssa Reyes · Payroll Help</span></button><button class="inbox-row"><span class="pill warn">Shared result</span><strong>Certificate review</strong><span class="muted small">Result-only metadata</span></button><button class="inbox-row"><span class="pill">Attribute request</span><strong>Classification revision</strong><span class="muted small">Probationary → Regular</span></button></aside><section class="work-detail"><span class="pill warn">Open escalation</span><h2 style="margin-top:12px">Payroll cutoff applicability needs confirmation</h2><p>Hire-approved summary: “Please confirm whether my Employment Classification is now Regular before I follow PAY-006.”</p><div class="fact-grid"><div class="fact"><span>Route</span>Payroll Help</div><div class="fact"><span>Relevant policy</span>PAY-006</div><div class="fact"><span>Created</span>Aug 10, 2026</div></div><p class="privacy-box small">Visible: approved summary and structured fields. Hidden: private conversation, inferred motive, and documents.</p><div class="choice-row"><button class="button primary">Mark resolved</button><button class="button">Route to HR fallback</button></div></section></div>
+        </div>
+      </section>
+
+      <p class="disclaimer">AISHA is an educational capstone prototype. It is not affiliated with, endorsed by, or representative of BDO Unibank. All people, records, policies, and interactions shown here are fictionalized.</p>
+    </main>
+  </div>
+
+  <div class="prototype-switcher" aria-label="Prototype variant switcher">
+    <button type="button" id="previous-variant" aria-label="Previous variant">←</button>
+    <div class="prototype-label"><span id="variant-label">A — Dialogue</span><small>Use ← and → to compare</small></div>
+    <button type="button" id="next-variant" aria-label="Next variant">→</button>
+  </div>
+
+  <script>
+    (() => {
+      const variants = [{ key: 'A', name: 'Dialogue' }, { key: 'B', name: 'Guided' }, { key: 'C', name: 'Workbench' }];
+      const params = new URLSearchParams(window.location.search);
+      let current = variants.some(v => v.key === params.get('variant')) ? params.get('variant') : 'A';
+      let role = 'hire';
+
+      function renderVariant(key) {
+        current = key;
+        document.querySelectorAll('[data-variant]').forEach(el => { el.hidden = el.dataset.variant !== key; });
+        const selected = variants.find(v => v.key === key);
+        document.getElementById('variant-label').textContent = `${selected.key} — ${selected.name}`;
+        const url = new URL(window.location.href);
+        url.searchParams.set('variant', key);
+        window.history.replaceState({}, '', url);
+        renderRole(role);
+      }
+      function cycle(delta) {
+        const index = variants.findIndex(v => v.key === current);
+        renderVariant(variants[(index + delta + variants.length) % variants.length].key);
+      }
+      function renderRole(nextRole) {
+        role = nextRole;
+        document.querySelectorAll('[data-role]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.role === role)));
+        document.querySelectorAll('[data-role-view]').forEach(view => { view.hidden = view.dataset.roleView !== role || view.closest('[data-variant]').dataset.variant !== current; });
+        document.querySelector('.identity strong').textContent = role === 'hire' ? 'Alyssa Reyes' : 'HR User';
+        document.querySelector('.identity span').textContent = role === 'hire' ? 'Branch Banking Associate' : 'Fictional support workspace';
+      }
+      function selectGroup(triggerSelector, panelSelector, key, attribute) {
+        document.querySelectorAll(triggerSelector).forEach(button => button.setAttribute('aria-pressed', String(button.dataset[attribute] === key)));
+        document.querySelectorAll(panelSelector).forEach(panel => { panel.hidden = panel.dataset[attribute + 'Panel'] !== key; });
+      }
+
+      document.getElementById('previous-variant').addEventListener('click', () => cycle(-1));
+      document.getElementById('next-variant').addEventListener('click', () => cycle(1));
+      document.querySelectorAll('[data-role]').forEach(button => button.addEventListener('click', () => renderRole(button.dataset.role)));
+      document.querySelectorAll('[data-state]').forEach(button => button.addEventListener('click', () => selectGroup('[data-state]', '[data-state-panel]', button.dataset.state, 'state')));
+      document.querySelectorAll('[data-guided-state]').forEach(button => button.addEventListener('click', () => {
+        document.querySelectorAll('[data-guided-panel]').forEach(panel => { panel.hidden = panel.dataset.guidedPanel !== button.dataset.guidedState; });
+      }));
+      document.querySelectorAll('[data-work-state]').forEach(button => button.addEventListener('click', () => {
+        document.querySelectorAll('[data-work-state]').forEach(row => row.classList.toggle('active', row === button));
+        document.querySelectorAll('[data-work-panel]').forEach(panel => { panel.hidden = panel.dataset.workPanel !== button.dataset.workState; });
+      }));
+      document.addEventListener('keydown', event => {
+        const target = event.target;
+        if (target.matches('input, textarea, [contenteditable="true"]')) return;
+        if (event.key === 'ArrowLeft') cycle(-1);
+        if (event.key === 'ArrowRight') cycle(1);
+      });
+      document.querySelectorAll('form').forEach(form => form.addEventListener('submit', event => event.preventDefault()));
+      renderVariant(current);
+    })();
+  </script>
+</body>
+</html>
