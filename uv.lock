@@ -2302,6 +2302,7 @@ source = { editable = "." }
 dependencies = [
     { name = "chromadb" },
     { name = "fastapi" },
+    { name = "httpx" },
     { name = "langchain" },
     { name = "langchain-chroma" },
     { name = "langchain-ollama" },
@@ -2326,6 +2327,7 @@ dev = [
 requires-dist = [
     { name = "chromadb", specifier = ">=0.5" },
     { name = "fastapi", specifier = ">=0.115" },
+    { name = "httpx", specifier = ">=0.27" },
     { name = "langchain", specifier = ">=0.3" },
     { name = "langchain-chroma", specifier = ">=0.2" },
     { name = "langchain-ollama", specifier = ">=0.2" },

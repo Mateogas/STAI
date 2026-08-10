@@ -51,6 +51,10 @@ class Settings(BaseSettings):
     chunk_overlap: int = 100
     retriever_k: int = 4
 
+    # --- privacy-safe external calendar ---
+    nager_enabled: bool = True
+    nager_timeout_seconds: float = 3.0
+
     # --- pulse check-ins ---
     pulse_cadence_days: int = 7
 

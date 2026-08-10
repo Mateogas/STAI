@@ -281,12 +281,14 @@ def build_tools(employee: Employee, repo: Repo, sim_date: date):
     return tools, capture
 
 
-def build_policy_tools(profile: HireProfile, repo: Repo, records):
+def build_policy_tools(profile: HireProfile, repo: Repo, records, *, holiday_service=None):
     """Replacement ReAct tools for the three-topic policy domain."""
     from stai.policy import evaluate_applicability
     from stai.retriever import hybrid_retrieve
+    from stai.public_holidays import NagerHolidayService
 
     capture = RunCapture()
+    calendar = holiday_service or NagerHolidayService(repo)
 
     @tool
     def get_active_handbook_version() -> str:
@@ -315,6 +317,13 @@ def build_policy_tools(profile: HireProfile, repo: Repo, records):
             for item in result.evidence
         ]
         return json.dumps({"outcome": result.outcome, "evidence": safe}, default=str)
+
+    @tool
+    def lookup_public_holidays(year: int) -> str:
+        """Read Philippine public-holiday names/dates for the current or following year only."""
+        capture.tool_calls.append("lookup_public_holidays")
+        result = calendar.lookup(year)
+        return result.model_dump_json()
 
     @tool
     def evaluate_policy_applicability(policy_id: str) -> str:
@@ -346,6 +355,7 @@ def build_policy_tools(profile: HireProfile, repo: Repo, records):
     return [
         get_active_handbook_version,
         search_onboarding_policies,
+        lookup_public_holidays,
         evaluate_policy_applicability,
         resolve_escalation_route,
         create_escalation_case,

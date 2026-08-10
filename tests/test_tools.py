@@ -14,6 +14,7 @@ def test_policy_react_tool_sequence_is_schema_bounded(tmp_path: Path) -> None:
     assert [tool.name for tool in tools] == [
         "get_active_handbook_version",
         "search_onboarding_policies",
+        "lookup_public_holidays",
         "evaluate_policy_applicability",
         "resolve_escalation_route",
         "create_escalation_case",
