@@ -1,56 +1,90 @@
-"""MLflow log relay: receives batched chat-turn runs, replays them into MLflow.
-
-Run:  uv run uvicorn relay.api:app --host 0.0.0.0 --port 8080
-Docs: http://localhost:8080/docs
-
-Requires a separately-running ``mlflow server`` reachable at
-``RELAY_MLFLOW_TRACKING_URI`` (see ``deploy/docker-compose.yml``). The sender
-side lives in the STAI repo: ``src/stai/log_shipper.py``.
-
-Each item in a batch is a complete, one-shot MLflow run: create -> log_batch
--> terminate, all within one relay call. There is no run-mapping or
-idempotency store - a retried batch just creates duplicate runs, which is an
-acceptable cost given the sender only retries a batch it never got a 2xx
-response for.
-"""
+"""Authenticated, bounded and idempotent AISHA telemetry relay."""
 
 from __future__ import annotations
 
 import secrets
+import uuid
+from typing import Literal
 
 import mlflow
 from fastapi import Depends, FastAPI, Header, HTTPException
 from mlflow.entities import Metric, RunTag
 from mlflow.exceptions import MlflowException
 from mlflow.tracking import MlflowClient
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from relay.config import settings
 
 mlflow.set_tracking_uri(settings.mlflow_tracking_uri)
 client = MlflowClient()
+app = FastAPI(title="AISHA MLflow telemetry relay")
 
-app = FastAPI(title="AISHA MLflow log relay")
-
-
-# ------------------------------------------------------------------ schemas
+EXPERIMENTS = {
+    "dialogue": "aisha-chat-turns",
+    "certificate_check": "aisha-certificate-checks",
+    "system_operation": "aisha-system-operations",
+    "benchmark_case": "aisha-benchmark",
+}
+ALLOWED_TAGS = {
+    "event_kind", "route", "actor_kind", "operation", "outcome", "error_category",
+    "model_release", "prompt_variant", "handbook_release", "benchmark_release",
+    "scorer_release", "retrieval_build_release", "benchmark_case_id", "partition",
+    "onboarding_topic", "policy_response", "applicability", "guardrail_category",
+    "retrieval_outcome", "escalation_progression", "http_status_class", "tool_names",
+}
+ALLOWED_METRICS = {
+    "duration_ms", "input_char_count", "output_char_count", "estimated_input_tokens",
+    "estimated_output_tokens", "tool_call_count", "material_claim_count",
+    "supported_claim_count", "citation_count", "candidate_count", "eligible_count",
+    "evidence_count", "rejected_count", "clarification_count", "calendar_year",
+    "retry_count", "result_count", "accepted_attempt_count", "page_count", "repetition",
+    "dense_ms", "lexical_ms", "eligibility_ms", "reranking_ms", "claim_validation_ms",
+    "preflight_ms", "extraction_ms", "rendering_ms", "ocr_ms", "validation_ms",
+    "cleanup_ms", "persistence_ms", "calendar_context_used", "tool_correctly_deferred",
+    "retry_used", "assertion_passed",
+}
 
 
 class RunPayload(BaseModel):
-    experiment_name: str
-    run_name: str
-    start_time_ms: int
-    end_time_ms: int
-    tags: dict[str, str] = {}
-    metrics: dict[str, float] = {}
+    model_config = ConfigDict(extra="forbid")
+    event_id: str = Field(max_length=36)
+    event_kind: Literal["dialogue", "certificate_check", "system_operation", "benchmark_case"]
+    experiment_name: Literal[
+        "aisha-chat-turns", "aisha-certificate-checks",
+        "aisha-system-operations", "aisha-benchmark",
+    ] | None = None
+    run_name: str = Field(min_length=1, max_length=100)
+    start_time_ms: int = Field(ge=0)
+    end_time_ms: int = Field(ge=0)
+    tags: dict[str, str] = Field(default_factory=dict, max_length=32)
+    metrics: dict[str, float] = Field(default_factory=dict, max_length=64)
+
+    @model_validator(mode="after")
+    def closed_payload(self):
+        uuid.UUID(self.event_id)
+        if self.end_time_ms < self.start_time_ms:
+            raise ValueError("end_time_ms precedes start_time_ms")
+        expected = EXPERIMENTS[self.event_kind]
+        if self.experiment_name is not None and self.experiment_name != expected:
+            raise ValueError("experiment does not match event kind")
+        if not set(self.tags) <= ALLOWED_TAGS or not set(self.metrics) <= ALLOWED_METRICS:
+            raise ValueError("unknown telemetry field")
+        if any(len(key) > 64 or len(value) > 128 for key, value in self.tags.items()):
+            raise ValueError("tag bound exceeded")
+        if any(len(key) > 64 for key in self.metrics):
+            raise ValueError("metric bound exceeded")
+        return self
 
 
 class LogBatchRequest(BaseModel):
-    runs: list[RunPayload]
+    model_config = ConfigDict(extra="forbid")
+    runs: list[RunPayload] = Field(min_length=1, max_length=100)
 
 
 class LogBatchResponse(BaseModel):
-    created: int
+    accepted_event_ids: list[str]
+    already_present_event_ids: list[str]
+    retryable_event_ids: list[str]
 
 
 class HealthResponse(BaseModel):
@@ -58,12 +92,9 @@ class HealthResponse(BaseModel):
     mlflow_reachable: bool
 
 
-# --------------------------------------------------------------- auth + mlflow
-
-
 def require_api_key(authorization: str | None = Header(default=None)) -> None:
     if settings.shared_secret is None:
-        return  # no secret configured -> auth disabled (dev only)
+        return
     expected = f"Bearer {settings.shared_secret.get_secret_value()}"
     if authorization is None or not secrets.compare_digest(authorization, expected):
         raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
@@ -74,28 +105,31 @@ def _get_or_create_experiment(name: str) -> str:
     return experiment.experiment_id if experiment else client.create_experiment(name)
 
 
+def _already_present(payload: RunPayload) -> bool:
+    experiment = client.get_experiment_by_name(EXPERIMENTS[payload.event_kind])
+    if experiment is None:
+        return False
+    escaped = payload.event_id.replace("'", "")
+    return bool(client.search_runs([experiment.experiment_id], filter_string=f"tags.event_id = '{escaped}'", max_results=1))
+
+
 def _log_one_run(payload: RunPayload) -> None:
-    experiment_id = _get_or_create_experiment(payload.experiment_name)
+    experiment_id = _get_or_create_experiment(EXPERIMENTS[payload.event_kind])
     run = client.create_run(experiment_id=experiment_id, start_time=payload.start_time_ms)
     run_id = run.info.run_id
+    tags = dict(payload.tags)
+    tags["event_id"] = payload.event_id
     client.set_tag(run_id, "mlflow.runName", payload.run_name)
-
-    metrics = [Metric(k, v, payload.end_time_ms, 0) for k, v in payload.metrics.items()]
-    tags = [RunTag(k, v) for k, v in payload.tags.items()]
+    metrics = [Metric(key, value, payload.end_time_ms, 0) for key, value in payload.metrics.items()]
+    run_tags = [RunTag(key, value) for key, value in tags.items()]
     try:
-        client.log_batch(run_id, metrics=metrics, tags=tags)
+        client.log_batch(run_id, metrics=metrics, tags=run_tags)
     except MlflowException:
-        # log_batch is all-or-nothing; fall back to per-item calls so one bad
-        # entry (e.g. an immutable param collision) doesn't drop the rest.
         for metric in metrics:
-            client.log_metric(run_id, metric.key, metric.value, timestamp=metric.timestamp, step=metric.step)
-        for tag in tags:
+            client.log_metric(run_id, metric.key, metric.value, timestamp=metric.timestamp, step=0)
+        for tag in run_tags:
             client.set_tag(run_id, tag.key, tag.value)
-
     client.set_terminated(run_id, status="FINISHED", end_time=payload.end_time_ms)
-
-
-# ---------------------------------------------------------------- endpoints
 
 
 @app.get("/health", response_model=HealthResponse)
@@ -110,9 +144,20 @@ def health() -> HealthResponse:
 
 @app.post("/log-batch", response_model=LogBatchResponse, dependencies=[Depends(require_api_key)])
 def log_batch(req: LogBatchRequest) -> LogBatchResponse:
-    try:
-        for payload in req.runs:
+    accepted: list[str] = []
+    present: list[str] = []
+    retryable: list[str] = []
+    for payload in req.runs:
+        try:
+            if _already_present(payload):
+                present.append(payload.event_id)
+                continue
             _log_one_run(payload)
-    except MlflowException as exc:
-        raise HTTPException(status_code=502, detail=f"MLflow error: {exc}") from exc
-    return LogBatchResponse(created=len(req.runs))
+            accepted.append(payload.event_id)
+        except Exception:
+            retryable.append(payload.event_id)
+    return LogBatchResponse(
+        accepted_event_ids=accepted,
+        already_present_event_ids=present,
+        retryable_event_ids=retryable,
+    )

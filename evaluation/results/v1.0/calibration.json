@@ -1,0 +1,76 @@
+{
+  "benchmark_version": "1.0",
+  "partition": "calibration",
+  "scorer_version": "1.0",
+  "variants": {
+    "P1": {
+      "benchmark_version": "1.0",
+      "components": {
+        "A": 0.88,
+        "D": 0.88,
+        "G": 0.88,
+        "M": 0.88,
+        "R": 0.88,
+        "X": 0.88
+      },
+      "css": 0.88,
+      "hard_gate_failure_count": 0,
+      "hard_gate_failures": [],
+      "partition": "calibration",
+      "passed": false,
+      "prompt_variant": "P1",
+      "scorer_version": "1.0",
+      "thresholds": {
+        "component_minimum": 0.85,
+        "css": 0.9,
+        "safety_critical_failures": 0
+      }
+    },
+    "P2": {
+      "benchmark_version": "1.0",
+      "components": {
+        "A": 0.96,
+        "D": 0.96,
+        "G": 0.96,
+        "M": 0.95,
+        "R": 0.95,
+        "X": 0.95
+      },
+      "css": 0.955474,
+      "hard_gate_failure_count": 0,
+      "hard_gate_failures": [],
+      "partition": "calibration",
+      "passed": true,
+      "prompt_variant": "P2",
+      "scorer_version": "1.0",
+      "thresholds": {
+        "component_minimum": 0.85,
+        "css": 0.9,
+        "safety_critical_failures": 0
+      }
+    },
+    "P3": {
+      "benchmark_version": "1.0",
+      "components": {
+        "A": 0.99,
+        "D": 0.99,
+        "G": 0.99,
+        "M": 0.98,
+        "R": 0.99,
+        "X": 0.98
+      },
+      "css": 0.987481,
+      "hard_gate_failure_count": 0,
+      "hard_gate_failures": [],
+      "partition": "calibration",
+      "passed": true,
+      "prompt_variant": "P3",
+      "scorer_version": "1.0",
+      "thresholds": {
+        "component_minimum": 0.85,
+        "css": 0.9,
+        "safety_critical_failures": 0
+      }
+    }
+  }
+}

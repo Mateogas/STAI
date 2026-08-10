@@ -1,124 +1,143 @@
-"""Observability logger + service pipeline logging; no Ollama needed."""
+"""Schema-v2 operational telemetry privacy and failure-isolation tests."""
 
 from __future__ import annotations
 
-from datetime import date
+import json
 
 import pytest
-from langchain_core.messages import AIMessage
+from pydantic import ValidationError
 
-import stai.retriever
-from stai.guardrails import REFUSALS
-from stai.observability import TurnObserver, TurnRecord, estimate_tokens, log_turn, read_runs
-from stai.service import run_chat_turn
-
-from test_agent_smoke import FakeToolCallingModel, _fake_retrieve
-from test_api import FakeClassifier
-
-SIM = date(2026, 7, 7)
-
-
-def test_estimate_tokens():
-    assert estimate_tokens("") == 0
-    assert estimate_tokens("hi") == 1  # short text still costs something
-    assert estimate_tokens("a" * 400) == 100
+from stai.observability import (
+    OperationalTelemetryRecord,
+    TelemetryObserver,
+    estimate_tokens,
+    log_event,
+    read_events,
+    sanitize_v1_record,
+)
 
 
-def test_log_turn_roundtrip(tmp_path):
-    path = tmp_path / "runs.jsonl"
-    log_turn(TurnRecord(route="api", employee_id="emp-alyssa", latency_ms=42), path=path)
-    log_turn(TurnRecord(route="streamlit", employee_id="emp-jomar"), path=path)
-    runs = read_runs(path)
-    assert len(runs) == 2
-    assert runs[0]["route"] == "api" and runs[0]["latency_ms"] == 42
-    assert runs[0]["ts"]  # timestamp filled in automatically
-    assert read_runs(path, limit=1)[0]["employee_id"] == "emp-jomar"
-
-
-def test_read_runs_missing_file(tmp_path):
-    assert read_runs(tmp_path / "nope.jsonl") == []
-
-
-def test_turn_observer_records_latency(tmp_path):
-    path = tmp_path / "runs.jsonl"
-    with TurnObserver(path=path, route="api", employee_id="emp-alyssa") as obs:
-        obs.record.answer_chars = 7
-    (run,) = read_runs(path)
-    assert run["latency_ms"] >= 0
-    assert run["answer_chars"] == 7
-    assert run["error"] == ""
-    assert run["agent_model"]  # model names come from settings
-
-
-def test_turn_observer_records_and_reraises_errors(tmp_path):
-    path = tmp_path / "runs.jsonl"
-    with pytest.raises(RuntimeError):
-        with TurnObserver(path=path, route="api", employee_id="emp-alyssa"):
-            raise RuntimeError("ollama unreachable")
-    (run,) = read_runs(path)
-    assert run["error"] == "RuntimeError: ollama unreachable"
-
-
-@pytest.fixture
-def obs_path(tmp_path, monkeypatch):
-    from stai.config import settings
-
-    path = tmp_path / "runs.jsonl"
-    monkeypatch.setattr(settings, "obs_log_path", path)
-    return path
-
-
-def test_run_chat_turn_logs_full_record(repo, alyssa, monkeypatch, obs_path):
-    monkeypatch.setattr(stai.retriever, "retrieve", _fake_retrieve)
-    fake = FakeToolCallingModel(
-        responses=[
-            AIMessage(
-                content="",
-                tool_calls=[
-                    {"name": "search_knowledge_base", "args": {"query": "leave"}, "id": "c1"}
-                ],
-            ),
-            AIMessage(content="File leave in the portal [source: leave_policy.md]."),
-        ]
+def test_v2_round_trip_omits_inapplicable_metrics(tmp_path):
+    path = tmp_path / "events.jsonl"
+    event = OperationalTelemetryRecord(
+        event_kind="dialogue",
+        route="api",
+        actor_kind="hire",
+        operation="policy_response",
+        outcome="grounded_answer",
+        duration_ms=42,
+        tool_names=["search_handbook"],
+        tool_call_count=1,
+        citation_count=0,
     )
-    result = run_chat_turn(
-        alyssa, repo, "How do I file leave?", SIM,
-        llm=fake, guardrail_llm=FakeClassifier(),
-    )
-    assert result.citations == ["leave_policy.md"]
-
-    (run,) = read_runs(obs_path)
-    assert run["route"] == "api"
-    assert run["employee_id"] == alyssa.id
-    assert run["guardrail_category"] == "on_topic"
-    assert run["tools_used"] == ["search_knowledge_base"]
-    assert run["sources"] == ["leave_policy.md"]
-    assert run["est_input_tokens"] > 0 and run["est_output_tokens"] > 0
-    assert run["message_chars"] == len("How do I file leave?")
-    assert run["error"] == "" and run["refused"] is False
+    log_event(event, path)
+    (saved,) = read_events(path)
+    assert saved["schema_version"] == 2
+    assert saved["event_id"] == event.event_id
+    assert saved["citation_count"] == 0
+    assert "page_count" not in saved
+    assert "employee_id" not in json.dumps(saved)
 
 
-def test_run_chat_turn_logs_refusal(repo, alyssa, obs_path):
-    result = run_chat_turn(
-        alyssa, repo, "write my essay", SIM, guardrail_llm=FakeClassifier("off_topic")
-    )
-    assert result.refused and result.answer == REFUSALS["off_topic"]
+def test_v1_mapper_sanitizes_identity_content_sources_and_raw_error():
+    converted = sanitize_v1_record(
+        {
+            "schema_version": 1,
+            "ts": "2026-08-10T00:00:00+00:00",
+            "route": "api",
+            "employee_id": "emp-alyssa",
+            "message_chars": 12,
+            "answer_chars": 20,
+            "latency_ms": 10,
+            "guardrail_category": "on_topic",
+            "tools_used": ["search_knowledge_base", "evil_tool"],
+            "sources": ["policy-secret.md"],
+            "error": "RuntimeError: private upload /tmp/a.pdf",
+            "plan_changed": True,
+        }
+    ).model_dump(exclude_none=True)
+    rendered = json.dumps(converted)
+    assert converted["schema_version"] == 2
+    assert converted["tool_names"] == ["search_handbook"]
+    assert converted["error_category"] == "unexpected_internal"
+    for secret in ("emp-alyssa", "policy-secret", "/tmp/a.pdf", "plan_changed", "sources"):
+        assert secret not in rendered
 
-    (run,) = read_runs(obs_path)
-    assert run["refused"] is True
-    assert run["guardrail_category"] == "off_topic"
-    assert run["tools_used"] == []
 
-
-def test_run_chat_turn_logs_agent_errors(repo, alyssa, obs_path):
-    class ExplodingModel(FakeToolCallingModel):
-        def _generate(self, messages, stop=None, run_manager=None, **kwargs):
-            raise ConnectionError("ollama down")
-
-    with pytest.raises(ConnectionError):
-        run_chat_turn(
-            alyssa, repo, "hello", SIM,
-            llm=ExplodingModel(responses=[]), guardrail_llm=FakeClassifier(),
+@pytest.mark.parametrize(
+    "unsafe",
+    [
+        {"employee_id": "emp-alyssa"},
+        {"sources": ["PAY-001"]},
+        {"filename": "certificate.pdf"},
+        {"ocr_text": "diagnosis"},
+        {"error": "raw stack"},
+        {"policy_id": "PAY-001"},
+    ],
+)
+def test_v2_denylist_and_extra_fields_fail_closed(unsafe):
+    with pytest.raises(ValidationError):
+        OperationalTelemetryRecord(
+            event_kind="dialogue",
+            route="api",
+            actor_kind="hire",
+            operation="policy_response",
+            outcome="grounded_answer",
+            **unsafe,
         )
-    (run,) = read_runs(obs_path)
-    assert "ollama down" in run["error"]
+
+
+def test_closed_enums_and_tool_allowlist_reject_arbitrary_values():
+    with pytest.raises(ValidationError):
+        OperationalTelemetryRecord(
+            event_kind="dialogue",
+            route="api",
+            actor_kind="hire",
+            operation="free_form_operation",
+            outcome="grounded_answer",
+        )
+    with pytest.raises(ValidationError):
+        OperationalTelemetryRecord(
+            event_kind="dialogue",
+            route="api",
+            actor_kind="hire",
+            operation="policy_response",
+            outcome="grounded_answer",
+            tool_names=["shell"],
+        )
+
+
+def test_observer_maps_raw_exception_and_never_swallows_it(tmp_path):
+    path = tmp_path / "events.jsonl"
+    with pytest.raises(RuntimeError):
+        with TelemetryObserver(
+            path=path,
+            event_kind="dialogue",
+            route="streamlit",
+            actor_kind="hire",
+            operation="policy_response",
+        ):
+            raise RuntimeError("private message and /secret/path")
+    (saved,) = read_events(path)
+    assert saved["outcome"] == "failed"
+    assert saved["error_category"] == "unexpected_internal"
+    assert "private message" not in json.dumps(saved)
+
+
+def test_observer_write_failure_cannot_change_product_outcome(tmp_path, monkeypatch):
+    monkeypatch.setattr("stai.observability.log_event", lambda *a, **k: (_ for _ in ()).throw(OSError("disk")))
+    with TelemetryObserver(
+        path=tmp_path / "events.jsonl",
+        event_kind="dialogue",
+        route="api",
+        actor_kind="hire",
+        operation="policy_response",
+    ) as observer:
+        observer.record.outcome = "grounded_answer"
+    assert observer.record.outcome == "grounded_answer"
+
+
+def test_estimate_tokens_is_explicitly_an_estimate():
+    assert estimate_tokens("") == 0
+    assert estimate_tokens("hi") == 1
+    assert estimate_tokens("a" * 400) == 100

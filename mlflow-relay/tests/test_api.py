@@ -1,6 +1,8 @@
-"""Relay API tests: file:// tracking URI, no real mlflow server needed."""
+"""Relay allowlist, authentication, partial delivery, and idempotency tests."""
 
 from __future__ import annotations
+
+import uuid
 
 import mlflow
 import pytest
@@ -13,83 +15,88 @@ def app_client(tmp_path, monkeypatch):
     tracking_uri = f"sqlite:///{tmp_path / 'mlflow.db'}"
     monkeypatch.setenv("RELAY_MLFLOW_TRACKING_URI", tracking_uri)
     monkeypatch.delenv("RELAY_SHARED_SECRET", raising=False)
-
     from relay import api, config
-
     config.settings.mlflow_tracking_uri = tracking_uri
     config.settings.shared_secret = None
     mlflow.set_tracking_uri(tracking_uri)
     api.client = MlflowClient()
-
     return TestClient(api.app)
 
 
-RUN_PAYLOAD = {
-    "experiment_name": "smoke-test",
-    "run_name": "manual-run",
-    "start_time_ms": 1751000000000,
-    "end_time_ms": 1751000001500,
-    "tags": {"route": "api", "employee_id": "emp-alyssa"},
-    "metrics": {"latency_ms": 1500.0, "refused": 0.0},
-}
+def _run(event_id=None):
+    return {
+        "event_id": event_id or str(uuid.uuid4()),
+        "event_kind": "dialogue",
+        "run_name": "dialogue-20260810T000000Z-deadbeef",
+        "start_time_ms": 1786320000000,
+        "end_time_ms": 1786320000010,
+        "tags": {"event_kind": "dialogue", "route": "api", "outcome": "grounded_answer"},
+        "metrics": {"duration_ms": 10.0, "citation_count": 0.0},
+    }
 
 
 def test_health(app_client):
-    resp = app_client.get("/health")
-    assert resp.status_code == 200
-    assert resp.json()["mlflow_reachable"] is True
+    assert app_client.get("/health").json()["mlflow_reachable"] is True
 
 
-def test_log_batch_creates_run(app_client):
-    resp = app_client.post("/log-batch", json={"runs": [RUN_PAYLOAD]})
-    assert resp.status_code == 200
-    assert resp.json()["created"] == 1
-
+def test_event_id_is_idempotent_after_response_loss(app_client):
+    payload = _run()
+    first = app_client.post("/log-batch", json={"runs": [payload]})
+    second = app_client.post("/log-batch", json={"runs": [payload]})
+    assert first.json()["accepted_event_ids"] == [payload["event_id"]]
+    assert second.json()["already_present_event_ids"] == [payload["event_id"]]
     from relay.api import client
-
-    experiment = client.get_experiment_by_name("smoke-test")
-    assert experiment is not None
-    runs = client.search_runs([experiment.experiment_id])
-    assert len(runs) == 1
-    run = runs[0]
-    assert run.data.tags["route"] == "api"
-    assert run.data.metrics["latency_ms"] == 1500.0
-    assert run.info.status == "FINISHED"
+    exp = client.get_experiment_by_name("aisha-chat-turns")
+    assert len(client.search_runs([exp.experiment_id])) == 1
 
 
-def test_log_batch_multiple_runs_same_experiment(app_client):
-    resp = app_client.post("/log-batch", json={"runs": [RUN_PAYLOAD, RUN_PAYLOAD]})
-    assert resp.status_code == 200
-    assert resp.json()["created"] == 2
+def test_experiment_is_closed_mapping_not_input(app_client):
+    for kind, experiment in [
+        ("certificate_check", "aisha-certificate-checks"),
+        ("system_operation", "aisha-system-operations"),
+        ("benchmark_case", "aisha-benchmark"),
+    ]:
+        payload = _run(); payload["event_kind"] = kind; payload["tags"]["event_kind"] = kind
+        response = app_client.post("/log-batch", json={"runs": [payload]})
+        assert response.status_code == 200
+        from relay.api import client
+        assert client.get_experiment_by_name(experiment) is not None
 
-    from relay.api import client
 
-    experiment = client.get_experiment_by_name("smoke-test")
-    runs = client.search_runs([experiment.experiment_id])
-    assert len(runs) == 2
+def test_relay_rejects_unknown_tags_metrics_and_arbitrary_experiment(app_client):
+    payload = _run(); payload["tags"]["employee_id"] = "emp-alyssa"
+    assert app_client.post("/log-batch", json={"runs": [payload]}).status_code == 422
+    payload = _run(); payload["metrics"]["raw_score"] = 0.8
+    assert app_client.post("/log-batch", json={"runs": [payload]}).status_code == 422
+    payload = _run(); payload["experiment_name"] = "attacker-selected"
+    assert app_client.post("/log-batch", json={"runs": [payload]}).status_code == 422
 
 
-def test_log_batch_requires_auth_when_secret_configured(tmp_path, monkeypatch):
-    tracking_uri = f"sqlite:///{tmp_path / 'mlflow.db'}"
-    monkeypatch.setenv("RELAY_MLFLOW_TRACKING_URI", tracking_uri)
-    from relay import api, config
+def test_batch_bound_and_partial_downstream_failure(app_client, monkeypatch):
+    assert app_client.post("/log-batch", json={"runs": [_run() for _ in range(101)]}).status_code == 422
+    from relay import api
+    original = api._log_one_run
+    bad_id = str(uuid.uuid4())
+    def sometimes(payload):
+        if payload.event_id == bad_id:
+            raise RuntimeError("downstream")
+        return original(payload)
+    monkeypatch.setattr(api, "_log_one_run", sometimes)
+    good = _run(); bad = _run(bad_id)
+    response = app_client.post("/log-batch", json={"runs": [good, bad]})
+    assert response.status_code == 200
+    assert response.json()["accepted_event_ids"] == [good["event_id"]]
+    assert response.json()["retryable_event_ids"] == [bad_id]
 
-    config.settings.mlflow_tracking_uri = tracking_uri
+
+def test_authentication(app_client):
     from pydantic import SecretStr
-
+    from relay import config
     config.settings.shared_secret = SecretStr("dev-secret")
-    mlflow.set_tracking_uri(tracking_uri)
-    api.client = MlflowClient()
-    client = TestClient(api.app)
-
-    resp = client.post("/log-batch", json={"runs": [RUN_PAYLOAD]})
-    assert resp.status_code == 401
-
-    resp = client.post(
-        "/log-batch",
-        json={"runs": [RUN_PAYLOAD]},
-        headers={"Authorization": "Bearer dev-secret"},
-    )
-    assert resp.status_code == 200
-
-    config.settings.shared_secret = None  # reset for other tests
+    try:
+        assert app_client.post("/log-batch", json={"runs": [_run()]}).status_code == 401
+        assert app_client.post(
+            "/log-batch", json={"runs": [_run()]}, headers={"Authorization": "Bearer dev-secret"}
+        ).status_code == 200
+    finally:
+        config.settings.shared_secret = None

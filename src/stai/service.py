@@ -136,24 +136,27 @@ def run_chat_turn(
     """Run one guarded agent turn and log it. Raises if the model call fails."""
     history = history or []
     with TurnObserver(
+        event_kind="dialogue",
         route=route,
-        employee_id=employee.id,
-        message_chars=len(message),
+        actor_kind="hire",
+        operation="policy_response",
+        input_char_count=len(message),
     ) as obs:
         verdict = classify_input(message, llm=guardrail_llm)
         obs.record.guardrail_category = verdict.category
         if not verdict.allowed:
             answer = REFUSALS[verdict.category]
-            obs.record.refused = True
-            obs.record.answer_chars = len(answer)
-            obs.record.est_output_tokens = estimate_tokens(answer)
+            obs.record.outcome = "abstention"
+            obs.record.policy_response = "abstention"
+            obs.record.output_char_count = len(answer)
+            obs.record.estimated_output_tokens = estimate_tokens(answer)
             return ChatTurnResult(
                 answer=answer, guardrail_category=verdict.category, refused=True
             )
 
         agent, capture = build_agent(employee, repo, sim_date, llm=llm)
         messages = history_to_messages(history) + [HumanMessage(message)]
-        obs.record.est_input_tokens = estimate_tokens(
+        obs.record.estimated_input_tokens = estimate_tokens(
             render_system_prompt(employee, sim_date)
             + "".join(m["content"] for m in history[-HISTORY_LIMIT:])
             + message
@@ -163,12 +166,19 @@ def run_chat_turn(
             raw_answer, capture.used_search, capture.source_names
         )
 
-        obs.record.answer_chars = len(grounded.answer)
-        obs.record.est_output_tokens = estimate_tokens(grounded.answer)
-        obs.record.tools_used = list(capture.tool_calls)
-        obs.record.sources = capture.source_names
-        obs.record.escalation_id = capture.escalation_id
-        obs.record.plan_changed = capture.plan_changed
+        obs.record.outcome = "grounded_answer"
+        obs.record.policy_response = "grounded_answer"
+        obs.record.output_char_count = len(grounded.answer)
+        obs.record.estimated_output_tokens = estimate_tokens(grounded.answer)
+        tool_map = {
+            "search_knowledge_base": "search_handbook",
+            "get_active_handbook": "get_active_handbook",
+            "lookup_public_holidays": "lookup_public_holidays",
+        }
+        safe_tools = list(dict.fromkeys(tool_map[name] for name in capture.tool_calls if name in tool_map))
+        obs.record.tool_names = safe_tools or None
+        obs.record.tool_call_count = len(capture.tool_calls)
+        obs.record.citation_count = len(grounded.citations)
         return ChatTurnResult(
             answer=grounded.answer,
             citations=grounded.citations,

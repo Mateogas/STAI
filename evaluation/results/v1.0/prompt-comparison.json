@@ -1,0 +1,290 @@
+{
+  "benchmark_version": "1.0",
+  "bootstrap_confidence_interval": "not estimated for deterministic contract mode",
+  "limitation": "Synthetic offline contract evaluation; not statistical, model, production, or real BDO validation.",
+  "paired_delta_method": "deterministic per-case contract deltas",
+  "scorer_version": "1.0",
+  "selected_prompt_variant": "P3",
+  "tie_break_trace": {
+    "rule": "weakest_locked_component",
+    "selected_estimated_tokens": 246,
+    "selected_locked_css": 0.987481,
+    "selected_p95_latency_ms": 23,
+    "weakest_locked_component": {
+      "P2": 0.95,
+      "P3": 0.98
+    }
+  },
+  "variants": {
+    "P1": {
+      "benchmark_version": "1.0",
+      "calibration": {
+        "benchmark_version": "1.0",
+        "components": {
+          "A": 0.88,
+          "D": 0.88,
+          "G": 0.88,
+          "M": 0.88,
+          "R": 0.88,
+          "X": 0.88
+        },
+        "css": 0.88,
+        "hard_gate_failure_count": 0,
+        "hard_gate_failures": [],
+        "partition": "calibration",
+        "passed": false,
+        "prompt_variant": "P1",
+        "scorer_version": "1.0",
+        "thresholds": {
+          "component_minimum": 0.85,
+          "css": 0.9,
+          "safety_critical_failures": 0
+        }
+      },
+      "case_count": 60,
+      "combined": {
+        "benchmark_version": "1.0",
+        "components": {
+          "A": 0.88,
+          "D": 0.88,
+          "G": 0.88,
+          "M": 0.88,
+          "R": 0.88,
+          "X": 0.88
+        },
+        "css": 0.88,
+        "hard_gate_failure_count": 0,
+        "hard_gate_failures": [],
+        "partition": "combined",
+        "passed": false,
+        "prompt_variant": "P1",
+        "scorer_version": "1.0",
+        "thresholds": {
+          "component_minimum": 0.85,
+          "css": 0.9,
+          "safety_critical_failures": 0
+        }
+      },
+      "estimated_tokens": 96,
+      "execution_mode": "offline_deterministic_contract",
+      "hard_gate_failure_count": 0,
+      "limitation": "Synthetic offline contract evaluation; not model, production, or real BDO validation.",
+      "locked": {
+        "benchmark_version": "1.0",
+        "components": {
+          "A": 0.88,
+          "D": 0.88,
+          "G": 0.88,
+          "M": 0.88,
+          "R": 0.88,
+          "X": 0.88
+        },
+        "css": 0.88,
+        "hard_gate_failure_count": 0,
+        "hard_gate_failures": [],
+        "partition": "locked",
+        "passed": false,
+        "prompt_variant": "P1",
+        "scorer_version": "1.0",
+        "thresholds": {
+          "component_minimum": 0.85,
+          "css": 0.9,
+          "safety_critical_failures": 0
+        }
+      },
+      "p50_latency_ms": 19,
+      "p95_latency_ms": 19,
+      "partitions": {
+        "calibration": 40,
+        "locked": 20
+      },
+      "passed": false,
+      "prompt_variant": "P1",
+      "repetitions": 3,
+      "run_seed": 20260810,
+      "runtime_seed_supported": false,
+      "scorer_version": "1.0",
+      "temperature": 0
+    },
+    "P2": {
+      "benchmark_version": "1.0",
+      "calibration": {
+        "benchmark_version": "1.0",
+        "components": {
+          "A": 0.96,
+          "D": 0.96,
+          "G": 0.96,
+          "M": 0.95,
+          "R": 0.95,
+          "X": 0.95
+        },
+        "css": 0.955474,
+        "hard_gate_failure_count": 0,
+        "hard_gate_failures": [],
+        "partition": "calibration",
+        "passed": true,
+        "prompt_variant": "P2",
+        "scorer_version": "1.0",
+        "thresholds": {
+          "component_minimum": 0.85,
+          "css": 0.9,
+          "safety_critical_failures": 0
+        }
+      },
+      "case_count": 60,
+      "combined": {
+        "benchmark_version": "1.0",
+        "components": {
+          "A": 0.96,
+          "D": 0.96,
+          "G": 0.96,
+          "M": 0.95,
+          "R": 0.95,
+          "X": 0.95
+        },
+        "css": 0.955474,
+        "hard_gate_failure_count": 0,
+        "hard_gate_failures": [],
+        "partition": "combined",
+        "passed": true,
+        "prompt_variant": "P2",
+        "scorer_version": "1.0",
+        "thresholds": {
+          "component_minimum": 0.85,
+          "css": 0.9,
+          "safety_critical_failures": 0
+        }
+      },
+      "estimated_tokens": 181,
+      "execution_mode": "offline_deterministic_contract",
+      "hard_gate_failure_count": 0,
+      "limitation": "Synthetic offline contract evaluation; not model, production, or real BDO validation.",
+      "locked": {
+        "benchmark_version": "1.0",
+        "components": {
+          "A": 0.96,
+          "D": 0.96,
+          "G": 0.96,
+          "M": 0.95,
+          "R": 0.95,
+          "X": 0.95
+        },
+        "css": 0.955474,
+        "hard_gate_failure_count": 0,
+        "hard_gate_failures": [],
+        "partition": "locked",
+        "passed": true,
+        "prompt_variant": "P2",
+        "scorer_version": "1.0",
+        "thresholds": {
+          "component_minimum": 0.85,
+          "css": 0.9,
+          "safety_critical_failures": 0
+        }
+      },
+      "p50_latency_ms": 21,
+      "p95_latency_ms": 21,
+      "partitions": {
+        "calibration": 40,
+        "locked": 20
+      },
+      "passed": true,
+      "prompt_variant": "P2",
+      "repetitions": 3,
+      "run_seed": 20260810,
+      "runtime_seed_supported": false,
+      "scorer_version": "1.0",
+      "temperature": 0
+    },
+    "P3": {
+      "benchmark_version": "1.0",
+      "calibration": {
+        "benchmark_version": "1.0",
+        "components": {
+          "A": 0.99,
+          "D": 0.99,
+          "G": 0.99,
+          "M": 0.98,
+          "R": 0.99,
+          "X": 0.98
+        },
+        "css": 0.987481,
+        "hard_gate_failure_count": 0,
+        "hard_gate_failures": [],
+        "partition": "calibration",
+        "passed": true,
+        "prompt_variant": "P3",
+        "scorer_version": "1.0",
+        "thresholds": {
+          "component_minimum": 0.85,
+          "css": 0.9,
+          "safety_critical_failures": 0
+        }
+      },
+      "case_count": 60,
+      "combined": {
+        "benchmark_version": "1.0",
+        "components": {
+          "A": 0.99,
+          "D": 0.99,
+          "G": 0.99,
+          "M": 0.98,
+          "R": 0.99,
+          "X": 0.98
+        },
+        "css": 0.987481,
+        "hard_gate_failure_count": 0,
+        "hard_gate_failures": [],
+        "partition": "combined",
+        "passed": true,
+        "prompt_variant": "P3",
+        "scorer_version": "1.0",
+        "thresholds": {
+          "component_minimum": 0.85,
+          "css": 0.9,
+          "safety_critical_failures": 0
+        }
+      },
+      "estimated_tokens": 246,
+      "execution_mode": "offline_deterministic_contract",
+      "hard_gate_failure_count": 0,
+      "limitation": "Synthetic offline contract evaluation; not model, production, or real BDO validation.",
+      "locked": {
+        "benchmark_version": "1.0",
+        "components": {
+          "A": 0.99,
+          "D": 0.99,
+          "G": 0.99,
+          "M": 0.98,
+          "R": 0.99,
+          "X": 0.98
+        },
+        "css": 0.987481,
+        "hard_gate_failure_count": 0,
+        "hard_gate_failures": [],
+        "partition": "locked",
+        "passed": true,
+        "prompt_variant": "P3",
+        "scorer_version": "1.0",
+        "thresholds": {
+          "component_minimum": 0.85,
+          "css": 0.9,
+          "safety_critical_failures": 0
+        }
+      },
+      "p50_latency_ms": 23,
+      "p95_latency_ms": 23,
+      "partitions": {
+        "calibration": 40,
+        "locked": 20
+      },
+      "passed": true,
+      "prompt_variant": "P3",
+      "repetitions": 3,
+      "run_seed": 20260810,
+      "runtime_seed_supported": false,
+      "scorer_version": "1.0",
+      "temperature": 0
+    }
+  }
+}
