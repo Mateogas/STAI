@@ -18,7 +18,7 @@ from pathlib import Path
 from langchain_core.tools import tool
 
 from stai.config import settings
-from stai.models import PHASE_LABELS, ChecklistItem, Employee, Person
+from stai.models import PHASE_LABELS, ChecklistItem, Employee, HireProfile, Person
 from stai.state import Repo
 
 _STOPWORDS = {
@@ -279,3 +279,74 @@ def build_tools(employee: Employee, repo: Repo, sim_date: date):
 
     tools = [search_knowledge_base, get_my_plan, complete_task, escalate_to_hr, find_person]
     return tools, capture
+
+
+def build_policy_tools(profile: HireProfile, repo: Repo, records):
+    """Replacement ReAct tools for the three-topic policy domain."""
+    from stai.policy import evaluate_applicability
+    from stai.retriever import hybrid_retrieve
+
+    capture = RunCapture()
+
+    @tool
+    def get_active_handbook_version() -> str:
+        """Return the verified Active Handbook Version and build generation."""
+        capture.tool_calls.append("get_active_handbook_version")
+        active = repo.get_active_retrieval_build()
+        version = active["handbook_version"] if active else records[0].handbook_version
+        generation = active["generation"] if active else 0
+        return json.dumps({"handbook_version": version, "generation": generation})
+
+    @tool
+    def search_onboarding_policies(query: str) -> str:
+        """Search only Payroll, Resource Access, and HR Policies in the active handbook."""
+        capture.tool_calls.append("search_onboarding_policies")
+        capture.used_search = True
+        result = hybrid_retrieve(query, profile, records)
+        safe = [
+            {
+                "policy_id": item.policy_id,
+                "handbook_version": item.handbook_version,
+                "page": item.page,
+                "authority": item.page_kind,
+                "applicability": item.applicability,
+                "content": item.content,
+            }
+            for item in result.evidence
+        ]
+        return json.dumps({"outcome": result.outcome, "evidence": safe}, default=str)
+
+    @tool
+    def evaluate_policy_applicability(policy_id: str) -> str:
+        """Evaluate one stable policy ID against the confirmed Hire Profile."""
+        capture.tool_calls.append("evaluate_policy_applicability")
+        record = next((r for r in records if r.policy_id == policy_id and r.page_kind == "policy"), None)
+        if not record:
+            return "NOT_FOUND"
+        return evaluate_applicability(record, profile).status.value
+
+    @tool
+    def resolve_escalation_route(policy_id: str = "", topic: str = "") -> str:
+        """Resolve a fictional human route without creating a case."""
+        capture.tool_calls.append("resolve_escalation_route")
+        record = next((r for r in records if r.policy_id == policy_id and r.route), None)
+        route = record.route if record else f"{topic or 'hr'}_support"
+        return json.dumps({"owner": route, "channel": "Fictional HR Help Desk"})
+
+    @tool
+    def create_escalation_case(consent: bool, summary: str, topic: str) -> str:
+        """Create a privacy-safe case only when explicit Hire consent is true."""
+        capture.tool_calls.append("create_escalation_case")
+        if not consent:
+            return "CONSENT_REQUIRED: show the route and exact summary before trying again."
+        if len(summary) > 500:
+            return "INVALID_SUMMARY"
+        return json.dumps({"status": "consented", "topic": topic, "summary": summary})
+
+    return [
+        get_active_handbook_version,
+        search_onboarding_policies,
+        evaluate_policy_applicability,
+        resolve_escalation_route,
+        create_escalation_case,
+    ], capture

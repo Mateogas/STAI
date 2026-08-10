@@ -22,10 +22,12 @@ except ImportError:  # pragma: no cover - older stacks
     _V1 = False
 
 from stai.config import settings
-from stai.models import Employee
+from stai.models import Employee, HireProfile
+from stai.prompts import render_policy_prompt
 from stai.pulse import weeks_since_start
 from stai.state import Repo
 from stai.tools import RunCapture, build_tools
+from stai.tools import build_policy_tools
 
 SYSTEM_PROMPT_TEMPLATE = """\
 You are "AISHA", AI Support for Hires and Associates.
@@ -115,6 +117,26 @@ def build_agent(employee: Employee, repo: Repo, sim_date: date, llm=None):
     else:  # pragma: no cover
         agent = _create_agent(model, tools, prompt=prompt)
     return agent, capture
+
+
+def build_policy_agent(
+    profile: HireProfile,
+    repo: Repo,
+    records,
+    *,
+    llm=None,
+    prompt_variant: str = "P3",
+):
+    """Build the replacement ReAct loop over policy-domain tools."""
+    tools, capture = build_policy_tools(profile, repo, records)
+    version = records[0].handbook_version if records else "1.0"
+    prompt = render_policy_prompt(prompt_variant, "Alyssa Reyes", version)
+    model = llm or build_llm(temperature=0)
+    if _V1:
+        graph = _create_agent(model, tools, system_prompt=prompt)
+    else:  # pragma: no cover
+        graph = _create_agent(model, tools, prompt=prompt)
+    return graph, capture
 
 
 def _chunk_text(chunk: AIMessageChunk) -> str:
