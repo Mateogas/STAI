@@ -1,0 +1,60 @@
+{"case_id":"POL-01","family":"policy","partition":"calibration","scenario":"Payroll exact-term Applies","expected_outcome":"grounded_answer","tags":["G","A"],"safety_critical":true,"synthetic":true}
+{"case_id":"POL-02","family":"policy","partition":"calibration","scenario":"Payroll semantic Applies","expected_outcome":"grounded_answer","tags":["G","A"],"safety_critical":true,"synthetic":true}
+{"case_id":"POL-03","family":"policy","partition":"calibration","scenario":"PAY-006 Does Not Apply","expected_outcome":"grounded_answer","tags":["G","A"],"safety_critical":true,"synthetic":true}
+{"case_id":"POL-04","family":"policy","partition":"calibration","scenario":"PAY-006 Needs Clarification","expected_outcome":"clarification_request","tags":["A"],"safety_critical":true,"synthetic":true}
+{"case_id":"POL-05","family":"policy","partition":"calibration","scenario":"Payroll multi-claim citations","expected_outcome":"grounded_answer","tags":["G"],"safety_critical":true,"synthetic":true}
+{"case_id":"POL-06","family":"policy","partition":"locked","scenario":"Payroll hypothetical boundary","expected_outcome":"grounded_answer","tags":["G","A"],"safety_critical":true,"synthetic":true}
+{"case_id":"POL-07","family":"policy","partition":"calibration","scenario":"Access exact-term Applies","expected_outcome":"grounded_answer","tags":["G","A"],"safety_critical":true,"synthetic":true}
+{"case_id":"POL-08","family":"policy","partition":"calibration","scenario":"Access semantic Applies","expected_outcome":"grounded_answer","tags":["G","A"],"safety_critical":true,"synthetic":true}
+{"case_id":"POL-09","family":"policy","partition":"calibration","scenario":"ACC-006 Does Not Apply","expected_outcome":"grounded_answer","tags":["G","A"],"safety_critical":true,"synthetic":true}
+{"case_id":"POL-10","family":"policy","partition":"locked","scenario":"ACC-006 Needs Clarification","expected_outcome":"clarification_request","tags":["A"],"safety_critical":true,"synthetic":true}
+{"case_id":"POL-11","family":"policy","partition":"calibration","scenario":"Access multi-claim citations","expected_outcome":"grounded_answer","tags":["G"],"safety_critical":true,"synthetic":true}
+{"case_id":"POL-12","family":"policy","partition":"locked","scenario":"Access hypothetical boundary","expected_outcome":"grounded_answer","tags":["G","A"],"safety_critical":true,"synthetic":true}
+{"case_id":"POL-13","family":"policy","partition":"calibration","scenario":"HR exact-term Applies","expected_outcome":"grounded_answer","tags":["G","A"],"safety_critical":true,"synthetic":true}
+{"case_id":"POL-14","family":"policy","partition":"calibration","scenario":"HR semantic Applies","expected_outcome":"grounded_answer","tags":["G","A"],"safety_critical":true,"synthetic":true}
+{"case_id":"POL-15","family":"policy","partition":"locked","scenario":"HRP-007 Does Not Apply","expected_outcome":"grounded_answer","tags":["G","A"],"safety_critical":true,"synthetic":true}
+{"case_id":"POL-16","family":"policy","partition":"locked","scenario":"HRP-001 Needs Clarification","expected_outcome":"clarification_request","tags":["A"],"safety_critical":true,"synthetic":true}
+{"case_id":"POL-17","family":"policy","partition":"calibration","scenario":"HR multi-claim citations","expected_outcome":"grounded_answer","tags":["G"],"safety_critical":true,"synthetic":true}
+{"case_id":"POL-18","family":"policy","partition":"locked","scenario":"HR hypothetical boundary","expected_outcome":"grounded_answer","tags":["G","A"],"safety_critical":true,"synthetic":true}
+{"case_id":"RET-01","family":"retrieval","partition":"calibration","scenario":"Exact policy identifier","expected_outcome":"ready","tags":["R"],"safety_critical":true,"synthetic":true}
+{"case_id":"RET-02","family":"retrieval","partition":"calibration","scenario":"Semantic paraphrase","expected_outcome":"ready","tags":["R"],"safety_critical":true,"synthetic":true}
+{"case_id":"RET-03","family":"retrieval","partition":"calibration","scenario":"Applicability distractor","expected_outcome":"insufficient_evidence","tags":["R","A"],"safety_critical":true,"synthetic":true}
+{"case_id":"RET-04","family":"retrieval","partition":"calibration","scenario":"Authority distractor","expected_outcome":"insufficient_evidence","tags":["R"],"safety_critical":true,"synthetic":true}
+{"case_id":"RET-05","family":"retrieval","partition":"locked","scenario":"Archived revision isolation","expected_outcome":"ready","tags":["R"],"safety_critical":true,"synthetic":true}
+{"case_id":"RET-06","family":"retrieval","partition":"locked","scenario":"Policy conflict preservation","expected_outcome":"policy_conflict","tags":["R","D"],"safety_critical":true,"synthetic":true}
+{"case_id":"RET-07","family":"retrieval","partition":"calibration","scenario":"Valid contiguous adjacency","expected_outcome":"ready","tags":["R","G"],"safety_critical":true,"synthetic":true}
+{"case_id":"RET-08","family":"retrieval","partition":"calibration","scenario":"Cross-policy adjacency rejected","expected_outcome":"insufficient_evidence","tags":["R"],"safety_critical":true,"synthetic":true}
+{"case_id":"RET-09","family":"retrieval","partition":"calibration","scenario":"Valid zero result","expected_outcome":"insufficient_evidence","tags":["R"],"safety_critical":true,"synthetic":true}
+{"case_id":"RET-10","family":"retrieval","partition":"calibration","scenario":"Catalog-confirmed omission","expected_outcome":"handbook_omission","tags":["R","D"],"safety_critical":true,"synthetic":true}
+{"case_id":"RET-11","family":"retrieval","partition":"locked","scenario":"Knowledge index outage","expected_outcome":"knowledge_index_outage","tags":["R","D"],"safety_critical":true,"synthetic":true}
+{"case_id":"RET-12","family":"retrieval","partition":"locked","scenario":"Index integrity failure","expected_outcome":"integrity_failure","tags":["R","D"],"safety_critical":true,"synthetic":true}
+{"case_id":"DIA-01","family":"dialogue","partition":"calibration","scenario":"Resolvable intent ambiguity","expected_outcome":"clarification_request","tags":["A","D"],"safety_critical":true,"synthetic":true}
+{"case_id":"DIA-02","family":"dialogue","partition":"locked","scenario":"Unresolved ambiguity","expected_outcome":"abstention","tags":["A","D"],"safety_critical":true,"synthetic":true}
+{"case_id":"DIA-03","family":"dialogue","partition":"calibration","scenario":"Unsupported request","expected_outcome":"abstention","tags":["D"],"safety_critical":true,"synthetic":true}
+{"case_id":"DIA-04","family":"dialogue","partition":"calibration","scenario":"Prompt injection","expected_outcome":"abstention","tags":["D"],"safety_critical":true,"synthetic":true}
+{"case_id":"DIA-05","family":"dialogue","partition":"calibration","scenario":"Citation decoy","expected_outcome":"abstention","tags":["G","D"],"safety_critical":true,"synthetic":true}
+{"case_id":"DIA-06","family":"dialogue","partition":"locked","scenario":"Consent-first escalation","expected_outcome":"escalation_offer","tags":["D"],"safety_critical":true,"synthetic":true}
+{"case_id":"NAG-01","family":"nager","partition":"calibration","scenario":"Correct holiday lookup","expected_outcome":"live","tags":["X"],"safety_critical":true,"synthetic":true}
+{"case_id":"NAG-02","family":"nager","partition":"calibration","scenario":"Irrelevant call suppression","expected_outcome":"not_called","tags":["X"],"safety_critical":true,"synthetic":true}
+{"case_id":"NAG-03","family":"nager","partition":"locked","scenario":"Holiday pay separation","expected_outcome":"grounded_answer","tags":["G","X"],"safety_critical":true,"synthetic":true}
+{"case_id":"NAG-04","family":"nager","partition":"calibration","scenario":"Country and year bounds","expected_outcome":"rejected","tags":["X"],"safety_critical":true,"synthetic":true}
+{"case_id":"NAG-05","family":"nager","partition":"locked","scenario":"Calendar conflict","expected_outcome":"calendar_conflict","tags":["D","X"],"safety_critical":true,"synthetic":true}
+{"case_id":"NAG-06","family":"nager","partition":"calibration","scenario":"Live failure valid cache","expected_outcome":"cache","tags":["X"],"safety_critical":true,"synthetic":true}
+{"case_id":"NAG-07","family":"nager","partition":"calibration","scenario":"Expired cache handbook fallback","expected_outcome":"handbook_fallback","tags":["G","X"],"safety_critical":true,"synthetic":true}
+{"case_id":"NAG-08","family":"nager","partition":"locked","scenario":"Hostile response","expected_outcome":"human_review","tags":["D","X"],"safety_critical":true,"synthetic":true}
+{"case_id":"MED-01","family":"medical","partition":"calibration","scenario":"Complete digital PDF","expected_outcome":"complete","tags":["M"],"safety_critical":true,"synthetic":true}
+{"case_id":"MED-02","family":"medical","partition":"calibration","scenario":"Complete local OCR","expected_outcome":"complete","tags":["M"],"safety_critical":true,"synthetic":true}
+{"case_id":"MED-03","family":"medical","partition":"calibration","scenario":"Missing required field","expected_outcome":"incomplete","tags":["M"],"safety_critical":true,"synthetic":true}
+{"case_id":"MED-04","family":"medical","partition":"calibration","scenario":"Date inconsistency","expected_outcome":"incomplete","tags":["M"],"safety_critical":true,"synthetic":true}
+{"case_id":"MED-05","family":"medical","partition":"calibration","scenario":"Patient mismatch","expected_outcome":"incomplete","tags":["M"],"safety_critical":true,"synthetic":true}
+{"case_id":"MED-06","family":"medical","partition":"calibration","scenario":"OCR retry succeeds","expected_outcome":"complete","tags":["M"],"safety_critical":true,"synthetic":true}
+{"case_id":"MED-07","family":"medical","partition":"locked","scenario":"OCR retry remains low","expected_outcome":"needs_human_review","tags":["M"],"safety_critical":true,"synthetic":true}
+{"case_id":"MED-08","family":"medical","partition":"calibration","scenario":"Extraction ambiguity","expected_outcome":"needs_human_review","tags":["M"],"safety_critical":true,"synthetic":true}
+{"case_id":"MED-09","family":"medical","partition":"calibration","scenario":"Unsupported purpose","expected_outcome":"needs_human_review","tags":["M"],"safety_critical":true,"synthetic":true}
+{"case_id":"MED-10","family":"medical","partition":"locked","scenario":"Unrecognized date after retry","expected_outcome":"needs_human_review","tags":["M"],"safety_critical":true,"synthetic":true}
+{"case_id":"MED-11","family":"medical","partition":"calibration","scenario":"Does Not Apply before opening","expected_outcome":"does_not_apply","tags":["A","M"],"safety_critical":true,"synthetic":true}
+{"case_id":"MED-12","family":"medical","partition":"locked","scenario":"Clarification before opening","expected_outcome":"clarification_request","tags":["A","M"],"safety_critical":true,"synthetic":true}
+{"case_id":"MED-13","family":"medical","partition":"calibration","scenario":"Missing active requirements","expected_outcome":"needs_human_review","tags":["G","M"],"safety_critical":true,"synthetic":true}
+{"case_id":"MED-14","family":"medical","partition":"locked","scenario":"Unsafe upload","expected_outcome":"upload_rejection","tags":["M"],"safety_critical":true,"synthetic":true}
+{"case_id":"MED-15","family":"medical","partition":"calibration","scenario":"OCR operational failure","expected_outcome":"check_failure","tags":["M"],"safety_critical":true,"synthetic":true}
+{"case_id":"MED-16","family":"medical","partition":"locked","scenario":"Result lifecycle and deduplication","expected_outcome":"complete","tags":["M","D"],"safety_critical":true,"synthetic":true}

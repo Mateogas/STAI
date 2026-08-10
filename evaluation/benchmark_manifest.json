@@ -1,0 +1,11 @@
+{
+  "benchmark_version": "1.0",
+  "scorer_version": "1.0",
+  "case_count": 60,
+  "partitions": {"calibration": 40, "locked": 20},
+  "component_weights": {"G": 0.25, "R": 0.20, "A": 0.15, "D": 0.15, "M": 0.15, "X": 0.10},
+  "thresholds": {"css": 0.90, "component_minimum": 0.85, "safety_critical_failures": 0},
+  "prompt_variants": ["P1", "P2", "P3"],
+  "repetitions": 3,
+  "limitation": "Synthetic fictionalized AISHA capstone benchmark; not production or real BDO validation."
+}
