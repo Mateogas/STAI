@@ -21,6 +21,10 @@ dependencies = [
     "reportlab>=4.2",
     "pypdf>=5.0",
     "httpx>=0.27",
+    "pymupdf>=1.24",
+    "pillow>=11.0",
+    "pytesseract>=0.3.13",
+    "python-multipart>=0.0.20",
 ]
 
 [dependency-groups]

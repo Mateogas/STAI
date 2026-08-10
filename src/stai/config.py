@@ -55,6 +55,13 @@ class Settings(BaseSettings):
     nager_enabled: bool = True
     nager_timeout_seconds: float = 3.0
 
+    # --- local certificate validation ---
+    certificate_max_bytes: int = 10 * 1024 * 1024
+    certificate_max_pdf_pages: int = 3
+    certificate_max_pixels: int = 25_000_000
+    certificate_timeout_seconds: int = 30
+    certificate_ocr_confidence: float = 0.80
+
     # --- pulse check-ins ---
     pulse_cadence_days: int = 7
 
