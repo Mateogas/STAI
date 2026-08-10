@@ -62,6 +62,9 @@ class Settings(BaseSettings):
     certificate_timeout_seconds: int = 30
     certificate_ocr_confidence: float = 0.80
 
+    # Browser origins allowed to call the explicitly demo-only REST API.
+    cors_origins: list[str] = ["http://localhost:8501", "http://127.0.0.1:8501"]
+
     # --- pulse check-ins ---
     pulse_cadence_days: int = 7
 

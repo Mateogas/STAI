@@ -1,25 +1,19 @@
-"""REST API tests: FastAPI TestClient + fake LLMs; no Ollama needed."""
-
-from __future__ import annotations
-
 import json
+from datetime import date
 
 import pytest
 from fastapi.testclient import TestClient
 from langchain_core.messages import AIMessage
 
-import stai.retriever
-from stai.api import app, get_agent_llm, get_guardrail_llm, get_repo
-from stai.config import settings
-from stai.guardrails import REFUSALS
-
-from test_agent_smoke import FakeToolCallingModel, _fake_retrieve
-
-SIM = "2026-07-07"
+from stai.api import app, get_repo, get_service
+from stai.handbook import build_handbook
+from stai.retriever import load_page_records
+from stai.service import AishaService
+from stai.state import Repo
 
 
 class FakeClassifier:
-    """Stands in for the guardrail LLM: always returns one category."""
+    """Compatibility fake used by the legacy observer tests until Slice 11."""
 
     def __init__(self, category: str = "on_topic") -> None:
         self.category = category
@@ -29,153 +23,138 @@ class FakeClassifier:
 
 
 @pytest.fixture
-def client(repo, tmp_path, monkeypatch) -> TestClient:
-    monkeypatch.setattr(settings, "obs_log_path", tmp_path / "runs.jsonl")
+def client(tmp_path):
+    repo = Repo(tmp_path / "api.db", secret_path=tmp_path / "key")
+    records = load_page_records(build_handbook(tmp_path / "handbook").rag_pages_path)
+    service = AishaService(repo, records)
     app.dependency_overrides[get_repo] = lambda: repo
-    app.dependency_overrides[get_guardrail_llm] = lambda: FakeClassifier()
-    yield TestClient(app)
+    app.dependency_overrides[get_service] = lambda: service
+    with TestClient(app, raise_server_exceptions=False) as test_client:
+        yield test_client, repo
     app.dependency_overrides.clear()
 
 
-def _use_agent(fake: FakeToolCallingModel) -> None:
-    app.dependency_overrides[get_agent_llm] = lambda: fake
+def headers(key="test-key"):
+    return {"Idempotency-Key": key}
 
 
-def test_health(client):
-    body = client.get("/health").json()
-    assert body["status"] == "ok"
-    assert body["employees"] == 3
-    assert body["agent_model"] == settings.agent_model
-    assert "fictionalized" in body["disclaimer"]
+def test_only_versioned_health_endpoint_remains(client):
+    http, _ = client
+    assert http.get("/health").status_code == 404
+    assert http.post("/chat", json={}).status_code == 404
+    response = http.get("/api/v1/health")
+    assert response.status_code == 503
+    payload = response.json()
+    assert payload["data"]["status"] == "unavailable"
+    assert payload["data"]["nager"] == "unknown"
+    assert payload["meta"]["api_version"] == "v1"
 
 
-def test_cors_allows_cross_origin_requests(client):
-    resp = client.get("/health", headers={"Origin": "https://example.com"})
-    assert resp.headers["access-control-allow-origin"] == "*"
-
-
-def test_chat_unknown_employee_is_404(client):
-    resp = client.post(
-        "/chat", json={"employee_id": "emp-nobody", "message": "hi", "sim_date": SIM}
+def test_configured_cors_is_not_wildcard(client):
+    http, _ = client
+    allowed = http.options(
+        "/api/v1/health",
+        headers={"Origin": "http://localhost:8501", "Access-Control-Request-Method": "GET"},
     )
-    assert resp.status_code == 404
-
-
-def test_chat_off_topic_refusal(client):
-    app.dependency_overrides[get_guardrail_llm] = lambda: FakeClassifier("off_topic")
-    resp = client.post(
-        "/chat",
-        json={"employee_id": "emp-alyssa", "message": "capital of France?", "sim_date": SIM},
+    assert allowed.headers["access-control-allow-origin"] == "http://localhost:8501"
+    denied = http.options(
+        "/api/v1/health",
+        headers={"Origin": "https://evil.example", "Access-Control-Request-Method": "GET"},
     )
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["answer"] == REFUSALS["off_topic"]
-    assert body["guardrail_category"] == "off_topic"
-    assert body["refused"] is True
-    assert body["sources"] == [] and body["citations"] == []
+    assert "access-control-allow-origin" not in denied.headers
 
 
-def test_chat_kb_answer_with_citation(client, monkeypatch):
-    monkeypatch.setattr(stai.retriever, "retrieve", _fake_retrieve)
-    _use_agent(
-        FakeToolCallingModel(
-            responses=[
-                AIMessage(
-                    content="",
-                    tool_calls=[
-                        {
-                            "name": "search_knowledge_base",
-                            "args": {"query": "leave requests"},
-                            "id": "call_1",
-                        }
-                    ],
-                ),
-                AIMessage(content="File leave in the demo HR portal [source: leave_policy.md]."),
-            ]
-        )
+def test_conversation_create_replay_and_server_owned_history(client):
+    http, _ = client
+    created = http.post(
+        "/api/v1/hires/emp-alyssa/conversations",
+        headers=headers(),
+        json={"simulated_date": "2026-08-10"},
     )
-    resp = client.post(
-        "/chat",
-        json={"employee_id": "emp-alyssa", "message": "How do I file leave?", "sim_date": SIM},
+    assert created.status_code == 201
+    conversation = created.json()["data"]
+    replay = http.post(
+        "/api/v1/hires/emp-alyssa/conversations",
+        headers=headers(),
+        json={"simulated_date": "2026-08-10"},
     )
-    assert resp.status_code == 200
-    body = resp.json()
-    assert "[source: leave_policy.md]" in body["answer"]
-    assert body["citations"] == ["leave_policy.md"]
-    assert body["sources"][0]["source"] == "leave_policy.md"
-    assert body["guardrail_category"] == "on_topic"
-    assert body["refused"] is False
+    assert replay.status_code == 201 and replay.json()["data"]["id"] == conversation["id"]
+    conflict = http.post(
+        "/api/v1/hires/emp-alyssa/conversations",
+        headers=headers(),
+        json={"simulated_date": "2026-08-11"},
+    )
+    assert conflict.status_code == 409
+
+    turn = http.post(
+        f"/api/v1/hires/emp-alyssa/conversations/{conversation['id']}/messages",
+        headers=headers("turn-1"),
+        json={"message": "What does PAY-001 say?"},
+    )
+    assert turn.status_code == 200
+    assert turn.json()["data"]["type"] == "grounded_answer"
+    history = http.get(
+        f"/api/v1/hires/emp-alyssa/conversations/{conversation['id']}/messages"
+    ).json()["data"]
+    assert [item["role"] for item in history["items"]] == ["hire", "aisha"]
+    assert "history" not in turn.request.content.decode().lower()
 
 
-def test_chat_escalation_returns_ticket_id(client, repo):
-    _use_agent(
-        FakeToolCallingModel(
-            responses=[
-                AIMessage(
-                    content="",
-                    tool_calls=[
-                        {
-                            "name": "escalate_to_hr",
-                            "args": {"question": "Reset my training sandbox?"},
-                            "id": "call_1",
-                        }
-                    ],
-                ),
-                AIMessage(content="I've filed a ticket with People Experience."),
-            ]
-        )
+def test_unknown_hire_and_medical_chat_use_safe_errors(client):
+    http, _ = client
+    unknown = http.post(
+        "/api/v1/hires/emp-unknown/conversations",
+        headers=headers(),
+        json={"simulated_date": "2026-08-10"},
     )
-    resp = client.post(
-        "/chat",
-        json={"employee_id": "emp-alyssa", "message": "sandbox is broken", "sim_date": SIM},
+    assert unknown.status_code == 404
+    assert unknown.json()["error"]["code"] == "hire_not_found"
+    created = http.post(
+        "/api/v1/hires/emp-alyssa/conversations",
+        headers=headers("c2"), json={"simulated_date": "2026-08-10"},
+    ).json()["data"]
+    blocked = http.post(
+        f"/api/v1/hires/emp-alyssa/conversations/{created['id']}/messages",
+        headers=headers("medical-chat"),
+        json={"message": "Here is my medical certificate diagnosis"},
     )
-    body = resp.json()
-    assert body["escalation_id"] is not None
-    assert repo.list_escalations(status="open")[0].id == body["escalation_id"]
+    assert blocked.status_code == 422
+    assert blocked.json()["error"]["code"] == "medical_content_requires_certificate_check"
 
 
-def test_chat_complete_task_reports_plan_changed(client, repo):
-    _use_agent(
-        FakeToolCallingModel(
-            responses=[
-                AIMessage(
-                    content="",
-                    tool_calls=[
-                        {
-                            "name": "complete_task",
-                            "args": {"task": "laptop"},
-                            "id": "call_1",
-                        }
-                    ],
-                ),
-                AIMessage(content="Done - laptop pickup is checked off."),
-            ]
-        )
+def test_escalation_offer_to_consent_case(client):
+    http, _ = client
+    conversation = http.post(
+        "/api/v1/hires/emp-alyssa/conversations", headers=headers("c3"),
+        json={"simulated_date": "2026-08-10"},
+    ).json()["data"]
+    offer = http.post(
+        f"/api/v1/hires/emp-alyssa/conversations/{conversation['id']}/messages",
+        headers=headers("offer"), json={"message": "Please connect me with a human about PAY-001"},
+    ).json()["data"]
+    assert offer["type"] == "escalation_offer"
+    consent = http.post(
+        f"/api/v1/hires/emp-alyssa/escalation-offers/{offer['offer_id']}/consent",
+        headers=headers("consent"), json={"expected_version": 1},
     )
-    resp = client.post(
-        "/chat",
-        json={"employee_id": "emp-alyssa", "message": "mark laptop pickup done", "sim_date": SIM},
-    )
-    assert resp.json()["plan_changed"] is True
-    done, _total = repo.progress("emp-alyssa")
-    assert done == 1
+    assert consent.status_code == 201
+    assert consent.json()["data"]["status"] == "open"
 
 
-def test_chat_persists_turns_and_reuses_history(client, repo):
-    _use_agent(FakeToolCallingModel(responses=[AIMessage(content="Happy to help, Alyssa!")]))
-    client.post(
-        "/chat",
-        json={"employee_id": "emp-alyssa", "message": "hello there", "sim_date": SIM},
+def test_attribute_request_hr_approval_uses_versions(client):
+    http, _ = client
+    request = http.post(
+        "/api/v1/hires/emp-alyssa/attribute-change-requests",
+        headers=headers("attr"),
+        json={"attribute_name": "work_site", "proposed_value": "remote", "consent": True},
     )
-    stored = repo.list_chat_messages("emp-alyssa")
-    assert [m.role for m in stored] == ["user", "assistant"]
-    assert stored[0].content == "hello there"
-    assert stored[1].content == "Happy to help, Alyssa!"
-
-    # Second call without history: the persisted turns become the context.
-    _use_agent(FakeToolCallingModel(responses=[AIMessage(content="Still here!")]))
-    client.post(
-        "/chat",
-        json={"employee_id": "emp-alyssa", "message": "are you there?", "sim_date": SIM},
+    assert request.status_code == 201
+    item = request.json()["data"]
+    approved = http.post(
+        f"/api/v1/hr/attribute-change-requests/{item['request_id']}/approve",
+        headers=headers("approve"),
+        json={"expected_version": 1, "expected_profile_revision": 1, "hr_user": "hr-demo"},
     )
-    assert len(repo.list_chat_messages("emp-alyssa")) == 4
+    assert approved.status_code == 200
+    profile = http.get("/api/v1/hires/emp-alyssa/profile").json()["data"]
+    assert profile["work_site"] == "remote" and profile["revision"] == 2

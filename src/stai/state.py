@@ -11,6 +11,8 @@ Design notes:
 from __future__ import annotations
 
 import fcntl
+import hashlib
+import hmac
 import json
 import os
 import sqlite3
@@ -40,6 +42,10 @@ MIGRATION_PATH = Path(__file__).with_name("migrations") / "0002_policy_domain.sq
 
 class MedicalContentRejected(ValueError):
     """Raised before certificate or medical content can enter chat persistence."""
+
+
+class IdempotencyConflict(ValueError):
+    pass
 
 
 def _utc_now() -> datetime:
@@ -390,6 +396,33 @@ class Repo:
                 raise ValueError("stale resource version")
             conn.execute("DELETE FROM validation_results WHERE validation_id=?", (validation_id,))
         return True
+
+    def check_idempotency(self, scope: str, key: str, canonical_request: str) -> dict | None:
+        root = self.ensure_installation_key()
+        key_digest = hmac.new(root, f"idempotency-key:{key}".encode(), hashlib.sha256).hexdigest()
+        request_digest = hmac.new(root, f"idempotency-request:{canonical_request}".encode(), hashlib.sha256).hexdigest()
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM idempotency_records WHERE operation_scope=? AND key_digest=?", (scope, key_digest)).fetchone()
+        if not row:
+            return None
+        if row["request_digest"] != request_digest:
+            raise IdempotencyConflict("idempotency key reused with different input")
+        return dict(row)
+
+    def save_idempotency(
+        self, scope: str, key: str, canonical_request: str, *,
+        target_type: str, target_id: str, target_version: int | None,
+        http_status: int, outcome_code: str,
+    ) -> None:
+        root = self.ensure_installation_key()
+        key_digest = hmac.new(root, f"idempotency-key:{key}".encode(), hashlib.sha256).hexdigest()
+        request_digest = hmac.new(root, f"idempotency-request:{canonical_request}".encode(), hashlib.sha256).hexdigest()
+        now = _utc_now()
+        with self._connect() as conn:
+            conn.execute(
+                "INSERT INTO idempotency_records VALUES (?,?,?,?,?,?,?,?,?,?)",
+                (scope, key_digest, request_digest, target_type, target_id, target_version, http_status, outcome_code, _utc_text(now), _utc_text(now + timedelta(hours=24))),
+            )
 
     def register_retrieval_build(self, build_id: str, handbook_version: str, manifest_identity: str, collection_name: str, *, verified: bool) -> None:
         now = _utc_text()
