@@ -1,0 +1,1644 @@
+schema_version: 1
+handbook_version: '1.0'
+active: true
+pages:
+- page_key: front-01
+  section: front
+  kind: directory
+  title: Welcome and educational boundary
+  body: AISHA is a fictional educational capstone prototype and is not affiliated
+    with, endorsed by, or representative of BDO Unibank.
+- page_key: front-02
+  section: front
+  kind: directory
+  title: How to use this handbook
+  body: Use stable policy IDs, handbook version, and page together. Current guidance
+    comes only from the explicitly active immutable edition.
+- page_key: front-03
+  section: front
+  kind: directory
+  title: Three-topic scope
+  body: The closed onboarding topics are Payroll, Resource Access, and HR Policies.
+    Unsupported topics abstain and route to a human.
+- page_key: front-04
+  section: front
+  kind: directory
+  title: Hire attributes
+  body: Applicability uses only role, department, employment classification, and work
+    site from the HR-confirmed Hire Profile.
+- page_key: front-05
+  section: front
+  kind: directory
+  title: Evidence and citations
+  body: Every material policy claim requires claim-local support from an active authoritative
+    applicable page.
+- page_key: front-06
+  section: front
+  kind: directory
+  title: Privacy and human support
+  body: AISHA is support, not surveillance. HR receives consented structured records
+    rather than raw private conversations.
+- page_key: pay-001-01
+  section: payroll
+  kind: policy
+  policy_id: PAY-001
+  policy_revision: '1'
+  topic: payroll
+  subareas: &id001
+  - pay_schedule
+  title: First-pay schedule - 1
+  body: Payroll enrolls an eligible new Hire after the required onboarding payroll
+    details are recorded through the fictional HR route.
+  applicability: &id002
+    role_keys: &id003
+    - all
+    department_keys: &id004
+    - all
+    employment_classifications:
+    - probationary
+    - regular
+    - fixed_term
+    work_sites: &id005
+    - all
+  route: payroll_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - policy
+- page_key: pay-001-02
+  section: payroll
+  kind: procedure
+  policy_id: PAY-001
+  policy_revision: '1'
+  topic: payroll
+  subareas: *id001
+  title: First-pay schedule - 2
+  body: The first-pay timing follows the published semi-monthly schedule and may move
+    when a public holiday affects the processing calendar.
+  applicability: *id002
+  route: payroll_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: pay-001-03
+  section: payroll
+  kind: procedure
+  policy_id: PAY-001
+  policy_revision: '1'
+  topic: payroll
+  subareas: *id001
+  title: First-pay schedule - 3
+  body: Alyssa should review the displayed pay-period boundary and ask Payroll Support
+    when a start date falls near a cutoff.
+  applicability: *id002
+  route: payroll_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: pay-001-04
+  section: payroll
+  kind: procedure
+  policy_id: PAY-001
+  policy_revision: '1'
+  topic: payroll
+  subareas: *id001
+  title: First-pay schedule - 4
+  body: A public-holiday date may come from the approved calendar tool, but any employment
+    consequence remains governed by this policy.
+  applicability: *id002
+  route: payroll_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: pay-001-05
+  section: payroll
+  kind: procedure
+  policy_id: PAY-001
+  policy_revision: '1'
+  topic: payroll
+  subareas: *id001
+  title: First-pay schedule - 5
+  body: AISHA guides and explains; it cannot change payroll enrollment, bank details,
+    deductions, or payment status.
+  applicability: *id002
+  route: payroll_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: pay-002-01
+  section: payroll
+  kind: policy
+  policy_id: PAY-002
+  policy_revision: '1'
+  topic: payroll
+  subareas: &id006
+  - payslip
+  title: Payslip access and explanation - 1
+  body: Payslips are available through the fictional employee self-service portal
+    after payroll publishes the period.
+  applicability: &id007
+    role_keys: *id003
+    department_keys: *id004
+    employment_classifications: &id016
+    - all
+    work_sites: *id005
+  route: payroll_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - policy
+- page_key: pay-002-02
+  section: payroll
+  kind: procedure
+  policy_id: PAY-002
+  policy_revision: '1'
+  topic: payroll
+  subareas: *id006
+  title: Payslip access and explanation - 2
+  body: A payslip explanation may define gross pay, deductions, and net pay without
+    asserting that any displayed amount is correct.
+  applicability: *id007
+  route: payroll_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: pay-002-03
+  section: payroll
+  kind: procedure
+  policy_id: PAY-002
+  policy_revision: '1'
+  topic: payroll
+  subareas: *id006
+  title: Payslip access and explanation - 3
+  body: Resource-access problems are routed to Access Support while questions about
+    figures are routed to Payroll Support.
+  applicability: *id007
+  route: payroll_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: pay-002-04
+  section: payroll
+  kind: procedure
+  policy_id: PAY-002
+  policy_revision: '1'
+  topic: payroll
+  subareas: *id006
+  title: Payslip access and explanation - 4
+  body: AISHA never requests or stores bank account numbers, government identifiers,
+    or a copy of a real payslip.
+  applicability: *id007
+  route: payroll_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: pay-003-01
+  section: payroll
+  kind: policy
+  policy_id: PAY-003
+  policy_revision: '1'
+  topic: payroll
+  subareas: &id008
+  - payroll_changes
+  title: Payroll details and corrections - 1
+  body: Payroll detail changes must use the fictional official payroll route and are
+    never performed inside AISHA.
+  applicability: *id007
+  route: payroll_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - policy
+- page_key: pay-003-02
+  section: payroll
+  kind: procedure
+  policy_id: PAY-003
+  policy_revision: '1'
+  topic: payroll
+  subareas: *id008
+  title: Payroll details and corrections - 2
+  body: A Hire should report a suspected error using only the minimum safe summary
+    needed to identify the pay period and issue category.
+  applicability: *id007
+  route: payroll_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: pay-003-03
+  section: payroll
+  kind: procedure
+  policy_id: PAY-003
+  policy_revision: '1'
+  topic: payroll
+  subareas: *id008
+  title: Payroll details and corrections - 3
+  body: AISHA does not ask for full bank details or government identifiers and does
+    not retain financial documents.
+  applicability: *id007
+  route: payroll_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: pay-003-04
+  section: payroll
+  kind: procedure
+  policy_id: PAY-003
+  policy_revision: '1'
+  topic: payroll
+  subareas: *id008
+  title: Payroll details and corrections - 4
+  body: Payroll Support confirms any correction; AISHA cannot promise a correction
+    date or outcome.
+  applicability: *id007
+  route: payroll_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: pay-004-01
+  section: payroll
+  kind: policy
+  policy_id: PAY-004
+  policy_revision: '1'
+  topic: payroll
+  subareas: &id009
+  - deductions
+  title: Deductions and statutory items - 1
+  body: AISHA may explain the fictional handbook labels for common deduction categories
+    at a high level.
+  applicability: *id007
+  route: payroll_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - policy
+- page_key: pay-004-02
+  section: payroll
+  kind: procedure
+  policy_id: PAY-004
+  policy_revision: '1'
+  topic: payroll
+  subareas: *id009
+  title: Deductions and statutory items - 2
+  body: It must not calculate tax, legal entitlement, or a personalized statutory
+    obligation.
+  applicability: *id007
+  route: payroll_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: pay-004-03
+  section: payroll
+  kind: procedure
+  policy_id: PAY-004
+  policy_revision: '1'
+  topic: payroll
+  subareas: *id009
+  title: Deductions and statutory items - 3
+  body: Questions requiring account-specific figures are routed to Payroll Support
+    with Hire consent.
+  applicability: *id007
+  route: payroll_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: pay-004-04
+  section: payroll
+  kind: procedure
+  policy_id: PAY-004
+  policy_revision: '1'
+  topic: payroll
+  subareas: *id009
+  title: Deductions and statutory items - 4
+  body: A grounded answer distinguishes handbook explanation from the Hire-provided
+    values in the question.
+  applicability: *id007
+  route: payroll_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: pay-005-01
+  section: payroll
+  kind: policy
+  policy_id: PAY-005
+  policy_revision: '1'
+  topic: payroll
+  subareas: &id010
+  - holiday_calendar
+  title: Holiday calendar context - 1
+  body: Philippine public-holiday names and dates may be obtained from the approved
+    read-only calendar provider.
+  applicability: *id007
+  route: payroll_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - policy
+- page_key: pay-005-02
+  section: payroll
+  kind: procedure
+  policy_id: PAY-005
+  policy_revision: '1'
+  topic: payroll
+  subareas: *id010
+  title: Holiday calendar context - 2
+  body: Holiday pay, office closure, eligibility, and reporting consequences require
+    separate active handbook support.
+  applicability: *id007
+  route: payroll_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: pay-005-03
+  section: payroll
+  kind: procedure
+  policy_id: PAY-005
+  policy_revision: '1'
+  topic: payroll
+  subareas: *id010
+  title: Holiday calendar context - 3
+  body: If the provider and active handbook disagree, AISHA makes no date-dependent
+    conclusion and offers HR escalation.
+  applicability: *id007
+  route: payroll_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: pay-005-04
+  section: payroll
+  kind: procedure
+  policy_id: PAY-005
+  policy_revision: '1'
+  topic: payroll
+  subareas: *id010
+  title: Holiday calendar context - 4
+  body: When calendar evidence is unavailable, AISHA uses an explicit cited handbook
+    date or requests human review.
+  applicability: *id007
+  route: payroll_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: pay-006-01
+  section: payroll
+  kind: policy
+  policy_id: PAY-006
+  policy_revision: '1'
+  topic: payroll
+  subareas: &id011
+  - payroll_changes
+  title: Regular-employee payroll-change cutoff - 1
+  body: This cutoff applies only to a Hire whose confirmed Employment Classification
+    is regular.
+  applicability: &id012
+    role_keys: *id003
+    department_keys: *id004
+    employment_classifications:
+    - regular
+    work_sites: *id005
+  route: payroll_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - policy
+- page_key: pay-006-02
+  section: payroll
+  kind: procedure
+  policy_id: PAY-006
+  policy_revision: '1'
+  topic: payroll
+  subareas: *id011
+  title: Regular-employee payroll-change cutoff - 2
+  body: A probationary or fixed-term Hire receives a cited non-applicability explanation
+    rather than the regular procedure.
+  applicability: *id012
+  route: payroll_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: pay-006-03
+  section: payroll
+  kind: procedure
+  policy_id: PAY-006
+  policy_revision: '1'
+  topic: payroll
+  subareas: *id011
+  title: Regular-employee payroll-change cutoff - 3
+  body: A statement that classification may have changed is provisional until HR confirms
+    an Attribute Change Request.
+  applicability: *id012
+  route: payroll_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: pay-006-04
+  section: payroll
+  kind: procedure
+  policy_id: PAY-006
+  policy_revision: '1'
+  topic: payroll
+  subareas: *id011
+  title: Regular-employee payroll-change cutoff - 4
+  body: While confirmation is pending, AISHA may explain conditional outcomes but
+    cannot personalize the regular cutoff.
+  applicability: *id012
+  route: payroll_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: pay-006-05
+  section: payroll
+  kind: procedure
+  policy_id: PAY-006
+  policy_revision: '1'
+  topic: payroll
+  subareas: *id011
+  title: Regular-employee payroll-change cutoff - 5
+  body: Payroll Support is the policy route; HR remains the fallback for a disputed
+    Employment Classification.
+  applicability: *id012
+  route: payroll_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: acc-001-01
+  section: resource_access
+  kind: policy
+  policy_id: ACC-001
+  policy_revision: '1'
+  topic: resource_access
+  subareas: &id013
+  - training_access
+  title: Branch training-sandbox access - 1
+  body: The training sandbox applies to confirmed branch banking associates in Branch
+    Banking at a branch work site.
+  applicability: &id014
+    role_keys:
+    - branch_banking_associate
+    department_keys:
+    - branch_banking
+    employment_classifications:
+    - all
+    work_sites:
+    - branch
+  route: access_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - policy
+- page_key: acc-001-02
+  section: resource_access
+  kind: procedure
+  policy_id: ACC-001
+  policy_revision: '1'
+  topic: resource_access
+  subareas: *id013
+  title: Branch training-sandbox access - 2
+  body: Access guidance identifies the fictional request route and prerequisites but
+    does not provision or confirm access.
+  applicability: *id014
+  route: access_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: acc-001-03
+  section: resource_access
+  kind: procedure
+  policy_id: ACC-001
+  policy_revision: '1'
+  topic: resource_access
+  subareas: *id013
+  title: Branch training-sandbox access - 3
+  body: Alyssa may use the sandbox only for the educational workflow described in
+    this fictional handbook.
+  applicability: *id014
+  route: access_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: acc-001-04
+  section: resource_access
+  kind: procedure
+  policy_id: ACC-001
+  policy_revision: '1'
+  topic: resource_access
+  subareas: *id013
+  title: Branch training-sandbox access - 4
+  body: A missing prerequisite is explained with its owner; AISHA cannot bypass approval
+    or security controls.
+  applicability: *id014
+  route: access_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: acc-001-05
+  section: resource_access
+  kind: procedure
+  policy_id: ACC-001
+  policy_revision: '1'
+  topic: resource_access
+  subareas: *id013
+  title: Branch training-sandbox access - 5
+  body: Access Support handles unresolved setup while the branch manager remains a
+    human contact, not an app role.
+  applicability: *id014
+  route: access_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: acc-002-01
+  section: resource_access
+  kind: policy
+  policy_id: ACC-002
+  policy_revision: '1'
+  topic: resource_access
+  subareas: &id015
+  - employee_portal
+  title: Employee self-service access - 1
+  body: The fictional self-service account is the route for handbook-listed onboarding
+    records and payslip access.
+  applicability: *id007
+  route: access_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - policy
+- page_key: acc-002-02
+  section: resource_access
+  kind: procedure
+  policy_id: ACC-002
+  policy_revision: '1'
+  topic: resource_access
+  subareas: *id015
+  title: Employee self-service access - 2
+  body: AISHA can describe sign-in recovery steps but cannot see credentials, reset
+    passwords, or confirm account state.
+  applicability: *id007
+  route: access_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: acc-002-03
+  section: resource_access
+  kind: procedure
+  policy_id: ACC-002
+  policy_revision: '1'
+  topic: resource_access
+  subareas: *id015
+  title: Employee self-service access - 3
+  body: A Hire should never paste a password, one-time code, or recovery answer into
+    AISHA.
+  applicability: *id007
+  route: access_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: acc-002-04
+  section: resource_access
+  kind: procedure
+  policy_id: ACC-002
+  policy_revision: '1'
+  topic: resource_access
+  subareas: *id015
+  title: Employee self-service access - 4
+  body: Repeated sign-in failure is routed to Access Support using a concise non-secret
+    summary.
+  applicability: *id007
+  route: access_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: acc-002-05
+  section: resource_access
+  kind: procedure
+  policy_id: ACC-002
+  policy_revision: '1'
+  topic: resource_access
+  subareas: *id015
+  title: Employee self-service access - 5
+  body: The account remains a Company Resource governed by security and acceptable-use
+    requirements.
+  applicability: *id007
+  route: access_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: acc-003-01
+  section: resource_access
+  kind: policy
+  policy_id: ACC-003
+  policy_revision: '1'
+  topic: resource_access
+  subareas: &id017
+  - devices
+  title: Branch device setup - 1
+  body: Branch device setup follows the fictional asset handoff and local sign-in
+    guidance.
+  applicability: &id018
+    role_keys: *id003
+    department_keys: *id004
+    employment_classifications: *id016
+    work_sites:
+    - branch
+  route: access_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - policy
+- page_key: acc-003-02
+  section: resource_access
+  kind: procedure
+  policy_id: ACC-003
+  policy_revision: '1'
+  topic: resource_access
+  subareas: *id017
+  title: Branch device setup - 2
+  body: AISHA may identify the owner and ordered setup steps but cannot inventory,
+    unlock, or manage a device.
+  applicability: *id018
+  route: access_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: acc-003-03
+  section: resource_access
+  kind: procedure
+  policy_id: ACC-003
+  policy_revision: '1'
+  topic: resource_access
+  subareas: *id017
+  title: Branch device setup - 3
+  body: Device serial numbers and authentication secrets are not needed in ordinary
+    Dialogue history.
+  applicability: *id018
+  route: access_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: acc-003-04
+  section: resource_access
+  kind: procedure
+  policy_id: ACC-003
+  policy_revision: '1'
+  topic: resource_access
+  subareas: *id017
+  title: Branch device setup - 4
+  body: Lost or damaged equipment requires immediate use of the official human reporting
+    route.
+  applicability: *id018
+  route: access_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: acc-003-05
+  section: resource_access
+  kind: procedure
+  policy_id: ACC-003
+  policy_revision: '1'
+  topic: resource_access
+  subareas: *id017
+  title: Branch device setup - 5
+  body: Security controls are never weakened to complete onboarding more quickly.
+  applicability: *id018
+  route: access_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: acc-004-01
+  section: resource_access
+  kind: policy
+  policy_id: ACC-004
+  policy_revision: '1'
+  topic: resource_access
+  subareas: &id019
+  - information_security
+  title: Information security access - 1
+  body: Access is least-privilege and tied to the confirmed role, department, classification,
+    and work site.
+  applicability: *id007
+  route: access_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - policy
+- page_key: acc-004-02
+  section: resource_access
+  kind: procedure
+  policy_id: ACC-004
+  policy_revision: '1'
+  topic: resource_access
+  subareas: *id019
+  title: Information security access - 2
+  body: AISHA does not infer entitlement from semantic similarity or from another
+    Hire's access.
+  applicability: *id007
+  route: access_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: acc-004-03
+  section: resource_access
+  kind: procedure
+  policy_id: ACC-004
+  policy_revision: '1'
+  topic: resource_access
+  subareas: *id019
+  title: Information security access - 3
+  body: Requests for credentials, bypasses, or confidential data are refused and routed
+    safely.
+  applicability: *id007
+  route: access_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: acc-004-04
+  section: resource_access
+  kind: procedure
+  policy_id: ACC-004
+  policy_revision: '1'
+  topic: resource_access
+  subareas: *id019
+  title: Information security access - 4
+  body: Procedure pages explain subordinate steps and never establish a new entitlement.
+  applicability: *id007
+  route: access_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: acc-004-05
+  section: resource_access
+  kind: procedure
+  policy_id: ACC-004
+  policy_revision: '1'
+  topic: resource_access
+  subareas: *id019
+  title: Information security access - 5
+  body: Only the fictional system owner can confirm completion of an access request.
+  applicability: *id007
+  route: access_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: acc-005-01
+  section: resource_access
+  kind: policy
+  policy_id: ACC-005
+  policy_revision: '1'
+  topic: resource_access
+  subareas: &id020
+  - facility_access
+  title: Facility and branch entry - 1
+  body: Facility entry guidance applies to the confirmed Work Site and does not establish
+    real physical access.
+  applicability: *id007
+  route: branch_operations
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - policy
+- page_key: acc-005-02
+  section: resource_access
+  kind: procedure
+  policy_id: ACC-005
+  policy_revision: '1'
+  topic: resource_access
+  subareas: *id020
+  title: Facility and branch entry - 2
+  body: AISHA may explain where the fictional branch contact appears in the directory.
+  applicability: *id007
+  route: branch_operations
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: acc-005-03
+  section: resource_access
+  kind: procedure
+  policy_id: ACC-005
+  policy_revision: '1'
+  topic: resource_access
+  subareas: *id020
+  title: Facility and branch entry - 3
+  body: A temporary visit does not change the confirmed Work Site used for future
+    applicability.
+  applicability: *id007
+  route: branch_operations
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: acc-005-04
+  section: resource_access
+  kind: procedure
+  policy_id: ACC-005
+  policy_revision: '1'
+  topic: resource_access
+  subareas: *id020
+  title: Facility and branch entry - 4
+  body: A lost badge or unsafe situation is routed immediately without exposing identifying
+    details.
+  applicability: *id007
+  route: branch_operations
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: acc-005-05
+  section: resource_access
+  kind: procedure
+  policy_id: ACC-005
+  policy_revision: '1'
+  topic: resource_access
+  subareas: *id020
+  title: Facility and branch entry - 5
+  body: The educational demo never connects to a building access-control system.
+  applicability: *id007
+  route: branch_operations
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: acc-006-01
+  section: resource_access
+  kind: policy
+  policy_id: ACC-006
+  policy_revision: '1'
+  topic: resource_access
+  subareas: &id021
+  - remote_access
+  title: Remote-access kit - 1
+  body: The remote-access kit applies only when Remote is the Hire's HR-confirmed
+    Work Site.
+  applicability: &id022
+    role_keys: *id003
+    department_keys: *id004
+    employment_classifications: *id016
+    work_sites:
+    - remote
+  route: access_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - policy
+- page_key: acc-006-02
+  section: resource_access
+  kind: procedure
+  policy_id: ACC-006
+  policy_revision: '1'
+  topic: resource_access
+  subareas: *id021
+  title: Remote-access kit - 2
+  body: A temporary work-from-home day does not by itself establish eligibility.
+  applicability: *id022
+  route: access_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: acc-006-03
+  section: resource_access
+  kind: procedure
+  policy_id: ACC-006
+  policy_revision: '1'
+  topic: resource_access
+  subareas: *id021
+  title: Remote-access kit - 3
+  body: When the assigned Work Site is unclear, AISHA asks one focused question before
+    providing personalized guidance.
+  applicability: *id022
+  route: access_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: acc-006-04
+  section: resource_access
+  kind: procedure
+  policy_id: ACC-006
+  policy_revision: '1'
+  topic: resource_access
+  subareas: *id021
+  title: Remote-access kit - 4
+  body: An Attribute Change Request requires explicit Hire consent and HR approval.
+  applicability: *id022
+  route: access_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: acc-006-05
+  section: resource_access
+  kind: procedure
+  policy_id: ACC-006
+  policy_revision: '1'
+  topic: resource_access
+  subareas: *id021
+  title: Remote-access kit - 5
+  body: AISHA never provisions a kit, VPN, account, device, or other Company Resource.
+  applicability: *id022
+  route: access_support
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-001-01
+  section: hr_policies
+  kind: policy
+  policy_id: HRP-001
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: &id023
+  - attendance
+  - office_hours
+  title: Branch attendance and office hours - 1
+  body: This branch attendance guidance applies only to a Hire with Branch as the
+    confirmed Work Site.
+  applicability: &id024
+    role_keys: *id003
+    department_keys: *id004
+    employment_classifications: *id016
+    work_sites:
+    - branch
+  route: hr_general
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - policy
+- page_key: hrp-001-02
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-001
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id023
+  title: Branch attendance and office hours - 2
+  body: A temporary Head Office visit does not automatically update the Hire Profile.
+  applicability: *id024
+  route: hr_general
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-001-03
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-001
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id023
+  title: Branch attendance and office hours - 3
+  body: Questions about a possible permanent move require one focused clarification
+    and optional Attribute Change Request.
+  applicability: *id024
+  route: hr_general
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-001-04
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-001
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id023
+  title: Branch attendance and office hours - 4
+  body: AISHA explains reporting steps but cannot approve leave, attendance corrections,
+    or schedule changes.
+  applicability: *id024
+  route: hr_general
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-001-05
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-001
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id023
+  title: Branch attendance and office hours - 5
+  body: Attendance support is framed as humane onboarding help rather than surveillance
+    or performance scoring.
+  applicability: *id024
+  route: hr_general
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-002-01
+  section: hr_policies
+  kind: policy
+  policy_id: HRP-002
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: &id025
+  - leave
+  title: Leave guidance - 1
+  body: AISHA provides guide-plus-validate support and does not approve or deny leave.
+  applicability: *id007
+  route: hr_leave
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - policy
+- page_key: hrp-002-02
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-002
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id025
+  title: Leave guidance - 2
+  body: Leave types and required steps must be supported by active policy evidence
+    before a conclusion.
+  applicability: *id007
+  route: hr_leave
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-002-03
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-002
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id025
+  title: Leave guidance - 3
+  body: The Hire uses the separate fictional official route for a leave request or
+    original document submission.
+  applicability: *id007
+  route: hr_leave
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-002-04
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-002
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id025
+  title: Leave guidance - 4
+  body: A private conversation is not an official filing and is not visible to HR
+    by default.
+  applicability: *id007
+  route: hr_leave
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-002-05
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-002
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id025
+  title: Leave guidance - 5
+  body: Unsupported eligibility questions abstain and offer the active HR route.
+  applicability: *id007
+  route: hr_leave
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-003-01
+  section: hr_policies
+  kind: policy
+  policy_id: HRP-003
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: &id026
+  - conduct
+  title: Workplace conduct and support - 1
+  body: The fictional conduct policy promotes respectful, safe, and inclusive workplace
+    behavior.
+  applicability: *id007
+  route: hr_general
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - policy
+- page_key: hrp-003-02
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-003
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id026
+  title: Workplace conduct and support - 2
+  body: AISHA can identify support routes but is not an emergency service, investigator,
+    or disciplinary system.
+  applicability: *id007
+  route: hr_general
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-003-03
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-003
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id026
+  title: Workplace conduct and support - 3
+  body: Private chat transcripts are not shown to HR by default.
+  applicability: *id007
+  route: hr_general
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-003-04
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-003
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id026
+  title: Workplace conduct and support - 4
+  body: A case summary must be displayed and explicitly approved before a consented
+    escalation is created.
+  applicability: *id007
+  route: hr_general
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-003-05
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-003
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id026
+  title: Workplace conduct and support - 5
+  body: Immediate safety concerns are redirected to appropriate local emergency and
+    human channels.
+  applicability: *id007
+  route: hr_general
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-004-01
+  section: hr_policies
+  kind: policy
+  policy_id: HRP-004
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: &id027
+  - medical_certificate
+  - leave
+  title: Medical certificate completeness requirements - 1
+  body: The local check requires patient full name, consultation date, issue date,
+    absence start, and an end date or positive whole-day duration.
+  applicability: *id007
+  route: hr_leave
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - policy
+- page_key: hrp-004-02
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-004
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id027
+  title: Medical certificate completeness requirements - 2
+  body: It also requires clinician full name, facility name, professional license
+    or registration number presence, signature indication, and an explicit rest recommendation.
+  applicability: *id007
+  route: hr_leave
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-004-03
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-004
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id027
+  title: Medical certificate completeness requirements - 3
+  body: Dates use month-day-four-digit-year and are checked only for deterministic
+    calendar and ordering consistency.
+  applicability: *id007
+  route: hr_leave
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-004-04
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-004
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id027
+  title: Medical certificate completeness requirements - 4
+  body: The patient first and last name must match the Hire Profile after conservative
+    normalization; AISHA never guesses identity.
+  applicability: *id007
+  route: hr_leave
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-004-05
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-004
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id027
+  title: Medical certificate completeness requirements - 5
+  body: Every OCR-derived required field must be unambiguous at or above the configured
+    threshold, with exactly one clearer-copy retry.
+  applicability: *id007
+  route: hr_leave
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-004-06
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-004
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id027
+  title: Medical certificate completeness requirements - 6
+  body: The check never authenticates a document, verifies a clinician, assesses a
+    diagnosis, or approves leave.
+  applicability: *id007
+  route: hr_leave
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-004-07
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-004
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id027
+  title: Medical certificate completeness requirements - 7
+  body: Certificate bytes and extracted content are discarded; only closed result
+    codes, citations, timing, and an installation-local fingerprint may remain.
+  applicability: *id007
+  route: hr_leave
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-004-08
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-004
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id027
+  title: Medical certificate completeness requirements - 8
+  body: The original certificate must still use the separate Official HR Document
+    Route; result sharing with HR requires explicit consent.
+  applicability: *id007
+  route: hr_leave
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-005-01
+  section: hr_policies
+  kind: policy
+  policy_id: HRP-005
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: &id028
+  - privacy
+  title: Privacy and consent - 1
+  body: AISHA gives HR enough structured signal to offer support, not private conversation
+    content for surveillance.
+  applicability: *id007
+  route: hr_privacy
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - policy
+- page_key: hrp-005-02
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-005
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id028
+  title: Privacy and consent - 2
+  body: Escalation cases, attribute requests, and result sharing each require their
+    own explicit consent action.
+  applicability: *id007
+  route: hr_privacy
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-005-03
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-005
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id028
+  title: Privacy and consent - 3
+  body: Medical documents, OCR text, diagnoses, filenames, and extracted values never
+    enter ordinary chat or telemetry.
+  applicability: *id007
+  route: hr_privacy
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-005-04
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-005
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id028
+  title: Privacy and consent - 4
+  body: Alyssa may delete a conversation or Validation Result through the supported
+    resource operation.
+  applicability: *id007
+  route: hr_privacy
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-005-05
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-005
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id028
+  title: Privacy and consent - 5
+  body: Operational telemetry is content-free and is not a product audit trail.
+  applicability: *id007
+  route: hr_privacy
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-006-01
+  section: hr_policies
+  kind: policy
+  policy_id: HRP-006
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: &id029
+  - escalation
+  - profile
+  title: HR escalation and attribute confirmation - 1
+  body: Routes resolve by policy, then subarea, then topic, then the HR fallback.
+  applicability: *id007
+  route: hr_general
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - policy
+- page_key: hrp-006-02
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-006
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id029
+  title: HR escalation and attribute confirmation - 2
+  body: An Escalation Offer creates no case until the Hire approves the displayed
+    route and summary.
+  applicability: *id007
+  route: hr_general
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-006-03
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-006
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id029
+  title: HR escalation and attribute confirmation - 3
+  body: Attribute Change Requests contain one closed attribute and no chat transcript
+    or free-form private reason.
+  applicability: *id007
+  route: hr_general
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-006-04
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-006
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id029
+  title: HR escalation and attribute confirmation - 4
+  body: Only the fictional HR User view may approve or reject a pending attribute
+    request.
+  applicability: *id007
+  route: hr_general
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-006-05
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-006
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id029
+  title: HR escalation and attribute confirmation - 5
+  body: A Manager is a human contact and never an AISHA app role.
+  applicability: *id007
+  route: hr_general
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-007-01
+  section: hr_policies
+  kind: policy
+  policy_id: HRP-007
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: &id030
+  - dress
+  title: Head-office dress standard - 1
+  body: This standard applies only when Head Office is the confirmed Work Site.
+  applicability: &id031
+    role_keys: *id003
+    department_keys: *id004
+    employment_classifications: *id016
+    work_sites:
+    - head_office
+  route: hr_general
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - policy
+- page_key: hrp-007-02
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-007
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id030
+  title: Head-office dress standard - 2
+  body: Alyssa's seeded Branch Work Site therefore receives a cited Does Not Apply
+    explanation.
+  applicability: *id031
+  route: hr_general
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-007-03
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-007
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id030
+  title: Head-office dress standard - 3
+  body: A temporary Head Office visit may be explained abstractly without changing
+    the Hire Profile.
+  applicability: *id031
+  route: hr_general
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-007-04
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-007
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id030
+  title: Head-office dress standard - 4
+  body: A permanent move remains provisional until HR approves the one-attribute request.
+  applicability: *id031
+  route: hr_general
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: hrp-007-05
+  section: hr_policies
+  kind: procedure
+  policy_id: HRP-007
+  policy_revision: '1'
+  topic: hr_policies
+  subareas: *id030
+  title: Head-office dress standard - 5
+  body: AISHA does not invent appearance rules beyond the active policy text.
+  applicability: *id031
+  route: hr_general
+  status: active
+  effective_date: '2026-08-10'
+  claim_types:
+  - procedure
+- page_key: back-01
+  section: back
+  kind: directory
+  title: 'Glossary: policy responses'
+  body: Grounded Answer, Clarification Request, Abstention, and Escalation Offer are
+    the four typed Dialogue outcomes.
+- page_key: back-02
+  section: back
+  kind: directory
+  title: 'Glossary: applicability'
+  body: Applies, Does Not Apply, and Needs Clarification are deterministic outcomes;
+    retrieval similarity never decides eligibility.
+- page_key: back-03
+  section: back
+  kind: directory
+  title: 'Glossary: retrieval'
+  body: A Handbook Omission differs from a Knowledge Index Outage or integrity failure,
+    and each fails closed with a distinct outcome.
+- page_key: back-04
+  section: back
+  kind: directory
+  title: 'Directory: Payroll Support'
+  body: Payroll Support is the fictional route for pay schedule, payslip, deduction,
+    and payroll correction questions.
+- page_key: back-05
+  section: back
+  kind: directory
+  title: 'Directory: Access Support'
+  body: Access Support is the fictional route for accounts, devices, and other Company
+    Resource guidance.
+- page_key: back-06
+  section: back
+  kind: directory
+  title: 'Directory: HR routes'
+  body: HR General, HR Leave, and HR Privacy are fictional human routes selected by
+    policy and subarea.
+- page_key: back-07
+  section: back
+  kind: directory
+  title: Version and supersession
+  body: Handbook v1.0 is the initial immutable edition. Only explicit supersession
+    can establish precedence between revisions.
+- page_key: back-08
+  section: back
+  kind: directory
+  title: Official document route
+  body: AISHA never stores or submits an original medical certificate. The separate
+    fictional Official HR Document Route remains required.
