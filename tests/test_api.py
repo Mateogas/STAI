@@ -1,9 +1,11 @@
 import json
 from datetime import date
+from io import BytesIO
 
 import pytest
 from fastapi.testclient import TestClient
 from langchain_core.messages import AIMessage
+from reportlab.pdfgen.canvas import Canvas
 
 from stai.api import app, get_repo, get_service
 from stai.handbook import build_handbook
@@ -43,9 +45,9 @@ def test_only_versioned_health_endpoint_remains(client):
     assert http.get("/health").status_code == 404
     assert http.post("/chat", json={}).status_code == 404
     response = http.get("/api/v1/health")
-    assert response.status_code == 503
+    assert response.status_code == 200
     payload = response.json()
-    assert payload["data"]["status"] == "unavailable"
+    assert payload["data"]["status"] == "degraded"
     assert payload["data"]["nager"] == "unknown"
     assert payload["meta"]["api_version"] == "v1"
 
@@ -98,6 +100,13 @@ def test_conversation_create_replay_and_server_owned_history(client):
     ).json()["data"]
     assert [item["role"] for item in history["items"]] == ["hire", "aisha"]
     assert "history" not in turn.request.content.decode().lower()
+    replay_turn = http.post(
+        f"/api/v1/hires/emp-alyssa/conversations/{conversation['id']}/messages",
+        headers=headers("turn-1"), json={"message": "What does PAY-001 say?"},
+    )
+    assert replay_turn.status_code == 200
+    assert replay_turn.json()["data"] == turn.json()["data"]
+    assert len(http.get(f"/api/v1/hires/emp-alyssa/conversations/{conversation['id']}/messages").json()["data"]["items"]) == 2
 
 
 def test_unknown_hire_and_medical_chat_use_safe_errors(client):
@@ -139,6 +148,13 @@ def test_escalation_offer_to_consent_case(client):
     )
     assert consent.status_code == 201
     assert consent.json()["data"]["status"] == "open"
+    case_id = consent.json()["data"]["case_id"]
+    assert http.get(f"/api/v1/hires/emp-alyssa/escalation-cases/{case_id}").status_code == 200
+    closed = http.post(
+        f"/api/v1/hr/escalation-cases/{case_id}/close", headers=headers("close"),
+        json={"expected_version": 1, "hr_user": "hr-demo"},
+    )
+    assert closed.status_code == 200 and closed.json()["data"]["status"] == "closed"
 
 
 def test_attribute_request_hr_approval_uses_versions(client):
@@ -158,3 +174,91 @@ def test_attribute_request_hr_approval_uses_versions(client):
     assert approved.status_code == 200
     profile = http.get("/api/v1/hires/emp-alyssa/profile").json()["data"]
     assert profile["work_site"] == "remote" and profile["revision"] == 2
+    assert http.get(f"/api/v1/hr/attribute-change-requests/{item['request_id']}").status_code == 200
+
+
+def synthetic_certificate(*, two_digit_issue=False) -> bytes:
+    buffer = BytesIO(); canvas = Canvas(buffer)
+    lines = [
+        "Patient Name: Alyssa Reyes", "Consultation Date: 08/08/2026",
+        f"Issue Date: {'08/09/26' if two_digit_issue else '08/09/2026'}",
+        "Absence Start Date: 08/08/2026", "Absence End Date: 08/10/2026",
+        "Duration Days: 3", "Clinician Name: Dr. Sample Physician",
+        "Facility Name: Synthetic Care Clinic", "License Number: DEMO-123",
+        "Signature: Present", "Recommendation: Rest",
+    ]
+    for index, line in enumerate(lines): canvas.drawString(72, 740 - index * 20, line)
+    canvas.save(); return buffer.getvalue()
+
+
+def test_certificate_result_history_share_revoke_delete_and_idempotency(client):
+    http, _ = client; content = synthetic_certificate()
+    response = http.post(
+        "/api/v1/hires/emp-alyssa/certificate-checks", headers=headers("cert-1"),
+        data={"evaluation_date": "2026-08-10", "acknowledged": "true"},
+        files={"file": ("synthetic.pdf", content, "application/pdf")},
+    )
+    assert response.status_code == 200
+    result = response.json()["data"]
+    assert result["kind"] == "validation_result" and result["status"] == "complete"
+    replay = http.post(
+        "/api/v1/hires/emp-alyssa/certificate-checks", headers=headers("cert-1"),
+        data={"evaluation_date": "2026-08-10", "acknowledged": "true"},
+        files={"file": ("synthetic.pdf", content, "application/pdf")},
+    )
+    assert replay.json()["data"] == result
+    validation_id = result["validation_id"]
+    assert http.get(f"/api/v1/hires/emp-alyssa/validation-results/{validation_id}").status_code == 200
+    assert http.get("/api/v1/hr/validation-results").json()["data"]["items"] == []
+    shared = http.post(
+        f"/api/v1/hires/emp-alyssa/validation-results/{validation_id}/share",
+        headers=headers("share"), json={"expected_version": 1},
+    )
+    assert shared.json()["data"]["share_state"] == "shared"
+    assert http.get(f"/api/v1/hr/validation-results/{validation_id}").status_code == 200
+    revoked = http.post(
+        f"/api/v1/hires/emp-alyssa/validation-results/{validation_id}/revoke",
+        headers=headers("revoke"), json={"expected_version": 2},
+    )
+    assert revoked.json()["data"]["share_state"] == "private"
+    deleted = http.request(
+        "DELETE", f"/api/v1/hires/emp-alyssa/validation-results/{validation_id}",
+        headers=headers("delete"), json={"expected_version": 3},
+    )
+    assert deleted.json()["data"] == {"deleted": True}
+
+
+def test_certificate_retry_uses_one_replacement_and_creates_no_first_result(client):
+    http, repo = client
+    first = http.post(
+        "/api/v1/hires/emp-alyssa/certificate-checks", headers=headers("retry-first"),
+        data={"evaluation_date": "2026-08-10", "acknowledged": "true"},
+        files={"file": ("synthetic.pdf", synthetic_certificate(two_digit_issue=True), "application/pdf")},
+    )
+    assert first.json()["data"]["kind"] == "retry_required"
+    assert repo.count_validation_results() == 0
+    token = first.json()["data"]["retry_token"]
+    second = http.post(
+        "/api/v1/hires/emp-alyssa/certificate-checks/retry", headers=headers("retry-second"),
+        data={"evaluation_date": "2026-08-10", "retry_token": token},
+        files={"file": ("replacement.pdf", synthetic_certificate(), "application/pdf")},
+    )
+    assert second.json()["data"]["kind"] == "validation_result"
+    assert second.json()["data"]["attempt_count"] == 2
+
+
+def test_conversation_cursor_pagination_is_bounded(client):
+    http, _ = client
+    for index in range(3):
+        http.post(
+            "/api/v1/hires/emp-alyssa/conversations", headers=headers(f"page-{index}"),
+            json={"simulated_date": f"2026-08-{10 + index:02d}"},
+        )
+    first = http.get("/api/v1/hires/emp-alyssa/conversations?limit=2").json()["data"]
+    assert len(first["items"]) == 2 and first["next_cursor"]
+    second = http.get(
+        "/api/v1/hires/emp-alyssa/conversations",
+        params={"limit": 2, "cursor": first["next_cursor"]},
+    ).json()["data"]
+    assert len(second["items"]) == 1
+    assert http.get("/api/v1/hires/emp-alyssa/conversations?limit=101").status_code == 422

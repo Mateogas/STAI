@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="860" viewBox="0 0 1440 860" role="img" aria-labelledby="title desc">
+  <title id="title">AISHA v1.0 system architecture</title>
+  <desc id="desc">Authoritative sources feed a deterministic core shared by Streamlit and API surfaces, producing privacy-safe outcomes and metadata-only telemetry.</desc>
+  <rect width="1440" height="860" fill="#f5f8fb"/>
+  <text x="720" y="58" text-anchor="middle" font-family="Arial" font-size="32" font-weight="700" fill="#17365d">AISHA v1.0 — Three-topic onboarding decision support</text>
+  <text x="720" y="92" text-anchor="middle" font-family="Arial" font-size="17" fill="#4b5d70">Payroll · Resource Access · HR Policies · fictional educational data</text>
+  <g font-family="Arial">
+    <rect x="70" y="145" width="320" height="530" rx="22" fill="#e7f0f8" stroke="#3973a5" stroke-width="3"/>
+    <text x="230" y="190" text-anchor="middle" font-size="23" font-weight="700" fill="#17365d">Bounded sources</text>
+    <g font-size="18" fill="#17365d">
+      <rect x="105" y="225" width="250" height="70" rx="12" fill="white"/><text x="230" y="255" text-anchor="middle">Immutable 108-page</text><text x="230" y="279" text-anchor="middle">synthetic handbook</text>
+      <rect x="105" y="320" width="250" height="70" rx="12" fill="white"/><text x="230" y="350" text-anchor="middle">HR-confirmed</text><text x="230" y="374" text-anchor="middle">Hire Profile</text>
+      <rect x="105" y="415" width="250" height="70" rx="12" fill="white"/><text x="230" y="445" text-anchor="middle">Normalized local</text><text x="230" y="469" text-anchor="middle">SQLite state</text>
+      <rect x="105" y="510" width="250" height="70" rx="12" fill="white"/><text x="230" y="540" text-anchor="middle">Nager PH calendar</text><text x="230" y="564" text-anchor="middle">facts only</text>
+    </g>
+    <rect x="470" y="145" width="500" height="530" rx="22" fill="#17365d"/>
+    <text x="720" y="190" text-anchor="middle" font-size="23" font-weight="700" fill="white">Shared deterministic core</text>
+    <g font-size="18" fill="#17365d">
+      <rect x="515" y="225" width="410" height="66" rx="12" fill="#fff"/><text x="720" y="265" text-anchor="middle">Hybrid Chroma retrieval + eligibility gates</text>
+      <rect x="515" y="315" width="410" height="66" rx="12" fill="#fff"/><text x="720" y="355" text-anchor="middle">Applicability + claim/citation validation</text>
+      <rect x="515" y="405" width="410" height="66" rx="12" fill="#fff"/><text x="720" y="445" text-anchor="middle">Bounded ReAct orchestration</text>
+      <rect x="515" y="495" width="410" height="66" rx="12" fill="#fff"/><text x="720" y="535" text-anchor="middle">Consent, versions, idempotency, memory</text>
+      <rect x="515" y="585" width="410" height="66" rx="12" fill="#fff"/><text x="720" y="625" text-anchor="middle">Local certificate completeness rules</text>
+    </g>
+    <rect x="1050" y="145" width="320" height="530" rx="22" fill="#e6f4ed" stroke="#2d7c58" stroke-width="3"/>
+    <text x="1210" y="190" text-anchor="middle" font-size="23" font-weight="700" fill="#174f39">Surfaces and safe outcomes</text>
+    <g font-size="18" fill="#174f39">
+      <rect x="1085" y="225" width="250" height="70" rx="12" fill="white"/><text x="1210" y="255" text-anchor="middle">Streamlit journeys</text><text x="1210" y="279" text-anchor="middle">Hire and HR</text>
+      <rect x="1085" y="320" width="250" height="70" rx="12" fill="white"/><text x="1210" y="350" text-anchor="middle">Typed /api/v1</text><text x="1210" y="374" text-anchor="middle">safe envelopes</text>
+      <rect x="1085" y="415" width="250" height="70" rx="12" fill="white"/><text x="1210" y="445" text-anchor="middle">Ground / clarify /</text><text x="1210" y="469" text-anchor="middle">abstain / offer</text>
+      <rect x="1085" y="510" width="250" height="70" rx="12" fill="white"/><text x="1210" y="540" text-anchor="middle">Consented cases and</text><text x="1210" y="564" text-anchor="middle">result-only history</text>
+    </g>
+    <path d="M390 410 H455" stroke="#3973a5" stroke-width="6" marker-end="url(#arrow)"/>
+    <path d="M970 410 H1035" stroke="#2d7c58" stroke-width="6" marker-end="url(#arrow)"/>
+    <rect x="375" y="735" width="690" height="76" rx="16" fill="#fff3d6" stroke="#c18416" stroke-width="2"/>
+    <text x="720" y="768" text-anchor="middle" font-size="19" font-weight="700" fill="#704a00">Metadata-only side channel</text>
+    <text x="720" y="795" text-anchor="middle" font-size="17" fill="#704a00">bounded JSONL → shipper → authenticated relay → separate MLflow</text>
+  </g>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#496579"/></marker></defs>
+</svg>

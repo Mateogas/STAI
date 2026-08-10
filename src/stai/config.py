@@ -28,27 +28,21 @@ class Settings(BaseSettings):
 
     # --- Ollama models ---
     agent_model: str = "llama3.1:8b"          # must support native tool calling
-    # Few-shot classifier for input guardrail + pulse sentiment. qwen2.5:3b
+    # Few-shot classifier. Keep separately configurable for demo hardware.
     # scored 14/15 on the topic battery where llama3.2:1b scored 8/15
     # (over-blocked benefits jargon); set STAI_GUARDRAIL_MODEL=llama3.2:1b
     # if latency matters more than accuracy on the demo hardware.
     guardrail_model: str = "qwen2.5:3b-instruct"
     embed_model: str = "nomic-embed-text"
     ollama_base_url: str = "http://localhost:11434"
-    agent_temperature: float = 0.2
+    agent_temperature: float = 0.0
+    agent_seed: int = 20260810
 
     # --- paths ---
-    hr_docs_dir: Path = _DATA / "hr_docs"
     chroma_dir: Path = _DATA / "chroma"
     db_path: Path = _DATA / "stai.db"
-    org_file: Path = _DATA / "org.json"
-    employees_file: Path = _DATA / "employees.json"
-    plans_file: Path = _DATA / "plans.json"
 
     # --- RAG ---
-    collection_name: str = "stai_hr_docs"
-    chunk_size: int = 800
-    chunk_overlap: int = 100
     retriever_k: int = 4
 
     # --- privacy-safe external calendar ---
@@ -64,9 +58,6 @@ class Settings(BaseSettings):
 
     # Browser origins allowed to call the explicitly demo-only REST API.
     cors_origins: list[str] = ["http://localhost:8501", "http://127.0.0.1:8501"]
-
-    # --- pulse check-ins ---
-    pulse_cadence_days: int = 7
 
     # --- observability (see src/stai/observability.py) ---
     obs_log_path: Path = _DATA / "observability.jsonl"

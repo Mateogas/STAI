@@ -35,7 +35,8 @@ def test_user_facing_surfaces_use_aisha_bdo_story():
         "30-" + "60-" + "90",
         "Software " + "Engineer",
     ]
-    required_terms = ["AISHA", "BDO", "Alyssa Reyes", "Day 30 Readiness Check"]
+    stale_terms.extend(["ramp plan", "pulse check", "plan_changed", "source: filename"])
+    required_terms = ["AISHA", "BDO", "Alyssa Reyes", "Payroll", "Resource Access", "HR Policies"]
 
     combined = "\n".join(p.read_text(encoding="utf-8") for p in _iter_user_facing_files())
 

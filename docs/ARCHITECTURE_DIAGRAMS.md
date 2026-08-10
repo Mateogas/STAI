@@ -1,179 +1,124 @@
 # AISHA Architecture Diagrams
 
-Use these Mermaid diagrams in the technical write-up, module checklist, or
-presentation deck. They describe the current implemented prototype, not future
-production integrations.
+These diagrams describe the implemented AISHA v1.0 educational capstone. AISHA covers only Payroll, Resource Access, and HR Policies for one fictional Hire, Alyssa Reyes. It is not affiliated with or endorsed by BDO Unibank and does not use real employee data.
 
-AISHA is an educational capstone prototype for a fictionalized BDO onboarding
-story. It is not affiliated with, endorsed by, or representative of BDO
-Unibank.
-
-## System Architecture
+## System boundary
 
 ```mermaid
 flowchart LR
-    subgraph Inputs["Input knowledge and state"]
-        HRDocs["Fictionalized onboarding docs<br/>data/hr_docs/*.md"]
-        SeedData["Employee, plan, org seed data<br/>data/*.json"]
-        ChatMemory["Persisted chat memory<br/>SQLite chat_messages"]
-        PulseHistory["Pulse history and escalations<br/>SQLite state"]
-        UserMsg["New-hire or API message"]
-        SimDate["Simulated date<br/>demo clock"]
+    subgraph Sources["Authoritative and bounded sources"]
+        Handbook["Immutable 108-page handbook build"]
+        Profile["HR-confirmed Hire Profile"]
+        State["Normalized SQLite state"]
+        Nager["Nager.Holidays PH calendar facts"]
+        File["Local certificate file, transient"]
     end
 
-    subgraph Processing["Local-first agentic AI stack"]
-        Ingestion["ingestion.py<br/>load markdown, parse metadata, chunk"]
-        Chroma["Chroma vector store<br/>Ollama embeddings<br/>nomic-embed-text"]
-        GuardrailLLM["Input guardrail classifier<br/>ChatOllama qwen2.5:3b-instruct"]
-        Agent["ReAct agent<br/>LangChain/LangGraph create_agent<br/>ChatOllama llama3.1:8b"]
-        Tools["Agent tools<br/>search_knowledge_base<br/>get_my_plan<br/>complete_task<br/>find_person<br/>escalate_to_hr"]
-        Repo["state.py Repo<br/>SQLite connection-per-op"]
-        OutputGuardrails["Output guardrails<br/>citation enforcement<br/>PII redaction"]
-        Observability["observability.py<br/>privacy-preserving JSONL run log"]
+    subgraph Core["Shared deterministic core"]
+        Retrieval["Hybrid Chroma retrieval and eligibility gates"]
+        Policy["Applicability and claim validation"]
+        Agent["Bounded ReAct orchestration"]
+        Consent["Consent and versioned workflow commands"]
+        Medical["Local extraction and completeness rules"]
+        Repo["Repository and ordered memory"]
     end
 
-    subgraph Outputs["Supported capabilities"]
-        GroundedAnswers["Grounded onboarding and policy answers<br/>with [source: filename.md] citations"]
-        PlanSupport["Personal ramp plan reading<br/>and task completion"]
-        PeopleRouting["Human-owner routing<br/>manager, buddy, IT, payroll, benefits, compliance"]
-        Escalations["People Experience escalation tickets"]
-        PulseSignals["Pulse trends and HR support signals<br/>without raw private chat transcripts by default"]
-        UIAPI["Streamlit chat and HR dashboard<br/>FastAPI /health and /chat"]
+    subgraph Surfaces["Equivalent product surfaces"]
+        UI["Streamlit: Ask, Certificate, History, HR"]
+        API["Typed /api/v1 REST contract"]
     end
 
-    HRDocs --> Ingestion --> Chroma
-    SeedData --> Repo
-    ChatMemory --> Repo
-    PulseHistory --> Repo
-    UserMsg --> GuardrailLLM
-    SimDate --> Agent
-    GuardrailLLM --> Agent
-    Chroma --> Tools
-    Repo --> Tools
-    Agent <--> Tools
-    Agent --> OutputGuardrails
-    Tools --> Observability
-    OutputGuardrails --> Observability
-    OutputGuardrails --> GroundedAnswers
-    Tools --> PlanSupport
-    Tools --> PeopleRouting
-    Tools --> Escalations
-    Repo --> PulseSignals
-    GroundedAnswers --> UIAPI
-    PlanSupport --> UIAPI
-    PeopleRouting --> UIAPI
-    Escalations --> UIAPI
-    PulseSignals --> UIAPI
+    subgraph Outputs["Privacy-safe outcomes"]
+        PolicyResult["Grounded answer, clarification, abstention, or offer"]
+        Case["Consented escalation case"]
+        Attribute["One-attribute revision request"]
+        Validation["Result-only validation history"]
+        Telemetry["Closed schema-v2 operation metadata"]
+    end
+
+    Handbook --> Retrieval --> Policy --> Agent
+    Profile --> Policy
+    Nager --> Agent
+    State <--> Repo
+    File --> Medical --> Repo
+    Agent --> Consent --> Repo
+    Repo <--> UI
+    Repo <--> API
+    Agent --> PolicyResult
+    Consent --> Case
+    Consent --> Attribute
+    Medical --> Validation
+    Core -. "metadata only" .-> Telemetry
 ```
 
-### What This Shows
+The policy answer is not whatever text a model happens to emit. Retrieval first resolves the active immutable build, combines vector and lexical candidates, then rejects records that fail version, integrity, authority, status, topic, or applicability gates. The policy core validates every material claim and citation before either surface can render it. The model can choose among bounded tools, but it cannot approve a profile revision, manufacture consent, decide certificate authenticity, or write arbitrary SQL.
 
-| Layer | Implemented modules | Module checklist evidence |
-|---|---|---|
-| Knowledge input | `data/hr_docs/*.md`, `data/*.json`, SQLite state | RAG, memory, state |
-| Retrieval processing | `ingestion.py`, `retriever.py`, Chroma, Ollama embeddings | RAG with citations |
-| Agent reasoning | `agent.py`, ChatOllama, LangChain/LangGraph ReAct loop | Prompt engineering, ReAct agent |
-| Tools | `tools.py` internal tools over KB, plan, org, escalation state | Tool use, disambiguation |
-| Guardrails | `guardrails.py`, pulse JSON parsing in `pulse.py` | Structured outputs, guardrails |
-| Surfaces | `app.py`, `api.py`, `service.py` | Chat UI, REST API |
-| Monitoring | `observability.py`, `data/observability.jsonl` | Basic LLMOps monitoring |
-
-## Agentic AI Turn Flow
+## Policy turn flow
 
 ```mermaid
 flowchart TD
-    Start["User sends message<br/>Streamlit chat or POST /chat"] --> SaveUser["Persist user turn<br/>SQLite chat memory"]
-    SaveUser --> PulseCheck{"Is this a pending<br/>pulse check-in reply?"}
-
-    PulseCheck -- Yes --> ScorePulse["classify_pulse<br/>structured JSON sentiment, concerns, summary"]
-    ScorePulse --> StorePulse["Store pulse in SQLite"]
-    StorePulse --> AgentStart["Continue to agent response<br/>with empathy and next step"]
-
-    PulseCheck -- No --> InputGuardrail["classify_input<br/>on_topic / off_topic / injection"]
-    InputGuardrail --> Allowed{"Allowed?"}
-    Allowed -- No --> Refusal["Return scoped refusal<br/>no agent/tool call"]
-    Refusal --> LogRefusal["Log turn metadata<br/>no message text"]
-
-    Allowed -- Yes --> AgentStart
-    AgentStart --> BuildAgent["Build per-turn agent<br/>persona, role, simulated date, recent history"]
-    BuildAgent --> Intent["LLM infers intent from message + system prompt"]
-
-    Intent --> NeedPolicy{"Needs company fact,<br/>policy, benefits, payroll,<br/>IT, branch logistics,<br/>compliance, or docs?"}
-    NeedPolicy -- Yes --> SearchTool["search_knowledge_base"]
-    SearchTool --> Retrieval{"Relevant chunks found?"}
-    Retrieval -- Yes --> CiteAnswer["Answer from retrieved chunks<br/>must cite [source: file]"]
-    Retrieval -- No --> HandbookFallback["Say handbook does not cover it<br/>offer People Experience escalation"]
-
-    Intent --> NeedPlan{"Asks what is next,<br/>progress, tasks, or Day 30 readiness?"}
-    NeedPlan -- Yes --> PlanTool["get_my_plan"]
-
-    Intent --> CompleteIntent{"Asks to mark<br/>a task done?"}
-    CompleteIntent -- Yes --> MatchTask["find_task_matches<br/>deterministic scoring"]
-    MatchTask --> Ambiguous{"Multiple open task<br/>matches within margin?"}
-    Ambiguous -- Yes --> Clarify["Do not mutate state<br/>ask which task id/title"]
-    Ambiguous -- No --> CompleteTool["complete_task<br/>update SQLite plan state"]
-
-    Intent --> PersonIntent{"Asks who handles<br/>a topic or needs an owner?"}
-    PersonIntent -- Yes --> PersonTool["find_person<br/>org-directory routing"]
-    PersonTool --> PersonFound{"Person found?"}
-    PersonFound -- No --> PersonFallback["Offer escalation"]
-    PersonFound -- Yes --> OwnerAnswer["Suggest contact and intro"]
-
-    Intent --> SeriousOrHuman{"Human support requested,<br/>handbook gap, sensitive/serious blocker?"}
-    SeriousOrHuman -- Yes --> EscalateTool["escalate_to_hr<br/>create People Experience ticket"]
-
-    CiteAnswer --> Capture["RunCapture records<br/>tools, sources, escalation id, plan changes"]
-    HandbookFallback --> Capture
-    PlanTool --> Capture
-    Clarify --> Capture
-    CompleteTool --> Capture
-    OwnerAnswer --> Capture
-    PersonFallback --> Capture
-    EscalateTool --> Capture
-
-    Capture --> OutputGuardrails["apply_output_guardrails<br/>enforce citations if KB searched<br/>redact number-shaped PII"]
-    OutputGuardrails --> PersistAnswer["Persist assistant answer<br/>with source metadata"]
-    PersistAnswer --> Render["Render answer, sources,<br/>plan refresh, escalation toast"]
-    Render --> LogTurn["Log privacy-preserving run record<br/>latency, estimated tokens, tools, sources, errors"]
+    Start["Message with fixed simulated date"] --> MedicalRoute{"Certificate or medical content?"}
+    MedicalRoute -- Yes --> RejectChat["Reject before conversation persistence; route to Certificate Check"]
+    MedicalRoute -- No --> Classify["Input scope and injection classifier"]
+    Classify --> Allowed{"Allowed?"}
+    Allowed -- No --> Scoped["Typed scoped response"]
+    Allowed -- Yes --> Version["Get active handbook identity"]
+    Version --> Search["Hybrid search and eligibility gates"]
+    Search --> Found{"Eligible evidence?"}
+    Found -- No --> Abstain["Abstention; no unrelated citation"]
+    Found -- Yes --> Applicable{"All constraining attributes known?"}
+    Applicable -- No --> Clarify["One focused clarification; no mutation"]
+    Applicable -- Yes --> Claim["Generate candidate typed result"]
+    Claim --> Validate["Schema, applicability, claim, and citation validation"]
+    Validate --> Valid{"Valid?"}
+    Valid -- No --> SafeAbstain["Fail-closed typed abstention"]
+    Valid -- Yes --> Persist["Persist ordered safe outcome and evidence identity"]
+    Persist --> Render["Render identical UI/API semantics"]
+    Render --> Offer{"Human support requested or useful?"}
+    Offer -- Yes --> OfferOnly["Create offer; case only after explicit consent"]
 ```
 
-### Trigger Rules In Plain English
+Evidence exposed to users is structured identity—policy ID, revision, handbook version, page, and artifact hashes—not stored raw snippets or model-authored filename citations. Conversation history is server owned and ordered. It informs continuity but never becomes authority for Hire Profile attributes.
 
-- **Input guardrail triggers before the agent** for every normal chat message.
-  Off-topic and prompt-injection messages receive a refusal without tool use.
-- **Pulse check-in replies bypass the topic classifier** because they are
-  expected to be emotional or broad work reflections. They are scored by
-  `pulse.classify_pulse`, stored, then the agent can respond supportively.
-- **RAG is required** whenever the answer makes factual claims about company
-  policy, benefits, pay, IT, branch logistics, compliance learning, or handbook
-  content.
-- **Plan tools trigger** when the user asks what to do next, asks about Day 30
-  readiness, checks progress, or asks to complete a task.
-- **Disambiguation blocks mutation** when a fuzzy task request matches multiple
-  open tasks too closely. AISHA asks one clarifying question instead of marking
-  the wrong item complete.
-- **People routing triggers** when the user asks who handles a blocker, system,
-  process, manager/buddy touchpoint, or workplace topic.
-- **Escalation triggers** when the handbook has no answer, the user explicitly
-  asks for human help, or the issue sounds sensitive or serious.
-- **Output guardrails always run after the agent**. If the KB was searched but
-  the model forgot citations, citations are appended from retrieved sources; if
-  no sources exist, AISHA falls back to a handbook-gap answer.
-- **Observability logs metadata only**: route, models, latency, estimated token
-  counts, guardrail category, tools used, sources, escalation id, plan changes,
-  and errors. It deliberately does not log raw chat text.
+## Certificate flow
 
-## Slide-Friendly Short Version
+```mermaid
+flowchart TD
+    Begin["Open Certificate Check"] --> Explain["Show local completeness-only boundary"]
+    Explain --> Ack{"Acknowledged?"}
+    Ack -- No --> Stop["No file processing"]
+    Ack -- Yes --> Gate["Type, size, pages, structure, and active-content gates"]
+    Gate --> Rejected{"Upload accepted?"}
+    Rejected -- No --> NoResult["Upload Rejection; no result row"]
+    Rejected -- Yes --> Extract["Local PDF text extraction or image OCR"]
+    Extract --> Parse["Deterministic labelled-field parser"]
+    Parse --> Outcome{"Outcome"}
+    Outcome -- Complete --> SafeResult["Persist safe result metadata only"]
+    Outcome -- Incomplete --> SafeResult
+    Outcome -- Retryable --> Retry["One ephemeral retry token"]
+    Retry --> RetryOutcome{"Retry succeeds?"}
+    RetryOutcome -- Yes --> SafeResult
+    RetryOutcome -- No --> Human["Needs Human Review plus blank manual template"]
+    Human --> SafeResult
+    SafeResult --> Share["Explicit share, revoke, or delete"]
+```
+
+File bytes, filenames, MIME details, extracted text, diagnosis, field values, confidence maps, and document fingerprints are not part of public history. The installation fingerprint key is stored outside SQLite with restrictive permissions. A `Complete` result is only a local structural completeness result; it is not authenticity, medical assessment, approval, or submission.
+
+## Protected telemetry topology
 
 ```mermaid
 flowchart LR
-    KB["Knowledge bases<br/>HR docs, employee state,<br/>plan, org directory, pulse history"] --> Stack["AISHA stack<br/>Ollama + Chroma RAG<br/>LangChain ReAct agent<br/>SQLite tools + guardrails"]
-    Stack --> Caps["Capabilities<br/>cited answers, task updates,<br/>people routing, escalations,<br/>pulse support signals, HR dashboard"]
+    Operation["UI/API operation"] --> Sanitize["Schema-v2 allowlist and v1 sanitizer"]
+    Sanitize --> JSONL["Local bounded JSONL"]
+    JSONL --> Shipper["Batch shipper: quarantine and partial retry"]
+    Shipper -->|"authenticated batch"| Relay["Separate relay: event-ID idempotency"]
+    Relay --> MLflow["Separate MLflow server and fixed experiments"]
+    Relay -. "partial acknowledgement" .-> Shipper
 ```
 
-One-line speaker note:
+The telemetry side channel never changes a product outcome. Event IDs are random and retry-stable. Only closed route, operation, outcome, count, latency, and experiment values are accepted; Hire identifiers, conversation text, policy text, certificate content, extracted values, diagnosis, filenames, fingerprints, and raw errors are denied. Local retention is bounded to seven days and 100 MB.
 
-> AISHA is agentic because it does not only answer questions; it retrieves
-> grounded context, reads and updates ramp state, routes to human owners,
-> initiates pulse check-ins, escalates gaps, and logs privacy-preserving
-> operational signals.
+## Deployment boundary
+
+The Docker image is Python 3.12 Linux, runs as non-root UID 10001, includes Tesseract English, and persists `/app/data` for SQLite and the separate installation key. The container smoke starts both Streamlit and FastAPI, checks their health, proves a PAY-001 policy answer, and proves a synthetic `Complete` certificate result. Nager is the only product network dependency and is isolated from health; all private Hire, conversation, policy, document, OCR, and medical data remain local.

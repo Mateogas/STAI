@@ -1,312 +1,134 @@
-# STAI - AISHA Onboarding and Ramp Support Agent
+# AISHA — AI Support for Hires and Associates
 
-AISHA means **AI Support for Hires and Associates**. STAI is the repo/course
-codename; AISHA is the user-facing product story.
+AISHA is a local-first agentic onboarding-policy assistant for a fictionalized BDO educational capstone. It is not affiliated with, endorsed by, or representative of BDO Unibank. It contains no real BDO employee data and has no access to BDO systems.
 
-> AISHA is an educational capstone prototype. It is not affiliated with,
-> endorsed by, or representative of BDO Unibank. All employee records,
-> onboarding documents, org contacts, metrics, and demo interactions are
-> fictionalized for storytelling and evaluation purposes.
+The shipped demo supports one fictional Hire, Alyssa Reyes, across exactly three topics: Payroll, Resource Access, and HR Policies. Its goal is reliable, privacy-conscious onboarding guidance—not generic HR Q&A and not employee surveillance.
 
-AISHA is a local-first agentic onboarding and ramp-support assistant for a
-fictionalized BDO educational demo. The main demo employee is **Alyssa Reyes**,
-a **Management Trainee / Branch Banking Associate** ramping toward a **Day 30
-Readiness Check** for supervised branch customer interactions.
+## What is implemented
 
-Why this exists, who pays for it, and why agentic AI matters:
-[`docs/BUSINESS_CASE.md`](docs/BUSINESS_CASE.md). What was evaluated and what
-the experiments found: [`docs/EVALUATION.md`](docs/EVALUATION.md). Architecture
-and agentic-flow diagrams: [`docs/ARCHITECTURE_DIAGRAMS.md`](docs/ARCHITECTURE_DIAGRAMS.md).
+- Four typed outcomes: Grounded Answer, Clarification Request, Abstention, and consent-first Escalation Offer.
+- A deterministic 108-page AISHA Handbook v1.0 with immutable page records and policy/version/page citations.
+- Hybrid Chroma retrieval with active-edition, authority, applicability, integrity, activation, and rollback gates.
+- A confirmed four-attribute Hire Profile; chat never changes applicability.
+- Ordered server-owned Policy Conversations and result-only certificate History in normalized SQLite.
+- Local PDF/image medical-certificate completeness checking with policy-before-file access, Tesseract OCR, deterministic rules, one retry, and private-by-default results.
+- A bounded Philippines-only Nager.Holidays tool with exact `Based on Nager.` attribution, seven-day cache, retry, validation, circuit breaking, and safe fallbacks.
+- Streamlit New Hire destinations—Ask AISHA, Certificate Check, History—and a separate HR User structured-record view.
+- A typed `/api/v1` contract with safe envelopes/errors, request IDs, fixed simulated dates, configured CORS, idempotency, resource versions, and cursor pagination.
+- Schema-v2 operational telemetry through local JSONL → rotating shipper → authenticated FastAPI relay → separate MLflow server.
+- A frozen 60-case Composite Safety Benchmark and non-root Linux container smoke.
 
-## Project Overview
+## Local setup
 
-AISHA demonstrates a complete local-first agentic AI support loop for new-hire
-onboarding and early ramp. The prototype combines a conversational UI, RAG,
-tool use, persistent state, guardrails, an API endpoint, basic LLMOps logging,
-and Docker packaging.
+Python 3.12 and [`uv`](https://docs.astral.sh/uv/) are required. Ollama is needed only for the live ReAct/embedding path; the complete logic/API test suite uses fakes and does not require Ollama or network access.
 
-The core demo story is simple: Alyssa should reach her **Day 30 Readiness
-Check** with less confusion. AISHA helps by answering from fictionalized
-handbook documents, citing sources, reading and updating Alyssa's ramp plan,
-routing her to the right human owner, filing People Experience escalations,
-and surfacing HR support signals without turning the assistant into
-surveillance.
-
-### What it does
-
-| | Feature |
-|---|---|
-| Baseline | Grounded RAG Q&A over fictionalized onboarding docs, with citations |
-| Baseline | Role-personalized onboarding and ramp plan the agent reads and updates |
-| Baseline | People Experience escalation when the handbook has no answer |
-| Baseline | HR support dashboard: progress, pulse trends, support signals, escalations |
-| Differentiator | First-job decoder for payslips, benefits, jargon, and branch ramp expectations |
-| Differentiator | Proactive pulse check-ins that surface support needs early |
-| Differentiator | People routing for IT access, payroll, benefits, compliance learning, manager, buddy, and branch operations |
-| Extra | Replies in the user's language; input/output guardrails for topic scope, injection, citations, and PII redaction |
-| Extra | REST API (`/health`, `/chat`) sharing the same guarded pipeline as the UI |
-| Extra | Persistent chat memory in SQLite - conversations survive app restarts |
-| Extra | Per-turn LLMOps run log (latency, token estimates, tools, sources, errors) |
-
-## Ramp stages
-
-AISHA does not frame onboarding as a long generic checklist. The fictional BDO
-demo uses role-based onboarding and ramp stages:
-
-- Pre-start
-- Day 1 Setup
-- Week 1 Foundations
-- Week 2 Practice and Feedback
-- Day 30 Readiness Check
-
-Anything beyond Day 30 is treated as later ramp analytics, not the live
-onboarding demo.
-
-## Architecture Diagram
-
-Rendered diagrams are available in [`docs/assets/`](docs/assets/) and the
-editable Mermaid source lives in
-[`docs/ARCHITECTURE_DIAGRAMS.md`](docs/ARCHITECTURE_DIAGRAMS.md).
-
-![AISHA system architecture](docs/assets/aisha-system-architecture.png)
-
-### Chat Turn Summary
-
-```text
-Streamlit app.py -> guardrails.classify_input
-       |                    | on_topic
-       |                    v
-       |             LangChain/LangGraph agent via ChatOllama
-       |                    | 5 tools
-       |     search_knowledge_base | get_my_plan / complete_task
-       |     Chroma + embeddings   | SQLite via state.py
-       |             find_person / escalate_to_hr
-       |                    |
-       v                    v
-guardrails output pass -> streamed answer + Sources
+```bash
+uv sync
+uv run pytest
+uv run streamlit run app.py
+uv run uvicorn stai.api:app --host 127.0.0.1 --port 8000
 ```
 
-`pulse.py` runs beside the chat. The sidebar's simulated date decides when a
-weekly check-in is due; the reply is sentiment-scored and stored; the HR view
-flags low or declining scores as support signals. HR sees summaries and concern
-tags, not private chat transcripts by default.
+For the optional live model/index path:
 
-## Setup Instructions
-
-Prerequisites: [Ollama](https://ollama.com) running and
-[uv](https://docs.astral.sh/uv/) installed.
-
-```powershell
+```bash
 ollama pull llama3.1:8b
 ollama pull qwen2.5:3b-instruct
 ollama pull nomic-embed-text
-
-uv sync
 uv run python -m stai.ingestion
-uv run streamlit run app.py
 ```
 
-All model names and knobs are env-overridable with `STAI_*`; see
-`.env.example`. The guardrail classifier defaults to `qwen2.5:3b-instruct`
-because it performed better on the topic battery than the smaller guardrail
-option documented in the original plan.
+Ingestion builds a version/hash-named staging collection from `handbook/dist/rag-pages.jsonl`, verifies it, and atomically changes the SQLite active pointer. It never resets an active collection in place. A failed or partial build leaves the current pointer untouched.
+
+## Streamlit journeys
+
+Run `uv run streamlit run app.py`, then use:
+
+1. **Ask AISHA** — ask `What does PAY-001 say?` and inspect the metadata-only Evidence area.
+2. **Clarification** — demonstrate ACC-006 with a missing or disputed Work Site and show one focused question.
+3. **Certificate Check** — acknowledge the local result-only notice, upload one synthetic PDF/PNG/JPEG, and inspect the deterministic result.
+4. **History** — share a Validation Result, revoke it, and delete it. Original files and extracted text never appear.
+5. **HR User** — show only consented Escalation Cases, currently shared Validation Results, and pending Attribute Change Requests.
+
+The layout is verified at 320–390 CSS pixels, uses visible keyboard focus and non-color state text, provides 44-pixel app controls, and announces dynamic status through accessible live/status regions.
 
 ## REST API
 
-The same guarded agent pipeline is exposed over HTTP, with permissive CORS
-enabled so any external site can call it directly, not just server-to-server:
+OpenAPI is at `http://localhost:8000/docs`. The only health path is:
 
-```powershell
-uv run uvicorn stai.api:app --reload
+```bash
+curl http://localhost:8000/api/v1/health
 ```
 
-- `GET /health` - liveness, knowledge-base status, model names.
-- `POST /chat` - one agent turn. OpenAPI docs at `http://localhost:8000/docs`.
+Create a fixed-date Policy Conversation and send a turn:
 
-```powershell
-curl -X POST http://localhost:8000/chat -H "Content-Type: application/json" -d '{
-  "employee_id": "emp-alyssa",
-  "message": "How do I file a leave request?",
-  "sim_date": "2026-07-07"
-}'
+```bash
+curl -X POST http://localhost:8000/api/v1/hires/emp-alyssa/conversations \
+  -H 'Content-Type: application/json' -H 'Idempotency-Key: demo-conversation' \
+  -d '{"simulated_date":"2026-08-10"}'
+
+curl -X POST http://localhost:8000/api/v1/hires/emp-alyssa/conversations/CONVERSATION_ID/messages \
+  -H 'Content-Type: application/json' -H 'Idempotency-Key: demo-turn' \
+  -d '{"message":"What does PAY-001 say?"}'
 ```
 
-The response carries `answer`, `citations`, `sources`, `escalation_id`,
-`plan_changed`, and the input-guardrail `guardrail_category`. If no `history`
-is passed, the API uses (and appends to) the persistent chat memory in SQLite,
-so API conversations survive restarts.
+Every success uses `{data, meta}`; every error uses `{error, meta}`. Side effects require `Idempotency-Key`: the same key/input replays the semantic result across restarts, while different input returns `409`. Mutable resources use expected versions. Lists use newest-first cursors with a default of 20 and maximum of 100.
 
-### Real deployment (LXC on Proxmox, no Docker)
+Public responses never contain raw exceptions, model names, internal paths, snippets, scores, hashes, collection identities, certificate bytes, filenames/MIME metadata, OCR or extracted values, confidence data, diagnoses, or Document Fingerprints. Detected medical content is rejected before ordinary chat persistence.
 
-The live deployment is an LXC container with exactly three external port
-forwards, so the API and Streamlit each need an explicit, distinct port
-rather than relying on defaults:
+## Certificate boundary
 
-| External | Internal | Serves |
-|---|---|---|
-| 2123 | 22 | SSH |
-| 2143 | 7860 | REST API |
-| 2163 | 8000 | Streamlit |
+Certificate Check is a synchronous local completeness check under fictional policy HRP-004. It is not authenticity verification, HR approval, medical assessment, diagnosis, or document submission.
 
-```powershell
-uv run uvicorn stai.api:app --host 0.0.0.0 --port 7860
-```
+- Accepted: one PDF, PNG, or JPEG; at most 10 MB; PDF at most three pages.
+- Active/embedded PDF content, corrupt structure, MIME/extension mismatch, and oversized media fail before extraction.
+- Text-layer PDF extraction and local Tesseract OCR remain on the demo machine.
+- Only safe result status/codes, policy citation, profile revision, attempts, timestamps, share state, and version persist.
+- Upload Rejection and Check Failure create no Validation Result or fingerprint.
+- One replacement retry is available for low-confidence or unrecognized-date extraction.
+- The original document must be submitted separately through the fictional Official HR Document Route; AISHA does not upload or confirm submission.
 
-`--host 0.0.0.0` is required - uvicorn's default (`127.0.0.1`) isn't reachable
-through the NAT port forward. See `deploy/stai-api.service` for a systemd
-unit that keeps this running persistently, matching however the box already
-keeps Streamlit alive.
+## Nager.Holidays
 
-## Observability
+`lookup_public_holidays(year)` calls only `https://date.nager.at/api/v3/PublicHolidays/{year}/PH`. It accepts only the simulated current/following Asia/Manila year. The tool sends no Hire, conversation, policy, document, OCR, or medical content. Calendar facts are attributed exactly `Based on Nager.` and never decide employment consequences without cited handbook policy. `/api/v1/health` never calls Nager, and an outage cannot make AISHA unhealthy.
 
-Every chat turn - Streamlit or API - appends one JSON line to
-`data/observability.jsonl`: route, model names, message/answer sizes, estimated
-tokens, latency, tools used, sources retrieved, guardrail category, and errors.
-Message *text* is deliberately never logged (support, not surveillance).
+## Telemetry and MLflow
 
-```powershell
-Get-Content data/observability.jsonl -Tail 5
-```
+New records use schema v2 and a random delivery-only event ID. They contain closed operation/outcome/error metadata, bounded counts, booleans, stage timings, and release identifiers. They do not contain identities or content. Schema-v1 rows pass through one sanitizing mapper; malformed or unknown-version lines are quarantined individually without copying their content.
 
-Why a local JSONL log instead of MLflow, and what the fields mean:
-[`docs/EVALUATION.md`](docs/EVALUATION.md) and `src/stai/observability.py`.
-
-### Shipping logs to a remote MLflow relay
-
-This box has no spare inbound ports to run an MLflow UI locally, so instead
-`src/stai/log_shipper.py` periodically rotates `observability.jsonl` out of
-the way and POSTs its records to a relay API on a separate server, which
-replays them into a real MLflow backend + UI (see the standalone
-`mlflow-relay/` project). One chat turn becomes one MLflow run.
-
-```powershell
-# STAI_LOG_SERVER_URL unset (default) => shipping is a no-op
-$env:STAI_LOG_SERVER_URL = "http://<relay-host>:8080/log-batch"
-$env:STAI_LOG_SHARED_SECRET = "change-me"
+```bash
 uv run python -m stai.log_shipper
+cd mlflow-relay && uv run pytest
 ```
 
-On the LXC deployment this runs on a timer, not in-process, so shipping
-stays alive independent of whether the API/Streamlit services are up: see
-`deploy/stai-log-shipper.service` and `deploy/stai-log-shipper.timer`
-(`systemctl enable --now stai-log-shipper.timer`).
+The shipper atomically rotates JSONL, retains retryable batches for at most seven days/100 MB, sends bounded batches to the authenticated relay, and deletes only acknowledged/already-present event IDs. The relay applies the same allowlists, routes closed event kinds to four fixed MLflow experiments, and suppresses response-loss duplicates. MLflow operation runs have a documented 30-day retention boundary; a Full Demo Reset does not claim to delete already-shipped telemetry or external backups.
 
-## Dockerfile / Container Setup
+## Benchmark and final acceptance
 
-The container holds the app only - Ollama stays on the host (the image makes
-no attempt to bundle it):
+The versioned benchmark contains 60 synthetic cases: 18 policy/applicability, 12 retrieval/index, 6 dialogue/safety, 8 Nager, and 16 medical; 40 are Calibration and 20 Locked Acceptance. Components G/R/A/D/M/X form a weighted harmonic Composite Safety Score. Passing requires CSS ≥ 0.90, every component ≥ 0.85, and zero safety-critical failures.
 
-```powershell
+```bash
+uv run python -m stai.evaluation
+uv run python -m stai.acceptance
+```
+
+The offline deterministic contract run compares P1 minimal, P2 structured, and P3 structured-plus-edge-cases three times under frozen settings. It validates contracts and does not claim model, statistical, production, or real BDO performance. Reports are in `evaluation/results/v1.0/`.
+
+## Docker and Linux/Proxmox
+
+```bash
 docker build -t aisha-demo .
-docker run -p 8501:8501 -e STAI_OLLAMA_BASE_URL=http://host.docker.internal:11434 aisha-demo
-```
-
-For the REST API instead of the UI:
-
-```powershell
-docker run -p 8000:8000 -e STAI_OLLAMA_BASE_URL=http://host.docker.internal:11434 `
+docker run --rm -p 8501:8501 -v aisha-data:/app/data aisha-demo
+docker run --rm -p 8000:8000 -v aisha-data:/app/data \
   aisha-demo uv run uvicorn stai.api:app --host 0.0.0.0 --port 8000
+docker run --rm -v aisha-smoke:/app/data \
+  aisha-demo uv run python deploy/container_smoke.py
 ```
 
-Prerequisites on the Ollama side: the three models pulled (see Setup). First
-run only, build the knowledge base inside the container once Ollama is
-reachable:
+The image runs as `aisha` UID 10001, includes Tesseract English, PyMuPDF, Pillow, multipart support, and persists SQLite/Chroma/key state under `/app/data`. Ollama is intentionally external; on Linux point `STAI_OLLAMA_BASE_URL` at the Ollama host/container and do not place SQLite or Chroma on NFS/SMB or behind multiple replicas. A single VM/LXC instance with a local persistent volume is the supported demo topology.
 
-```powershell
-docker exec <container> uv run python -m stai.ingestion
-```
+## Module scope
 
-On Linux, add `--add-host=host.docker.internal:host-gateway` or point
-`STAI_OLLAMA_BASE_URL` at your Ollama container.
+The canonical evidence and ownership matrix is [`ContextKnowledgeBase/ModuleChecklist.md`](ContextKnowledgeBase/ModuleChecklist.md). The 12 claimed modules are Prompt Engineering, Structured Outputs, Disambiguation, Chroma RAG, Memory, Guardrails, ReAct Agent, External Tool Use, Chat UI, API Endpoint, LLMOps Monitoring, and Dockerization. SQL Agent is explicitly unclaimed because Chroma RAG is the selected retrieval module.
 
-## Demo script
-
-1. Sidebar: sign in as **Alyssa Reyes - Management Trainee / Branch Banking Associate**.
-2. Ask: "What do I need to do before my first day?"
-3. Ask: "What is my Day 30 Readiness Check?"
-4. Ask: "Who do I ask about laptop or system access?"
-5. Ask: "Mark MFA setup as done."
-6. Ask a payroll or benefits term question to show the first-job decoder.
-7. Ask something off-topic to show the input guardrail.
-8. Ask something not covered by the handbook to show escalation.
-9. Move the simulated date one week forward; AISHA opens with a pulse check-in.
-10. Switch to **HR admin** and show support signals, pulse trend, and escalations.
-
-Reset between rehearsals: sidebar -> Demo controls -> Reset demo data.
-
-## Tests
-
-```powershell
-uv run pytest
-uv run pytest tests/test_pulse.py -k risk
-```
-
-Tests are designed to run without Ollama. LLM calls are mocked or injectable.
-
-## Module Ownership Table
-
-Full evidence table, experiments, failure modes, and privacy notes:
-[`docs/EVALUATION.md`](docs/EVALUATION.md). Presenter notes and Q&A scripts are
-in [`docs/MODULE_PRESENTATION_GUIDE.md`](docs/MODULE_PRESENTATION_GUIDE.md).
-
-Suggested 8-module presentation split, two modules per person:
-
-| Owner | Module | Demo line | Code evidence and inline comments | Tests / proof |
-|---|---|---|---|---|
-| Johann Casio | Prompt Engineering | AISHA's persona, scope, citation, privacy, and tool rules are injected per turn. | `src/stai/agent.py` (`SYSTEM_PROMPT_TEMPLATE`, `render_system_prompt` docstring); `src/stai/guardrails.py` classifier prompt and few-shot examples. | `tests/test_guardrails.py` |
-| Johann Casio | RAG | Ask a handbook question and show `[source: filename.md]` citations plus the Sources expander. | `src/stai/ingestion.py` loads/chunks docs; `src/stai/retriever.py` formats citations; `data/hr_docs/*.md` contains the fictionalized handbook. | `tests/test_ingestion.py`, `tests/test_agent_smoke.py` |
-| Jose Miguel Espinosa | Structured Outputs | Pulse and guardrail classifiers return JSON that is parsed into typed models. | `src/stai/models.py` Pydantic models; `src/stai/pulse.py` `parse_pulse`; `src/stai/guardrails.py` `parse_verdict`. | `tests/test_pulse.py`, `tests/test_guardrails.py` |
-| Jose Miguel Espinosa | Guardrails | Ask off-topic and prompt-injection questions, then show scoped refusal. | `src/stai/guardrails.py` input classifier, refusals, citation enforcement, and PII redaction comments/docstrings. | `tests/test_guardrails.py` |
-| Matthew Dela Cruz | Disambiguation | Ask AISHA to complete a vague task; it should ask which task instead of guessing. | `src/stai/tools.py` comments around `AMBIGUITY_MARGIN`, `find_task_matches`, and `ambiguous_task_matches`. | `tests/test_disambiguation.py` |
-| Matthew Dela Cruz | Memory | Refresh/switch views after a chat or task update; state persists in SQLite. | `src/stai/state.py` `chat_messages` table and repo methods; `app.py` history loading; `src/stai/api.py` persisted API history comments. | `tests/test_memory.py` |
-| Bon Aquino | ReAct Agent | Ask for plan, owner lookup, task completion, and escalation in sequence. | `src/stai/agent.py` `create_agent` / `create_react_agent`; `src/stai/tools.py` five tool definitions and `RunCapture`. | `tests/test_agent_smoke.py` |
-| Bon Aquino | Tool Use | Show local tools: KB search, plan read/update, person lookup, escalation. | `src/stai/tools.py` `search_knowledge_base`, `get_my_plan`, `complete_task`, `find_person`, `escalate_to_hr`. | `tests/test_state_and_tools.py` |
-
-Additional required engineering modules:
-
-| Module | Status | Demo / command | Code evidence and inline comments | Tests / proof |
-|---|---|---|---|---|
-| Chat UI | Met | `uv run streamlit run app.py`; show Alyssa chat and HR admin dashboard. | `app.py` Streamlit entry point and rendering helpers. | `tests/test_app_boot.py` |
-| API Endpoint | Met | `uv run uvicorn stai.api:app --reload`, then open `http://localhost:8000/docs`. | `src/stai/api.py` FastAPI schemas/endpoints; `src/stai/service.py` shared guarded turn pipeline. | `tests/test_api.py` |
-| LLMOps Monitoring | Met | `Get-Content data/observability.jsonl -Tail 5` after a chat turn. | `src/stai/observability.py` explains JSONL-over-MLflow rationale and token estimates; `src/stai/log_shipper.py` optional MLflow relay shipping. | `tests/test_observability.py`, `tests/test_log_shipper.py` |
-| Dockerization | Met | `docker build -t aisha-demo .`; `docker run -p 8501:8501 -e STAI_OLLAMA_BASE_URL=http://host.docker.internal:11434 aisha-demo`. | `Dockerfile` has inline comments for build/run/API commands and why Ollama stays outside the image; `.dockerignore` keeps the image focused. | Manual build/run documented above |
-| SQL Agent | Not claimed | Explain that SQLite is accessed through safe repository methods, not LLM-generated SQL. | `src/stai/state.py` typed SQLite repository methods. | Listed as not met in `ContextKnowledgeBase/ModuleChecklist.md` |
-
-When presenting, be explicit that **SQL Agent is not implemented** and **Tool
-Use is local internal tool use**, not a real third-party BDO system integration.
-
-## Layout
-
-```text
-app.py                 Streamlit entry: new-hire chat + HR support dashboard
-Dockerfile             app container (connects to host Ollama)
-deploy/
-  stai-api.service          systemd unit for the REST API on the LXC deployment
-  stai-log-shipper.service  systemd unit: one shipping pass (see log_shipper.py)
-  stai-log-shipper.timer    triggers the above on an interval
-src/stai/
-  config.py            pydantic-settings, env-overridable STAI_* settings
-  models.py            Employee, ChecklistItem, PulseResult, GuardrailVerdict
-  ingestion.py         hr_docs/*.md -> chunks -> Chroma
-  retriever.py         similarity search + metadata filters
-  tools.py             five agent tools + RunCapture + task disambiguation
-  agent.py             ChatOllama agent + AISHA system prompt
-  guardrails.py        input classifier, citation enforcement, PII redaction
-  pulse.py             check-in scheduling, sentiment scoring, support flag
-  state.py             SQLite repo: employees, plans, escalations, pulses, chat memory
-  service.py           one reusable guarded chat turn (used by the API)
-  api.py               FastAPI REST endpoint (/health, /chat)
-  observability.py     per-turn JSONL run log (LLMOps)
-  log_shipper.py       ships observability.jsonl to a remote MLflow relay
-data/
-  hr_docs/             fictionalized BDO educational onboarding docs
-  org.json             fictional org directory
-  employees.json       demo new hires
-  plans.json           role ramp templates
-docs/BUSINESS_CASE.md  market, wedge, "why not ChatGPT", ROI
-docs/EVALUATION.md     module evidence, experiments, failure modes, privacy
-tests/                 pytest suite (runs without Ollama)
-```
-link: http://103.231.240.130:2163/
-
-MIT (c) 2026 Mateogas
+Named ownership is balanced across Johann Casio, Jose Miguel Espinosa, and Bon Aquino, with at least two claimed modules per team member. See [`docs/MODULE_PRESENTATION_GUIDE.md`](docs/MODULE_PRESENTATION_GUIDE.md) for the 10–15 minute core demo plus optional extension and [`docs/EVALUATION.md`](docs/EVALUATION.md) for the complete gate trace and limitations.

@@ -1,178 +1,50 @@
-# UI/UX Brief
+# AISHA v1.0 UI/UX Brief
 
-This brief describes what has to change in the Streamlit experience after the
-AISHA/BDO/Alyssa story spine. It intentionally does not prescribe visual
-implementation details.
+## Experience promise
 
-## Current UX Problem
+The interface should make a narrow promise obvious: AISHA helps the fictional Hire Alyssa Reyes navigate Payroll, Resource Access, and HR Policies using synthetic evidence. It is not affiliated with BDO Unibank, and it is support—not surveillance.
 
-The current app works, but it still feels like a technical demo:
+Role and destination are separate controls. The Hire destinations are **Ask AISHA**, **Certificate Check**, and **History**. **HR User** exposes only structured Cases, Attribute Change Requests, and currently shared Validation Results.
 
-- persona picker is a prototype stand-in but dominates the flow,
-- simulated date is exposed as a primary sidebar control,
-- suggestion chips are generic demo prompts,
-- the new-hire experience is mostly an empty chat,
-- the HR dashboard is table-first rather than action-first,
-- sources and model/config details make sense to developers but not users,
-- the UI copy now reflects AISHA/BDO/Alyssa, but the layout still does not fully
-  express the AISHA thesis.
+## Ask AISHA
 
-## Desired UX Thesis
+- Use a conversation-first layout with a visible three-topic boundary and fixed simulated date.
+- Render Grounded Answer, Clarification Request, Abstention, and Escalation Offer as distinct, non-color-only states.
+- Show evidence as policy ID, revision, handbook version, page, and artifact identity—not a raw retrieved snippet.
+- Keep an escalation offer separate from consent. Explain exactly what bounded summary HR will receive before the user creates a case.
+- Never present conversation text as a confirmed Hire Profile value.
 
-AISHA should feel like:
+## Certificate Check
 
-- Alyssa's "today in onboarding and ramp" cockpit,
-- a safe consultation agent for asking and unblocking,
-- a guide that helps the employee find the right human owner,
-- a manager/HR support console focused on ramp friction,
-- a privacy-conscious support loop, not a surveillance dashboard.
+- Before file selection, state: local completeness only; not authenticity, approval, medical assessment, diagnosis, or submission.
+- Require acknowledgement before processing.
+- Explain accepted types, 10 MB maximum, three-page PDF maximum, local extraction/OCR, and the no-result behavior for upload rejection/check failure.
+- Display `Complete`, `Incomplete`, or `Needs Human Review` with text, not color alone.
+- For terminal human review, show only an ephemeral blank Manual Field Summary template.
+- Keep the separate fictional Official HR Document Route visible.
 
-## New-Hire View: Must Change
+## History and HR
 
-### 1. Start With Day 30 Readiness
+- Hire History lists ordered Policy Conversations and safe Validation Results. It supports conversation deletion and result share, revoke, and delete.
+- HR must never see Policy Conversations or certificate content. Cases show consented summaries; attribute requests show one proposed field; Validation Results show only currently shared safe metadata.
+- Version conflicts should produce actionable refresh guidance without raw technical errors.
 
-The first screen should answer:
+## Accessibility and responsiveness
 
-- What should Alyssa do next?
-- What is blocking her?
-- Who can help?
-- What does Day 30 supervised branch readiness require?
+- Rehearse at desktop and 320 CSS pixels with no horizontal page overflow.
+- Maintain visible keyboard focus and at least 44-pixel action targets.
+- Use headings, labels, status/live regions, and meaningful empty states.
+- Do not encode applicability, consent, share, or validation state by color alone.
+- Keep primary actions in logical keyboard order and avoid hover-only instructions.
 
-### 2. Use Onboarding And Ramp Stages
+## Demo sequence
 
-Keep the new stage model as the main visual language:
+1. Open Ask AISHA as Alyssa and ask PAY-001.
+2. Show a grounded answer, an unsupported abstention, and the ACC-006 unknown-Work-Site clarification.
+3. Offer a human route, prove no HR case exists, then consent and close the case from HR.
+4. Request and decide one Work Site profile change.
+5. Acknowledge Certificate Check, upload the synthetic labelled PDF, and show `Complete`.
+6. Share the safe result, view it in HR, revoke, then delete.
+7. Open API docs and the integrated acceptance report.
 
-- Pre-start
-- Day 1 Setup
-- Week 1 Foundations
-- Week 2 Practice and Feedback
-- Day 30 Readiness Check
-
-Anything beyond Day 30 can be shown as ramp analytics, not onboarding.
-
-### 3. Make "Ask AISHA" Contextual
-
-Prompt chips should be tied to the new demo:
-
-- Help me unblock an access issue.
-- What does Day 30 readiness mean for my role?
-- Who owns this branch operations question?
-- Mark a ramp milestone done.
-- I feel behind on my onboarding.
-- What should I prepare before my manager check-in?
-
-Avoid making payroll/benefits the hero use case. Those can exist, but they
-should not imply the employee is incapable of understanding basic information.
-
-### 4. Hide Demo Controls
-
-The simulated date and persona picker are necessary for the capstone demo, but
-they should feel like demo/admin controls, not the product itself.
-
-### 5. Treat Citations As Trust, Not Clutter
-
-Sources are important, but they should be shown as evidence/trust affordances.
-Do not make the user feel like they are debugging retrieval.
-
-### 6. Include The BDO Educational Disclaimer
-
-The UI or demo surface should make it clear that AISHA is an educational
-prototype and all BDO employee data, documents, org contacts, metrics, and
-interactions are fictionalized.
-
-## HR View: Must Change
-
-### 1. Lead With Support Cards
-
-The HR/admin view should first show:
-
-- who may need support,
-- what behavior-over-time signals changed,
-- what milestone is delayed,
-- what humane support action is suggested,
-- what privacy boundary is being respected.
-
-### 2. Make The Aha Moment A Ramp-Delay Support Card
-
-Example card:
-
-```text
-Alyssa Reyes - Branch Banking Associate
-Ramp status: Needs support
-Signal: Day 1 access setup completed 2.1x slower than cohort baseline;
-compliance module overdue by 2 days; no buddy check-in logged this week;
-pulse confidence dropped from 4 to 2.
-Suggested action: Schedule a 15-minute buddy check-in and clarify Day 30
-readiness expectations.
-Privacy note: No private chat transcript shown by default.
-```
-
-### 3. Keep Tables As Drill-Down
-
-Tables are useful, but they should not be the primary dashboard story.
-
-### 4. Separate Explicit Escalations From Trend Signals
-
-Escalations are explicit help requests.
-Ramp-delay support signals are inferred from behavior over time.
-The UI should make that difference clear.
-
-### 5. Avoid Surveillance Language
-
-Do not use:
-
-- flight risk,
-- poor performer,
-- watched,
-- monitored,
-- productivity score,
-- belonging score,
-- desk time.
-
-Use:
-
-- support signal,
-- ramp friction,
-- delayed milestone,
-- missed touchpoint,
-- suggested support action,
-- privacy note.
-
-## Demo Flow To Support
-
-The UI should make this demo feel natural:
-
-1. Show the BDO educational disclaimer.
-2. Sign in as Alyssa Reyes, Management Trainee / Branch Banking Associate.
-3. Show Alyssa's onboarding/ramp cockpit and Day 30 readiness goal.
-4. Alyssa asks a grounded branch/compliance/ramp question and receives
-   citations.
-5. Alyssa asks who owns a blocker; AISHA finds the right person/team.
-6. Alyssa completes or updates a milestone.
-7. A weekly pulse appears; Alyssa reports low confidence or feeling behind.
-8. HR view surfaces a support card with trend signals and a suggested action,
-   with no private transcript shown by default.
-
-## Design Constraints
-
-- Keep it Streamlit unless a separate decision is made.
-- Keep local-first and privacy-friendly positioning.
-- Keep citations visible.
-- Keep simulated date available for demo.
-- Keep HR and new-hire views distinct.
-- Do not add authentication beyond the existing persona picker unless needed
-  for the assignment.
-- Do not implement future integrations such as HRIS, LMS, calendar, SSO, or
-  absence-pattern data in the live demo unless a later slice explicitly scopes
-  them.
-
-## What Not To Optimize First
-
-- Pixel-perfect BDO brand styling.
-- Fancy animations.
-- More charts.
-- More generic dashboard metrics.
-- Model configuration UI.
-- Attendance or absence integrations.
-
-The main UX gap is product flow and AISHA framing, not decoration.
+The UI and API must express the same domain outcomes. A visually successful demo cannot override a failed privacy, consent, evidence, or acceptance gate.

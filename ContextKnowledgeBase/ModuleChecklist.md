@@ -1,94 +1,21 @@
-# Module Checklist
+# AISHA Canonical Module Acceptance Matrix
 
-This file maps the course module checklist to the current codebase.
+AISHA is a fictional educational capstone prototype. It is not affiliated with, endorsed by, or representative of BDO Unibank. A row is `Met` only when its production code, automated test, current documentation/evaluation, reproducible live step, pass criterion, and named owner all agree.
 
-## Summary
+| Module | Named Owner | Final Claim | Production Code | Automated Test | Documentation/Evaluation | Live Demo Step | Pass Criterion | Status |
+|---|---|---|---|---|---|---|---|---|
+| Prompt Engineering | Johann Casio | Three frozen policy prompts are compared; P3 is selected without exposing private reasoning. | `src/stai/prompts.py`; `src/stai/agent.py` | `tests/test_prompts.py`; `tests/test_agent_smoke.py`; `tests/test_evaluation.py` | `docs/EVALUATION.md`; `evaluation/results/v1.0/prompt-comparison.json` | Ask PAY-001, then ask an unsupported question and contrast the grounded result with abstention. | P1/P2/P3 use identical frozen settings and three repetitions; selection follows the locked weakest-component/CSS/latency/token tie-break; no chain-of-thought is public. | Met |
+| Structured Outputs | Jose Miguel Espinosa | Policy, escalation, applicability, retrieval, and validation outcomes are discriminated typed contracts. | `src/stai/models.py`; `src/stai/service.py`; `src/stai/medical.py` | `tests/test_models.py`; `tests/test_service.py`; `tests/test_medical_validation.py` | OpenAPI `/docs`; `docs/EVALUATION.md` | Show Grounded Answer, Clarification Request, Abstention or Escalation Offer, and Validation Result. | Every outcome validates; malformed model output becomes typed abstention, never a free-form conclusion. | Met |
+| Disambiguation | Jose Miguel Espinosa | AISHA asks only for an unknown constraining Hire Attribute and never mutates on ambiguity. | `src/stai/policy.py`; `src/stai/service.py` | `tests/test_disambiguation.py`; policy/applicability benchmark cases | `docs/EVALUATION.md` | Compare ACC-006 for the confirmed profile with the same case when Work Site is unknown. | Known facts are not re-asked; exactly one focused question is produced; no mutation or personalized conclusion precedes confirmation. | Met |
+| Chroma RAG | Johann Casio | Immutable 108-page records, hybrid candidates, eligibility gates, and verified atomic activation ground policy claims. | `src/stai/handbook.py`; `src/stai/ingestion.py`; `src/stai/retriever.py`; `src/stai/guardrails.py` | `tests/test_handbook.py`; `tests/test_ingestion.py`; `tests/test_retriever.py`; `tests/test_grounding.py` | `README.md`; `docs/ARCHITECTURE_DIAGRAMS.md`; retrieval section of `docs/EVALUATION.md` | Show PAY-001 citation metadata, then a failed partial build leaving the active pointer unchanged. | Version/integrity/authority/applicability gates, rollback, typed failures, and claim-local citations pass; no raw snippet persists or becomes public evidence. | Met |
+| Memory | Bon Aquino | AISHA owns ordered Policy Conversation history and result-only validation history across restarts. | `src/stai/state.py`; `src/stai/service.py`; `src/stai/api.py` | `tests/test_memory.py`; `tests/test_persistence.py`; `tests/test_api.py` | `README.md`; `docs/ARCHITECTURE_DIAGRAMS.md` | Create a conversation, restart the repository, read History, then delete it. | Ordered memory survives restart, never overrides Hire Profile authority, and medical content is rejected before chat persistence. | Met |
+| Guardrails | Jose Miguel Espinosa | Input classification may fail open, while schema, evidence, applicability, consent, and medical privacy fail closed. | `src/stai/guardrails.py`; `src/stai/policy.py`; `src/stai/medical.py` | `tests/test_guardrails.py`; `tests/test_grounding.py`; `tests/test_medical_privacy.py` | `docs/EVALUATION.md` | Show off-topic/injection handling, unsupported-policy abstention, and dedicated certificate routing. | No unsupported material claim or unvalidated citation is exposed; policy and medical privacy boundaries remain closed. | Met |
+| ReAct Agent | Bon Aquino | A fresh ReAct loop selects only bounded version, retrieval, applicability, calendar, and route tools. | `src/stai/agent.py`; `src/stai/tools.py`; `src/stai/service.py` | `tests/test_agent_smoke.py`; `tests/test_tools.py` | `docs/ARCHITECTURE_DIAGRAMS.md` | Trace Active Handbook lookup → search → applicability → typed validation → optional consent endpoint. | Tool arguments are schema-validated; capture contains closed tool identities and evidence metadata; mutations remain deterministic and consent-gated. | Met |
+| External Tool Use | Johann Casio | The read-only Nager.Holidays tool provides bounded Philippine calendar facts with exact attribution. | `src/stai/public_holidays.py`; `src/stai/tools.py`; `src/stai/state.py` | `tests/test_public_holidays.py`; eight NAG benchmark cases | `README.md`; `docs/EVALUATION.md`; `evaluation/results/v1.0/live-nager.json` | Run the recorded live lookup and show `Based on Nager.` | Philippines and current/following-year bounds, retry, validation, seven-day cache, circuit/fallback, conflict, and zero private-data egress pass; Nager cannot fail health. | Met |
+| Chat UI | Bon Aquino | Streamlit exposes conversation-first Ask AISHA, Certificate Check, History, and separate structured HR views. | `app.py`; `src/stai/service.py` | `tests/test_app_boot.py`; `tests/test_ui_contract.py` | `docs/MODULE_PRESENTATION_GUIDE.md` | Complete Ask, Certificate/History, escalation consent, and HR queue walkthroughs at desktop and 320 CSS px. | UI/REST outcomes agree; keyboard focus, 44 px targets, non-color meaning, announcements, and private HR boundaries are evidenced. | Met |
+| API Endpoint | Bon Aquino | Only the typed `/api/v1` contract remains, with safe envelopes, replayable idempotency, versions, and cursors. | `src/stai/api.py`; `src/stai/service.py` | `tests/test_api.py`; `tests/test_api_privacy.py` | `README.md`; generated OpenAPI | Exercise health, conversation replay, escalation consent/close, attribute approval, and certificate share/revoke/delete. | Alyssa-only namespaces, fixed dates, server history, CORS, statuses, idempotency, resource versions, pagination, health isolation, and denylist all pass without Ollama. | Met |
+| LLMOps Monitoring | Jose Miguel Espinosa | Schema-v2 operation metadata keeps the protected JSONL → shipper → authenticated relay → separate MLflow topology. | `src/stai/observability.py`; `src/stai/log_shipper.py`; `mlflow-relay/` | `tests/test_observability.py`; `tests/test_log_shipper.py`; `mlflow-relay/tests/test_api.py` | `docs/EVALUATION.md`; `docs/ARCHITECTURE_DIAGRAMS.md` | Show one v2 record and the aggregate experiment without a Hire or content identifier. | v1 sanitization, allowlists, absent-vs-zero, quarantine, partial retry, event idempotency, retention, routing, denylist, and total failure isolation pass. | Met |
+| Dockerization | Johann Casio | A non-root Python 3.12 Linux image includes local OCR dependencies and persistent state volumes. | `Dockerfile`; `.dockerignore`; `.env.example`; `deploy/container_smoke.py` | `docker build -t aisha-demo .`; container smoke | `README.md` Linux/Proxmox section; `evaluation/results/v1.0/acceptance.json` | Run the image smoke for UI, `/api/v1/health`, PAY-001, and a synthetic certificate. | Tesseract English, PyMuPDF, Pillow, multipart, service-user permissions, SQLite/key volume, UI/API/policy/certificate checks all pass. | Met |
+| SQL Agent | Unassigned (out of scope) | Unclaimed: Chroma RAG is the selected data-retrieval module; SQLite is deterministic application state, not an LLM-generated SQL surface. | None | None | `README.md` scope | Explain the selection boundary if asked. | Must never be presented as Met. | Unclaimed / Out of scope |
 
-Narrative status:
-
-- Front-facing product is AISHA: AI Support for Hires and Associates.
-- Demo setting is fictionalized BDO with the required educational
-  disclaimer from `AISHAStorySpine.md`.
-- Slice 1 replaced the user-facing seed data, app copy, prompts, handbook docs,
-  README, business case, and tests with AISHA/BDO/Alyssa content.
-- The main business value is faster productivity/time-to-ramp, supported by
-  onboarding/ramp state, trend signals, and HR support cards.
-
-| Module | Current status | Evidence | Next action |
-|---|---|---|---|
-| Prompt Engineering | Met | Persona system prompt in `agent.py`; few-shot guardrail classifier in `guardrails.py`; guardrail model ablation in `docs/EVALUATION.md`. | Keep. |
-| Structured Outputs | Met | Pydantic models parse guardrail and pulse JSON outputs. | Keep. |
-| Disambiguation | Met | Deterministic `find_task_matches` + `ambiguous_task_matches` in `tools.py`; `complete_task` refuses ties and lists candidates; `tests/test_disambiguation.py`. | Keep. |
-| RAG | Met | `ingestion.py`, `retriever.py`, Chroma, HR docs, source formatting; retrieval examples in `docs/EVALUATION.md`. | Keep. |
-| Memory | Met | Streamlit session memory, SQLite domain state, plus persistent `chat_messages` table used by both Streamlit and the API; `tests/test_memory.py`. | Keep. |
-| Guardrails | Met | Input topic/injection classifier; citation enforcement; output PII redaction (output-side only, documented). | Keep. |
-| ReAct Agent | Met | LangChain/LangGraph agent loop with tools. | Keep. |
-| SQL Agent | Not met | SQLite is used through handwritten repository methods; LLM does not generate SQL. | Not claimed; documented in `docs/EVALUATION.md`. |
-| Tool Use | Mostly met, caveat | Five internal tools exist. | Internal-tool rationale documented in `docs/EVALUATION.md` (local-first, no real BDO systems). |
-| Chat UI | Met | Streamlit chat and HR dashboard in `app.py`. | Redesign flow for usability (Slice 3). |
-| API Endpoint | Met | FastAPI `GET /health` + `POST /chat` in `src/stai/api.py`, reusing the pipeline via `src/stai/service.py`; `tests/test_api.py`. | Keep. |
-| LLMOps Monitoring | Met | Per-turn JSONL run log in `src/stai/observability.py` (route, models, token estimates, latency, tools, sources, errors); wired into Streamlit and API; `tests/test_observability.py`. | Keep; JSONL-over-MLflow rationale documented. |
-| Dockerization | Met | `Dockerfile` + `.dockerignore`; host-Ollama connection and model pulls documented in README. Build verified 2026-07-09; containerized API served `/health`. | Keep. |
-
-## Hard requirements from Specification.pdf
-
-The spec explicitly requires:
-
-- web UI - met (`app.py`),
-- REST API endpoint - met (`src/stai/api.py`),
-- basic LLMOps monitoring - met (`src/stai/observability.py`),
-- Dockerfile - met (`Dockerfile`),
-- technical write-up - `docs/EVALUATION.md` + `docs/BUSINESS_CASE.md`,
-- experiment findings - `docs/EVALUATION.md` (guardrail ablation, retrieval checks),
-- README with setup and architecture - met,
-- live demo - script in README; requires Ollama with the three models pulled.
-
-All items on the spec list now have code, tests, and (for Docker) a verified
-build plus containerized `/health` smoke test.
-
-## Defensible current claims
-
-These can be claimed now with code evidence:
-
-- RAG with citations.
-- Guardrails.
-- Structured outputs.
-- ReAct/tool-using agent.
-- Streamlit chat UI.
-- SQLite-backed onboarding state.
-- Pulse/risk dashboard.
-- REST API sharing the guarded pipeline.
-- Persistent conversation memory (SQLite `chat_messages`, survives restarts).
-- Deterministic task disambiguation before mutation.
-- Per-turn LLMOps run logging (privacy-preserving: lengths/counts, never text).
-- Dockerfile with documented host-Ollama setup.
-
-AISHA-specific claims now supported by Slice 1:
-
-- Role-based onboarding and ramp support for Alyssa Reyes, a fictionalized BDO
-  Management Trainee / Branch Banking Associate.
-- Day 30 readiness framing instead of the old long-range onboarding story.
-- Support-card framing for HR: enough signal to help, not enough detail to
-  police.
-- Educational/fictional BDO disclaimer throughout demo/docs.
-
-These should be claimed carefully:
-
-- Tool Use: strong internal tool use, but not a third-party external API; the
-  local-first rationale is documented in `docs/EVALUATION.md`.
-- PII guardrail: output-side redaction only; input text is stored as-is in the
-  local SQLite file.
-- Token metrics: estimates (~4 chars/token), not exact counts - Ollama via
-  LangChain does not reliably report usage.
-
-## Recommended module ownership split
-
-If the team needs module ownership for presentation:
-
-- Person A: RAG, prompt engineering, citations.
-- Person B: guardrails, structured outputs, disambiguation.
-- Person C: memory, tools, ReAct agent.
-- Person D if present: API, Docker, LLMOps, evaluation.
-
-If only three people are presenting, assign API/Docker/LLMOps across the same
-people as deployment and reliability responsibilities.
+Cross-cutting medical and persistence/reset gates are additionally proven by `tests/test_medical_validation.py`, `tests/test_medical_ocr.py`, `tests/test_medical_privacy.py`, `tests/test_persistence.py`, `tests/test_cutover.py`, and `tests/test_reset.py`. No module row can override a privacy, consent, citation, applicability, retrieval-integrity, reset-integrity, telemetry, benchmark, or container failure.

@@ -6,7 +6,7 @@ import hashlib
 import hmac
 import re
 import unicodedata
-from datetime import date, datetime
+from datetime import UTC, date, datetime, timedelta
 from io import BytesIO
 from pathlib import Path
 from typing import Callable, Literal
@@ -69,6 +69,18 @@ class MedicalCheckOutcome(BaseModel):
     inconsistency_codes: list[str] = Field(default_factory=list)
     warning_codes: list[str] = Field(default_factory=list)
     review_codes: list[str] = Field(default_factory=list)
+    validation_id: str | None = None
+    handbook_version: str = "1.0"
+    profile_revision: int | None = None
+    attempt_count: int | None = None
+    share_state: Literal["private", "shared"] | None = None
+    version: int | None = None
+    citations: list[dict] = Field(default_factory=list)
+    retry_token: str | None = None
+    retry_expires_at_utc: str | None = None
+    manual_field_summary: dict[str, str] | None = None
+    disclaimer: str = "Local completeness check only—not authenticity, approval, or medical assessment."
+    official_hr_document_route: str = "Submit the original separately through the fictional Official HR Document Route."
     fingerprint: str | None = Field(default=None, exclude=True)
 
 
@@ -227,11 +239,7 @@ class MedicalCheckService:
 
     @staticmethod
     def _default_extract(data: bytes, kind: str) -> CertificateFields:
-        # The production parser remains deterministic. Initial field parsing is
-        # deliberately conservative; synthetic integration tests inject a typed
-        # extractor while the raw local text never crosses this seam.
-        extract_local_text(data, kind)
-        return CertificateFields(extraction_ambiguous=True)
+        return parse_certificate_text(extract_local_text(data, kind))
 
     def check(
         self,
@@ -255,10 +263,27 @@ class MedicalCheckService:
         try:
             fields = self.extractor(data, preflight.kind or "pdf")
             validation = validate_certificate_fields(fields, "Alyssa Reyes", evaluation_date, retry_used=retry_used)
-            if validation.retry_required:
-                return MedicalCheckOutcome(kind="retry_required")
             key = self.repo.ensure_installation_key()
             fingerprint = hmac.new(key, data, hashlib.sha256).hexdigest()
+            if validation.retry_required:
+                token = self.repo.create_retry_session(fingerprint)
+                expiry = datetime.now(UTC) + timedelta(minutes=15)
+                return MedicalCheckOutcome(
+                    kind="retry_required",
+                    code="low_confidence_or_unrecognized_date",
+                    retry_token=token,
+                    retry_expires_at_utc=expiry.isoformat().replace("+00:00", "Z"),
+                )
+            result = self.repo.create_validation_result(
+                status=validation.status.value,
+                missing_codes=validation.missing_codes,
+                inconsistency_codes=validation.inconsistency_codes,
+                warning_codes=validation.warning_codes,
+                review_codes=validation.review_codes,
+                evaluation_date=evaluation_date,
+                fingerprint=fingerprint,
+                attempt_count=2 if retry_used else 1,
+            )
             return MedicalCheckOutcome(
                 kind="validation_result",
                 status=validation.status,
@@ -266,7 +291,60 @@ class MedicalCheckService:
                 inconsistency_codes=validation.inconsistency_codes,
                 warning_codes=validation.warning_codes,
                 review_codes=validation.review_codes,
+                validation_id=result["validation_id"],
+                profile_revision=result["profile_revision"],
+                attempt_count=result["accepted_attempt_count"],
+                share_state=result["share_state"],
+                version=result["resource_version"],
+                citations=result["citations"],
+                manual_field_summary=(
+                    {name: "" for name in REQUIRED_TEXT_FIELDS}
+                    if retry_used and validation.status == ValidationStatus.NEEDS_HUMAN_REVIEW else None
+                ),
                 fingerprint=fingerprint,
             )
         except Exception:
             return MedicalCheckOutcome(kind="check_failure", code="local_processing_failure")
+
+
+_LABELS = {
+    "patient_name": "patient name",
+    "consultation_date": "consultation date",
+    "issue_date": "issue date",
+    "absence_start_date": "absence start date",
+    "absence_end_date": "absence end date",
+    "duration_days": "duration days",
+    "clinician_name": "clinician name",
+    "facility_name": "facility name",
+}
+
+
+def parse_certificate_text(text: str) -> CertificateFields:
+    """Parse synthetic/demo certificate labels locally without retaining text."""
+    normalized = "\n".join(line.strip() for line in text.splitlines() if line.strip())
+    values: dict[str, object] = {}
+    ambiguous = False
+    for field, label in _LABELS.items():
+        matches = re.findall(rf"(?im)^{re.escape(label)}\s*:\s*(.+?)\s*$", normalized)
+        unique = list(dict.fromkeys(value.strip() for value in matches if value.strip()))
+        if len(unique) > 1:
+            ambiguous = True
+        if unique:
+            if field == "duration_days":
+                number = re.search(r"\d+", unique[0])
+                values[field] = int(number.group()) if number else None
+            else:
+                values[field] = unique[0]
+    def present(label: str) -> bool | None:
+        match = re.search(rf"(?im)^{re.escape(label)}\s*:\s*(.+?)\s*$", normalized)
+        if not match:
+            return None
+        return match.group(1).strip().lower() not in {"no", "none", "absent", "false"}
+    values.update(
+        license_number_present=present("license number"),
+        signature_present=present("signature"),
+        recommendation_present=present("recommendation"),
+        extraction_ambiguous=ambiguous,
+        unsupported_purpose=bool(re.search(r"(?i)laboratory|prescription|diagnostic report", normalized)),
+    )
+    return CertificateFields(**values)

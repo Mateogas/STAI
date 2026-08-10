@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1220" viewBox="0 0 1200 1220" role="img" aria-labelledby="title desc">
+  <title id="title">AISHA policy turn flow</title>
+  <desc id="desc">A message passes medical pre-routing, scope, active handbook, evidence, applicability, and claim validation before a typed outcome is persisted.</desc>
+  <rect width="1200" height="1220" fill="#f7f9fc"/>
+  <text x="600" y="55" text-anchor="middle" font-family="Arial" font-size="32" font-weight="700" fill="#17365d">AISHA policy turn — fail-closed consequential gates</text>
+  <g font-family="Arial" font-size="18" text-anchor="middle">
+    <g fill="#17365d" stroke="#17365d" stroke-width="2">
+      <rect x="390" y="95" width="420" height="64" rx="14" fill="#e7f0f8"/><text x="600" y="135">Message + fixed simulated date</text>
+      <polygon points="600,190 810,255 600,320 390,255" fill="#fff3d6"/><text x="600" y="250">Certificate or medical content?</text><text x="600" y="274">Route before persistence</text>
+      <rect x="865" y="222" width="275" height="66" rx="14" fill="#fce8e8"/><text x="1002" y="250">Reject from chat;</text><text x="1002" y="274">open Certificate Check</text>
+      <rect x="390" y="355" width="420" height="64" rx="14" fill="#e7f0f8"/><text x="600" y="395">Scope and injection classification</text>
+      <rect x="390" y="455" width="420" height="64" rx="14" fill="#e7f0f8"/><text x="600" y="495">Resolve active immutable handbook</text>
+      <rect x="390" y="555" width="420" height="64" rx="14" fill="#e7f0f8"/><text x="600" y="595">Hybrid search + integrity/eligibility gates</text>
+      <polygon points="600,650 810,715 600,780 390,715" fill="#fff3d6"/><text x="600" y="720">Eligible evidence found?</text>
+      <rect x="60" y="682" width="275" height="66" rx="14" fill="#fce8e8"/><text x="197" y="710">Typed abstention;</text><text x="197" y="734">no unrelated citation</text>
+      <polygon points="600,810 810,875 600,940 390,875" fill="#fff3d6"/><text x="600" y="870">Deciding profile attribute</text><text x="600" y="894">known?</text>
+      <rect x="865" y="842" width="275" height="66" rx="14" fill="#fff3d6"/><text x="1002" y="870">Ask one focused question;</text><text x="1002" y="894">no profile mutation</text>
+      <rect x="390" y="975" width="420" height="64" rx="14" fill="#e6f4ed"/><text x="600" y="1015">Validate schema, claims, applicability, citations</text>
+      <rect x="390" y="1075" width="420" height="78" rx="14" fill="#dcefe5"/><text x="600" y="1107">Persist and render typed outcome</text><text x="600" y="1134">Human case only after explicit consent</text>
+    </g>
+    <g stroke="#496579" stroke-width="5" fill="none" marker-end="url(#arrow)">
+      <path d="M600 159 V187"/><path d="M810 255 H860"/><path d="M600 320 V350"/><path d="M600 419 V450"/><path d="M600 519 V550"/><path d="M600 619 V647"/><path d="M390 715 H340"/><path d="M600 780 V807"/><path d="M810 875 H860"/><path d="M600 940 V970"/><path d="M600 1039 V1070"/>
+    </g>
+    <g fill="#496579" font-size="16" font-weight="700"><text x="835" y="244">YES</text><text x="620" y="342">NO</text><text x="365" y="702">NO</text><text x="620" y="802">YES</text><text x="835" y="862">NO</text><text x="620" y="962">YES</text></g>
+  </g>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#496579"/></marker></defs>
+</svg>

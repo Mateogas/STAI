@@ -1,12 +1,4 @@
-"""SQLite repository for all per-employee state.
-
-Design notes:
-- stdlib ``sqlite3``, no ORM — the schema is four small tables.
-- A fresh connection per operation keeps things safe across Streamlit's
-  script-runner threads (SQLite connections are not thread-portable).
-- ``seed_if_empty`` loads employees + role plan templates from the JSON data
-  files exactly once; deleting the .db file resets the whole demo.
-"""
+"""Normalized SQLite repository for AISHA policy-domain state."""
 
 from __future__ import annotations
 
@@ -23,18 +15,7 @@ from pathlib import Path
 from typing import Callable, Iterator
 
 from stai.config import settings
-from stai.models import (
-    PHASE_LABELS,
-    PHASE_ORDER,
-    ChatMessage,
-    ChecklistItem,
-    Employee,
-    Escalation,
-    PlanPhase,
-    PulseRecord,
-    PulseResult,
-    HireProfile,
-)
+from stai.models import HireProfile
 
 
 MIGRATION_PATH = Path(__file__).with_name("migrations") / "0002_policy_domain.sql"
@@ -55,56 +36,6 @@ def _utc_now() -> datetime:
 def _utc_text(value: datetime | None = None) -> str:
     return (value or _utc_now()).isoformat().replace("+00:00", "Z")
 
-_SCHEMA = """
-CREATE TABLE IF NOT EXISTS employees (
-    id          TEXT PRIMARY KEY,
-    name        TEXT NOT NULL,
-    role        TEXT NOT NULL,
-    role_key    TEXT NOT NULL,
-    department  TEXT NOT NULL,
-    start_date  TEXT NOT NULL,
-    email       TEXT DEFAULT '',
-    manager     TEXT DEFAULT '',
-    buddy       TEXT DEFAULT ''
-);
-CREATE TABLE IF NOT EXISTS plan_items (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    employee_id TEXT NOT NULL REFERENCES employees(id),
-    phase       TEXT NOT NULL,
-    title       TEXT NOT NULL,
-    done        INTEGER NOT NULL DEFAULT 0,
-    done_at     TEXT,
-    sort        INTEGER NOT NULL DEFAULT 0
-);
-CREATE TABLE IF NOT EXISTS escalations (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    employee_id TEXT NOT NULL REFERENCES employees(id),
-    question    TEXT NOT NULL,
-    details     TEXT DEFAULT '',
-    status      TEXT NOT NULL DEFAULT 'open',
-    created_at  TEXT NOT NULL
-);
-CREATE TABLE IF NOT EXISTS chat_messages (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    employee_id TEXT NOT NULL REFERENCES employees(id),
-    role        TEXT NOT NULL,
-    content     TEXT NOT NULL,
-    kind        TEXT DEFAULT '',
-    sources     TEXT NOT NULL DEFAULT '[]',
-    created_at  TEXT NOT NULL
-);
-CREATE TABLE IF NOT EXISTS pulse_checkins (
-    id           INTEGER PRIMARY KEY AUTOINCREMENT,
-    employee_id  TEXT NOT NULL REFERENCES employees(id),
-    checkin_date TEXT NOT NULL,
-    sentiment    INTEGER NOT NULL,
-    concerns     TEXT NOT NULL DEFAULT '[]',
-    summary      TEXT DEFAULT '',
-    raw_reply    TEXT DEFAULT ''
-);
-"""
-
-
 class Repo:
     def __init__(
         self,
@@ -117,7 +48,6 @@ class Repo:
         self.lock_path = self.db_path.with_suffix(".lock")
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         with self._connect() as conn:
-            conn.executescript(_SCHEMA)
             conn.executescript(MIGRATION_PATH.read_text(encoding="utf-8"))
             conn.execute(
                 "INSERT OR IGNORE INTO schema_migrations VALUES (?,?,?)",
@@ -242,6 +172,15 @@ class Repo:
             row = conn.execute("SELECT * FROM policy_conversations WHERE conversation_id=?", (conversation_id,)).fetchone()
         return dict(row) if row else None
 
+    def list_policy_conversations(self, employee_id: str) -> list[dict]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT conversation_id,hire_id,simulated_date,created_at_utc,updated_at_utc,resource_version "
+                "FROM policy_conversations WHERE hire_id=? ORDER BY created_at_utc DESC,conversation_id DESC",
+                (employee_id,),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
     def delete_policy_conversation(self, conversation_id: str) -> bool:
         with self._connect() as conn:
             cur = conn.execute("DELETE FROM policy_conversations WHERE conversation_id=?", (conversation_id,))
@@ -262,6 +201,43 @@ class Repo:
                 )
         return message
 
+    def get_policy_response_payload(self, message_id: str) -> dict | None:
+        with self._connect() as conn:
+            message = conn.execute(
+                "SELECT * FROM policy_messages WHERE message_id=? AND role='aisha'", (message_id,)
+            ).fetchone()
+            if not message:
+                return None
+            policy = conn.execute(
+                "SELECT handbook_version,applicability,evidence_state FROM policy_response_policies WHERE message_id=? ORDER BY policy_id LIMIT 1",
+                (message_id,),
+            ).fetchone()
+            citations = [dict(row) for row in conn.execute(
+                "SELECT policy_id,handbook_version,page_start,page_end FROM policy_response_citations WHERE message_id=? ORDER BY claim_ordinal",
+                (message_id,),
+            )]
+            offer = conn.execute("SELECT * FROM escalation_offers WHERE message_id=?", (message_id,)).fetchone()
+        response_type = message["response_type"] or "abstention"
+        payload = {
+            "type": response_type,
+            "text": message["text"],
+            "handbook_version": policy["handbook_version"] if policy else "1.0",
+            "applicability": policy["applicability"] if policy else "applies",
+            "evidence_state": policy["evidence_state"] if policy else "insufficient_evidence",
+            "citations": citations,
+        }
+        if response_type == "abstention":
+            payload["reason"] = "insufficient_evidence"
+        elif response_type == "clarification_request":
+            payload.update(question=message["text"], choices=[])
+        elif response_type == "escalation_offer" and offer:
+            payload.update(
+                offer_id=offer["offer_id"], route_owner=offer["route_owner"],
+                route_channel=offer["route_channel"], proposed_summary=offer["proposed_summary"],
+                topic=offer["topic"], version=offer["resource_version"],
+            )
+        return payload
+
     def create_escalation_offer(
         self, conversation_id: str, message_id: str, topic: str,
         route_owner: str, route_channel: str, summary: str, policy_ids: list[str],
@@ -277,6 +253,19 @@ class Repo:
             for policy_id in policy_ids:
                 conn.execute("INSERT INTO escalation_offer_policies VALUES (?,?)", (offer_id, policy_id))
         return {"offer_id": offer_id, "topic": topic, "route_owner": route_owner, "route_channel": route_channel, "proposed_summary": summary, "version": 1}
+
+    def get_escalation_offer(self, offer_id: str) -> dict | None:
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM escalation_offers WHERE offer_id=?", (offer_id,)).fetchone()
+        if not row:
+            return None
+        return {
+            "type": "escalation_offer", "text": "I can create this privacy-safe case after you consent.",
+            "handbook_version": "1.0", "applicability": "applies", "evidence_state": "ready",
+            "citations": [], "offer_id": row["offer_id"], "route_owner": row["route_owner"],
+            "route_channel": row["route_channel"], "proposed_summary": row["proposed_summary"],
+            "topic": row["topic"], "version": row["resource_version"],
+        }
 
     def consent_escalation_offer(self, offer_id: str, *, expected_version: int) -> dict:
         case_id = str(uuid.uuid4())
@@ -302,6 +291,31 @@ class Repo:
         with self._connect() as conn:
             rows = conn.execute("SELECT * FROM escalation_cases ORDER BY created_at_utc DESC, case_id DESC").fetchall()
         return [dict(row) for row in rows]
+
+    def get_escalation_case(self, case_id: str) -> dict | None:
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM escalation_cases WHERE case_id=?", (case_id,)).fetchone()
+            if not row:
+                return None
+            policy_ids = [item[0] for item in conn.execute(
+                "SELECT policy_id FROM escalation_case_policies WHERE case_id=? ORDER BY policy_id", (case_id,)
+            )]
+        return {**dict(row), "policy_ids": policy_ids}
+
+    def close_escalation_case(self, case_id: str, *, expected_version: int, hr_user: str) -> dict:
+        now = _utc_text()
+        with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute("SELECT * FROM escalation_cases WHERE case_id=?", (case_id,)).fetchone()
+            if not row:
+                raise KeyError("case not found")
+            if row["resource_version"] != expected_version:
+                raise ValueError("stale resource version")
+            conn.execute(
+                "UPDATE escalation_cases SET status='closed',closed_at_utc=?,closing_hr_user=?,resource_version=resource_version+1 WHERE case_id=?",
+                (now, hr_user, case_id),
+            )
+        return self.get_escalation_case(case_id)
 
     def create_attribute_change_request(self, employee_id: str, attribute_name: str, proposed_value: str, *, consent: bool) -> dict:
         if not consent:
@@ -345,6 +359,21 @@ class Repo:
             conn.execute("UPDATE attribute_change_requests SET status=?, confirming_hr_user=?, resolved_at_utc=?, resource_version=resource_version+1 WHERE request_id=?", (status, hr_user, now, request_id))
         return {"request_id": request_id, "status": status, "version": expected_version + 1}
 
+    def list_attribute_change_requests(self, employee_id: str | None = None) -> list[dict]:
+        query = "SELECT * FROM attribute_change_requests"
+        params: tuple = ()
+        if employee_id:
+            query += " WHERE hire_id=?"; params = (employee_id,)
+        query += " ORDER BY created_at_utc DESC,request_id DESC"
+        with self._connect() as conn:
+            rows = conn.execute(query, params).fetchall()
+        return [dict(row) for row in rows]
+
+    def get_attribute_change_request(self, request_id: str) -> dict | None:
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM attribute_change_requests WHERE request_id=?", (request_id,)).fetchone()
+        return dict(row) if row else None
+
     def create_validation_result(
         self, *, status: str, missing_codes: list[str], inconsistency_codes: list[str],
         warning_codes: list[str], review_codes: list[str], evaluation_date: date,
@@ -352,11 +381,20 @@ class Repo:
     ) -> dict:
         validation_id = str(uuid.uuid4())
         now = _utc_text()
+        profile_revision = self.get_hire_profile("emp-alyssa").revision
         with self._connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
+            if fingerprint:
+                existing = conn.execute(
+                    "SELECT validation_id FROM validation_results WHERE hire_id='emp-alyssa' AND policy_id='HRP-004' "
+                    "AND handbook_version='1.0' AND profile_revision=? AND document_fingerprint=? ORDER BY created_at_utc DESC LIMIT 1",
+                    (profile_revision, fingerprint),
+                ).fetchone()
+                if existing:
+                    return self.get_validation_result(existing[0])
             conn.execute(
                 "INSERT INTO validation_results VALUES (?,?,?,?,?,?,?,?,?,?,?, ?,1)",
-                (validation_id, "emp-alyssa", status, "HRP-004", "1.0", self.get_hire_profile("emp-alyssa").revision, attempt_count, evaluation_date.isoformat(), now, fingerprint, "private", None),
+                (validation_id, "emp-alyssa", status, "HRP-004", "1.0", profile_revision, attempt_count, evaluation_date.isoformat(), now, fingerprint, "private", None),
             )
             ordinal = 0
             for family, codes in (("missing", missing_codes), ("inconsistency", inconsistency_codes), ("warning", warning_codes), ("human_review", review_codes)):
@@ -364,7 +402,7 @@ class Repo:
                     conn.execute("INSERT INTO validation_result_codes VALUES (?,?,?,?)", (validation_id, family, code, ordinal))
                     ordinal += 1
             conn.execute("INSERT INTO validation_result_citations VALUES (?,?,?,?,?)", (validation_id, "HRP-004", "1.0", 78, None))
-        return {"validation_id": validation_id, "status": status, "share_state": "private", "version": 1}
+        return self.get_validation_result(validation_id)
 
     def _set_validation_share(self, validation_id: str, *, share: bool, expected_version: int) -> dict:
         now = _utc_text()
@@ -379,13 +417,71 @@ class Repo:
         return {"validation_id": validation_id, "share_state": state, "version": expected_version + 1}
 
     def list_shared_validation_results(self) -> list[dict]:
+        return self.list_validation_results(shared_only=True)
+
+    def get_validation_result(self, validation_id: str) -> dict | None:
         with self._connect() as conn:
-            rows = conn.execute("SELECT validation_id,status,policy_id,handbook_version,created_at_utc,shared_at_utc,resource_version FROM validation_results WHERE share_state='shared' ORDER BY created_at_utc DESC, validation_id DESC").fetchall()
-            output = []
-            for row in rows:
-                codes = [dict(family=c[0], code=c[1]) for c in conn.execute("SELECT code_family,code FROM validation_result_codes WHERE validation_id=? ORDER BY ordinal", (row["validation_id"],))]
-                output.append({**dict(row), "codes": codes})
-        return output
+            row = conn.execute(
+                "SELECT validation_id,hire_id,status,policy_id,handbook_version,profile_revision,accepted_attempt_count,"
+                "simulated_evaluation_date,created_at_utc,share_state,shared_at_utc,resource_version "
+                "FROM validation_results WHERE validation_id=?", (validation_id,),
+            ).fetchone()
+            if not row:
+                return None
+            codes = [
+                {"family": item[0], "code": item[1]}
+                for item in conn.execute(
+                    "SELECT code_family,code FROM validation_result_codes WHERE validation_id=? ORDER BY ordinal",
+                    (validation_id,),
+                )
+            ]
+            citations = [
+                {"policy_id": item[0], "handbook_version": item[1], "page_start": item[2], "page_end": item[3]}
+                for item in conn.execute(
+                    "SELECT policy_id,handbook_version,page_start,page_end FROM validation_result_citations WHERE validation_id=? ORDER BY page_start",
+                    (validation_id,),
+                )
+            ]
+        return {
+            **dict(row), "codes": codes, "citations": citations,
+            "disclaimer": "Local completeness check only—not authenticity, approval, or medical assessment.",
+            "official_hr_document_route": "Submit the original separately through the fictional Official HR Document Route.",
+        }
+
+    def list_validation_results(self, employee_id: str = "emp-alyssa", *, shared_only: bool = False) -> list[dict]:
+        query = "SELECT validation_id FROM validation_results WHERE hire_id=?"
+        params: list = [employee_id]
+        if shared_only:
+            query += " AND share_state='shared'"
+        query += " ORDER BY created_at_utc DESC,validation_id DESC"
+        with self._connect() as conn:
+            ids = [row[0] for row in conn.execute(query, params)]
+        return [self.get_validation_result(validation_id) for validation_id in ids]
+
+    def create_retry_session(self, fingerprint: str) -> str:
+        token = uuid.uuid4().hex + uuid.uuid4().hex
+        root = self.ensure_installation_key()
+        digest = hmac.new(root, f"retry:{token}".encode(), hashlib.sha256).hexdigest()
+        now = _utc_now()
+        with self._connect() as conn:
+            conn.execute(
+                "INSERT INTO certificate_retry_sessions VALUES (?,?,?,?,?,?,?,?,?)",
+                (digest, "emp-alyssa", "HRP-004", "1.0", self.get_hire_profile("emp-alyssa").revision,
+                 fingerprint, 1, _utc_text(now), _utc_text(now + timedelta(minutes=15))),
+            )
+        return token
+
+    def consume_retry_session(self, token: str) -> dict:
+        root = self.ensure_installation_key()
+        digest = hmac.new(root, f"retry:{token}".encode(), hashlib.sha256).hexdigest()
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM certificate_retry_sessions WHERE token_digest=?", (digest,)).fetchone()
+            if not row or datetime.fromisoformat(row["expires_at_utc"].replace("Z", "+00:00")) <= _utc_now():
+                if row:
+                    conn.execute("DELETE FROM certificate_retry_sessions WHERE token_digest=?", (digest,))
+                raise KeyError("retry token not found")
+            conn.execute("DELETE FROM certificate_retry_sessions WHERE token_digest=?", (digest,))
+        return dict(row)
 
     def delete_validation_result(self, validation_id: str, *, expected_version: int) -> bool:
         with self._connect() as conn:
@@ -524,232 +620,6 @@ class Repo:
             self.ensure_installation_key()
             with self._connect() as conn:
                 conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-    # ------------------------------------------------------------------ seed
-
-    def seed_if_empty(
-        self,
-        employees_file: Path | None = None,
-        plans_file: Path | None = None,
-    ) -> bool:
-        """Load employees + instantiate their role plan templates. Idempotent."""
-        with self._connect() as conn:
-            if conn.execute("SELECT COUNT(*) FROM employees").fetchone()[0]:
-                return False
-        employees = json.loads(
-            Path(employees_file or settings.employees_file).read_text(encoding="utf-8")
-        )
-        plans = json.loads(Path(plans_file or settings.plans_file).read_text(encoding="utf-8"))
-        with self._connect() as conn:
-            for emp in employees:
-                conn.execute(
-                    "INSERT INTO employees (id, name, role, role_key, department, start_date,"
-                    " email, manager, buddy) VALUES (?,?,?,?,?,?,?,?,?)",
-                    (
-                        emp["id"], emp["name"], emp["role"], emp["role_key"],
-                        emp["department"], emp["start_date"], emp.get("email", ""),
-                        emp.get("manager", ""), emp.get("buddy", ""),
-                    ),
-                )
-                template = plans.get(emp["role_key"], {})
-                sort = 0
-                for phase in PHASE_ORDER:
-                    for title in template.get(phase, []):
-                        conn.execute(
-                            "INSERT INTO plan_items (employee_id, phase, title, sort)"
-                            " VALUES (?,?,?,?)",
-                            (emp["id"], phase, title, sort),
-                        )
-                        sort += 1
-        return True
-
-    # ------------------------------------------------------------- employees
-
-    def list_employees(self) -> list[Employee]:
-        with self._connect() as conn:
-            rows = conn.execute("SELECT * FROM employees ORDER BY start_date").fetchall()
-        return [Employee(**dict(r)) for r in rows]
-
-    def get_employee(self, employee_id: str) -> Employee | None:
-        with self._connect() as conn:
-            row = conn.execute(
-                "SELECT * FROM employees WHERE id = ?", (employee_id,)
-            ).fetchone()
-        return Employee(**dict(row)) if row else None
-
-    # ------------------------------------------------------------------ plan
-
-    def list_plan_items(self, employee_id: str) -> list[ChecklistItem]:
-        with self._connect() as conn:
-            rows = conn.execute(
-                "SELECT * FROM plan_items WHERE employee_id = ? ORDER BY sort",
-                (employee_id,),
-            ).fetchall()
-        return [self._to_item(r) for r in rows]
-
-    def get_plan(self, employee_id: str) -> list[PlanPhase]:
-        items = self.list_plan_items(employee_id)
-        phases = []
-        for key in PHASE_ORDER:
-            phase_items = [i for i in items if i.phase == key]
-            if phase_items:
-                phases.append(PlanPhase(key=key, label=PHASE_LABELS[key], items=phase_items))
-        return phases
-
-    def complete_task(self, employee_id: str, item_id: int) -> ChecklistItem | None:
-        with self._connect() as conn:
-            conn.execute(
-                "UPDATE plan_items SET done = 1, done_at = ? WHERE id = ? AND employee_id = ?",
-                (datetime.now().isoformat(timespec="seconds"), item_id, employee_id),
-            )
-            row = conn.execute(
-                "SELECT * FROM plan_items WHERE id = ? AND employee_id = ?",
-                (item_id, employee_id),
-            ).fetchone()
-        return self._to_item(row) if row else None
-
-    def progress(self, employee_id: str) -> tuple[int, int]:
-        """(done, total) across the whole plan."""
-        with self._connect() as conn:
-            row = conn.execute(
-                "SELECT COALESCE(SUM(done), 0), COUNT(*) FROM plan_items WHERE employee_id = ?",
-                (employee_id,),
-            ).fetchone()
-        return int(row[0]), int(row[1])
-
-    @staticmethod
-    def _to_item(row: sqlite3.Row) -> ChecklistItem:
-        d = dict(row)
-        d.pop("sort", None)
-        d["done"] = bool(d["done"])
-        return ChecklistItem(**d)
-
-    # ----------------------------------------------------------- escalations
-
-    def add_escalation(self, employee_id: str, question: str, details: str = "") -> Escalation:
-        created = datetime.now().isoformat(timespec="seconds")
-        with self._connect() as conn:
-            cur = conn.execute(
-                "INSERT INTO escalations (employee_id, question, details, created_at)"
-                " VALUES (?,?,?,?)",
-                (employee_id, question, details, created),
-            )
-            esc_id = cur.lastrowid
-        return Escalation(
-            id=esc_id, employee_id=employee_id, question=question,
-            details=details, status="open", created_at=created,
-        )
-
-    def list_escalations(self, status: str | None = None) -> list[Escalation]:
-        query = "SELECT * FROM escalations"
-        params: tuple = ()
-        if status:
-            query += " WHERE status = ?"
-            params = (status,)
-        query += " ORDER BY created_at DESC"
-        with self._connect() as conn:
-            rows = conn.execute(query, params).fetchall()
-        return [Escalation(**dict(r)) for r in rows]
-
-    def resolve_escalation(self, escalation_id: int) -> bool:
-        with self._connect() as conn:
-            cur = conn.execute(
-                "UPDATE escalations SET status = 'resolved' WHERE id = ?", (escalation_id,)
-            )
-            return cur.rowcount > 0
-
-    # ---------------------------------------------------------- chat memory
-
-    def add_chat_message(
-        self,
-        employee_id: str,
-        role: str,
-        content: str,
-        kind: str = "",
-        sources: list[dict] | None = None,
-    ) -> ChatMessage:
-        created = datetime.now().isoformat(timespec="seconds")
-        with self._connect() as conn:
-            cur = conn.execute(
-                "INSERT INTO chat_messages (employee_id, role, content, kind, sources,"
-                " created_at) VALUES (?,?,?,?,?,?)",
-                (employee_id, role, content, kind, json.dumps(sources or []), created),
-            )
-            msg_id = cur.lastrowid
-        return ChatMessage(
-            id=msg_id, employee_id=employee_id, role=role, content=content,
-            kind=kind, sources=sources or [], created_at=created,
-        )
-
-    def list_chat_messages(
-        self, employee_id: str, limit: int | None = None
-    ) -> list[ChatMessage]:
-        """Chronological history; with ``limit``, only the most recent N."""
-        query = "SELECT * FROM chat_messages WHERE employee_id = ? ORDER BY id"
-        with self._connect() as conn:
-            rows = conn.execute(query, (employee_id,)).fetchall()
-        if limit is not None:
-            rows = rows[-limit:]
-        messages = []
-        for r in rows:
-            d = dict(r)
-            d["sources"] = json.loads(d["sources"] or "[]")
-            messages.append(ChatMessage(**d))
-        return messages
-
-    def clear_chat_messages(self, employee_id: str) -> int:
-        with self._connect() as conn:
-            cur = conn.execute(
-                "DELETE FROM chat_messages WHERE employee_id = ?", (employee_id,)
-            )
-            return cur.rowcount
-
-    # ----------------------------------------------------------------- pulse
-
-    def add_pulse(
-        self,
-        employee_id: str,
-        checkin_date: date,
-        result: PulseResult,
-        raw_reply: str = "",
-    ) -> PulseRecord:
-        with self._connect() as conn:
-            cur = conn.execute(
-                "INSERT INTO pulse_checkins (employee_id, checkin_date, sentiment, concerns,"
-                " summary, raw_reply) VALUES (?,?,?,?,?,?)",
-                (
-                    employee_id, checkin_date.isoformat(), result.sentiment,
-                    json.dumps(result.concerns), result.summary, raw_reply,
-                ),
-            )
-            rec_id = cur.lastrowid
-        return PulseRecord(
-            id=rec_id, employee_id=employee_id, checkin_date=checkin_date,
-            sentiment=result.sentiment, concerns=result.concerns,
-            summary=result.summary, raw_reply=raw_reply,
-        )
-
-    def pulse_history(self, employee_id: str) -> list[PulseRecord]:
-        with self._connect() as conn:
-            rows = conn.execute(
-                "SELECT * FROM pulse_checkins WHERE employee_id = ? ORDER BY checkin_date",
-                (employee_id,),
-            ).fetchall()
-        records = []
-        for r in rows:
-            d = dict(r)
-            d["concerns"] = json.loads(d["concerns"] or "[]")
-            records.append(PulseRecord(**d))
-        return records
-
-    def last_checkin_date(self, employee_id: str) -> date | None:
-        with self._connect() as conn:
-            row = conn.execute(
-                "SELECT MAX(checkin_date) FROM pulse_checkins WHERE employee_id = ?",
-                (employee_id,),
-            ).fetchone()
-        return date.fromisoformat(row[0]) if row and row[0] else None
-
-
 def cutover_legacy_database(db_path: Path | str, *, verifier: Callable[[Repo], bool]) -> None:
     """Build and verify a sibling epoch-2 database before atomic replacement."""
     target = Path(db_path)

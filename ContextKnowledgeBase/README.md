@@ -1,88 +1,17 @@
-# STAI Context Knowledge Base
+# AISHA Context Knowledge Base
 
-This folder is the canonical handoff surface for future chats working on STAI.
-Start here before reading the older root-level planning documents.
+This folder is the current handoff source of truth for the AISHA v1.0 educational capstone. AISHA supports exactly three onboarding topics—Payroll, Resource Access, and HR Policies—for the fictional Hire Alyssa Reyes. It is not affiliated with or endorsed by BDO Unibank and uses no real employee data.
 
-## Why this exists
+Start with `ContextCatalog.md`, then read only the route-specific files it names. The final issue decisions and closed child-ticket resolutions are reflected here; historical broad-assistant ideas are not current requirements.
 
-The repo has enough moving parts that a new chat should not need to rediscover:
+Core files:
 
-- what the project is trying to prove,
-- what is already implemented,
-- which rubric gaps are still open,
-- which tasks can be split into separate context windows,
-- which story and UI changes matter most.
+- `AISHAStorySpine.md`: narrative, boundaries, and canonical journeys.
+- `ProjectSynopsis.md`: product and architecture overview.
+- `ProjectState.md`: implemented state and remaining limits.
+- `ImplementationPlan.md`: completed dependency-ordered slices.
+- `ModuleChecklist.md`: canonical module acceptance matrix.
+- `UIUXBrief.md`: current Streamlit experience contract.
+- `OpenQuestions.md`: settled-decision register.
 
-Use this folder as the "instant context pack" for follow-up chats.
-
-## Read order
-
-For any new chat, read these first:
-
-1. `ContextCatalog.md` - routing guide for which context files to read by task.
-2. `AISHAStorySpine.md` - locked BDO/AISHA narrative, scope, and migration rules.
-3. Route-specific files listed in `ContextCatalog.md`.
-
-Then read the relevant specialist file:
-
-- `ProjectSynopsis.md` for the north star, business framing, and product thesis.
-- `ProjectState.md` for what exists in code and what is missing.
-- `ImplementationPlan.md` for remaining work sliced into separate chats.
-- `ModuleChecklist.md` for rubric mapping and evidence.
-- `UIUXBrief.md` for design/UI work.
-- `Changelog.md` for commit history and inherited state.
-- `ChatPrompts.md` for copy-paste prompts to start focused chats.
-- `OpenQuestions.md` for product decisions that should be grilled.
-
-## Legacy handoff status
-
-`ContextTransfer.md` at the repo root is now legacy. It has been folded into
-this folder and should be removed after this knowledge base is reviewed.
-
-Do not treat `ContextTransfer.md` as current source of truth unless you are
-auditing the migration itself.
-
-## Current source hierarchy
-
-Primary handoff:
-
-- `ContextKnowledgeBase/*.md`
-
-Routing source:
-
-- `ContextKnowledgeBase/ContextCatalog.md`
-
-Narrative source:
-
-- `ContextKnowledgeBase/AISHAStorySpine.md`
-
-Authoritative implementation:
-
-- `app.py`
-- `src/stai/*.py`
-- `tests/*.py`
-- `data/*.json`
-- `data/hr_docs/*.md`
-
-Course/spec source:
-
-- `Specification.pdf`
-
-Older project artifacts:
-
-- `README.md`
-- `PLAN.md`
-- `docs/BUSINESS_CASE.md`
-- `ContextTransfer.md` (legacy)
-
-## Maintenance rule
-
-When a chat changes code or product direction, update the relevant file here:
-
-- code status changed -> `ProjectState.md`
-- remaining task changed -> `ImplementationPlan.md`
-- module evidence changed -> `ModuleChecklist.md`
-- story/north star changed -> `ProjectSynopsis.md`
-- BDO/AISHA narrative or rebrand scope changed -> `AISHAStorySpine.md`
-- UI scope changed -> `UIUXBrief.md`
-- commit or major iteration happened -> `Changelog.md`
+Canonical engineering evidence lives in `README.md`, `docs/`, `handbook/`, `evaluation/`, production code, and tests. Run `uv run python -m stai.acceptance` for the integrated acceptance report.

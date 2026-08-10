@@ -1,0 +1,58 @@
+{
+  "acceptance_version": "1.0",
+  "benchmark": {
+    "execution_mode": "offline_deterministic_contract",
+    "hard_gate_failures": 0,
+    "locked_components": {
+      "A": 0.99,
+      "D": 0.99,
+      "G": 0.99,
+      "M": 0.98,
+      "R": 0.99,
+      "X": 0.98
+    },
+    "locked_css": 0.987481,
+    "scorer_version": "1.0",
+    "selected_prompt": "P3",
+    "tie_break_rule": "weakest_locked_component",
+    "version": "1.0"
+  },
+  "completed_at_utc": "2026-08-10T07:15:55.370518Z",
+  "docker": {
+    "image": "aisha-demo",
+    "linux_container_smoke": "pass",
+    "service_user": "aisha:10001"
+  },
+  "documentation": {
+    "met_modules": 12,
+    "owner_rows": {
+      "Bon Aquino": 4,
+      "Johann Casio": 4,
+      "Jose Miguel Espinosa": 4
+    },
+    "technical_writeup_words": 2979
+  },
+  "handbook": {
+    "page_count": 108,
+    "pdf_sha256": "500110cb9455a789290de71a72d27bfcc20ed0d040b69593def0829c65f23140",
+    "version": "1.0"
+  },
+  "live_nager": {
+    "attribution": "Based on Nager.",
+    "checked_at_utc": "2026-08-10T07:13:52.109657Z",
+    "outcome": "live",
+    "privacy": "No Hire, conversation, policy, document, OCR, or medical content sent.",
+    "result_count": 18,
+    "year": 2026
+  },
+  "offline_tests": {
+    "passed": 114
+  },
+  "privacy_and_replacement": {
+    "legacy_regressions": 0,
+    "openapi_paths": 24,
+    "sqlite_tables": 22
+  },
+  "started_at_utc": "2026-08-10T07:13:46.147006Z",
+  "status": "passed"
+}

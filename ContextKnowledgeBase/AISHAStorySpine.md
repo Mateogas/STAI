@@ -1,226 +1,54 @@
-# AISHA Story Spine
+# AISHA v1.0 Story Spine
 
-This is the source of truth for the narrative rebrand from STAI/Meridian/Maya
-to AISHA/BDO/Alyssa. Use this before changing code, data, docs, tests, or UI.
+## Canonical statement
 
-## Locked Decisions
+AISHA—AI Support for Hires and Associates—is a local-first educational capstone for three onboarding topics: Payroll, Resource Access, and HR Policies. The main character is Alyssa Reyes, one fictional Hire. AISHA is not affiliated with or endorsed by BDO Unibank, contains no real employee data, and is support—not surveillance.
 
-- Product name: AISHA.
-- Expansion: AI Support for Hires and Associates.
-- Repo/course codename may remain STAI internally, but user-facing narrative
-  should present AISHA.
-- Business setting: BDO.
-- Disclaimer: AISHA is an educational capstone prototype. It is not affiliated
-  with, endorsed by, or representative of BDO Unibank. All employee records,
-  onboarding documents, org contacts, metrics, and demo interactions are
-  fictionalized for storytelling and evaluation purposes.
-- Demo employee: Alyssa Reyes.
-- Role: Management Trainee / Branch Banking Associate.
-- Career stage: fresh graduate or early-career hire.
-- Business value: faster productivity and time-to-ramp.
-- Secondary value: better belonging, lower manager/HR workload, and earlier
-  support before onboarding drag becomes disengagement.
-- Core promise: AISHA helps new hires ramp faster without turning support into
-  surveillance.
+AISHA helps Alyssa answer a narrow question safely: “Which current onboarding rule applies to my confirmed situation, what source supports it, and what should happen when the system cannot decide?” It does not act as a general HR chatbot.
 
-## Story Thesis
+## Source and profile authority
 
-Large banks do not lose onboarding time because new hires are incapable of
-understanding policies. They lose time because onboarding is fragmented across
-systems, people, compliance steps, manager expectations, branch norms, and
-support channels.
+The only policy source is the active immutable 108-page synthetic handbook build. A displayed material claim must map to an eligible page by policy ID, revision, handbook version, page, and artifact identity. A citation is not proof by itself; integrity, authority, status, topic, applicability, and claim validation must all pass.
 
-AISHA closes that support loop. It gives the new hire a safe guide, helps them
-find the right owner, tracks role-based ramp progress, watches behavior over
-time, and gives managers and HR support signals before small blockers compound.
+Alyssa’s applicability profile has four HR-confirmed attributes: Role Key, Department Key, Employment Classification, and Work Site. Conversation statements do not update them. If an unknown attribute can change the answer, AISHA asks one focused clarification and makes no personalized conclusion. A correction is a one-attribute request and HR approval creates a versioned profile revision.
 
-## What Makes It Agentic
+## Four policy outcomes
 
-Simple policy Q&A is not enough to justify agentic AI.
+Every policy turn ends as one typed outcome:
 
-AISHA is agentic because it:
+1. Grounded Answer—eligible applicable evidence supports all material claims.
+2. Clarification Request—one missing confirmed attribute can change applicability.
+3. Abstention—the active eligible evidence cannot support a conclusion.
+4. Escalation Offer—a bounded human route and privacy-safe proposed summary are offered.
 
-- retrieves grounded onboarding and policy context with citations,
-- reads and updates the employee's onboarding/ramp state,
-- remembers progress across turns,
-- routes the employee to the right human owner,
-- initiates pulse check-ins,
-- compares behavior to role/cohort expectations,
-- detects trends over time,
-- summarizes support signals for HR without exposing raw private chats,
-- keeps a human in the loop for intervention.
+An offer is not a case. Only Alyssa’s explicit consent creates an HR-visible case. HR receives the summary, state, and versions, never the private policy transcript.
 
-## Main Demo Goal
+## Certificate story
 
-By Day 30, Alyssa should be ready to handle supervised branch customer
-interactions with correct process awareness, compliance awareness, and
-confidence in who to ask when blocked.
+Certificate Check is a separate destination. Before processing, Alyssa sees and acknowledges that it is a local structural/completeness check—not authenticity, approval, medical assessment, diagnosis, or submission. PDF, JPG, and PNG files pass deterministic size, page, structure, and active-content gates. Extraction and OCR are local.
 
-The demo should not frame onboarding as a 90-day checklist. Use:
+History retains only a safe result. It excludes file bytes, filenames, MIME details, extracted text and field values, diagnosis, confidence maps, and raw fingerprints. A result can be shared with HR, revoked, or deleted. HR sees only currently shared safe result metadata. The original belongs in a separate fictional Official HR Document Route.
 
-- Pre-start
-- Day 1 Setup
-- Week 1 Foundations
-- Week 2 Practice and Feedback
-- Day 30 Readiness Check
+## Product journeys
 
-Anything beyond Day 30 is ramp analytics, not "onboarding."
+### Ask AISHA
 
-Live demo boundary:
+Alyssa asks about PAY-001 and receives a grounded result with claim-local structured evidence. An unsupported question abstains. An ACC-006 fixture with unknown Work Site asks exactly one deciding question. A holiday lookup uses only Philippine current/following-year facts and displays `Based on Nager.` A request for a person produces an offer; consent creates the case.
 
-The live demo should stay limited to current or deliberately implemented
-prototype capabilities: grounded chat, citations, onboarding/ramp tasks, people
-lookup, task updates, pulse check-ins, HR support dashboard, and guardrails.
-Future integrations such as HRIS, LMS, calendar, SSO, attendance/absence
-patterns, and production access control belong in the expansion/future-work
-section only.
+### Profile revision
 
-## Risk Signals
+Alyssa requests one Work Site change. HR approves or rejects against the expected version. Approval adds a revision; neither chat nor the agent directly writes the confirmed profile.
 
-The killer point is behavior over time, not one emotional message.
+### Certificate and History
 
-Useful fictional signals:
+Alyssa acknowledges the boundary, uploads a synthetic labelled PDF, and receives `Complete`. She can share the safe result, view HR’s corresponding structured record, revoke sharing, and delete her result. `Complete` never means genuine, medically acceptable, approved, or submitted.
 
-- delayed task completion versus role/cohort baseline,
-- repeated questions about the same workflow,
-- unresolved access blocker,
-- missed manager or buddy touchpoint,
-- delayed compliance or branch-shadowing milestone,
-- declining pulse score,
-- vague or low-confidence pulse replies,
-- weak support-network indicators.
+### HR User
 
-Filipino cultural context such as hiya, pakikisama, pakikiramdam, and fear of
-being seen as bida-bida can be used carefully as one explanation for why a
-capable new hire may hesitate to ask for help. Do not reduce every issue to
-"nahihiya."
+HR sees only consented cases, attribute change requests, and currently shared safe validation results. There is no HR route for policy conversations, certificate bytes, extracted content, or medical detail.
 
-## Privacy Rule
+## Evaluation story
 
-AISHA is support, not surveillance.
+The frozen benchmark has 60 synthetic cases across policy/applicability, retrieval, API, Nager, and medical/privacy. P1 fails the Locked gate, P2 passes, and P3 is selected at Locked CSS 0.987481 with every component at least 0.85 and zero hard failures. This is deterministic contract evidence, not live-model or production validation.
 
-HR should see:
-
-- milestone delays,
-- unresolved blockers,
-- missed touchpoints,
-- pulse trends,
-- broad concern tags,
-- concise rationale,
-- suggested support action.
-
-HR should not see by default:
-
-- full private chat transcripts,
-- sensitive personal details,
-- raw venting,
-- speculative personality judgments,
-- punitive labels such as "flight risk" or "poor performer."
-
-Preferred wording:
-
-"AISHA gives HR enough signal to offer help, not enough detail to police the
-employee."
-
-## Product Scope
-
-### AISHA Is
-
-- A consultation and support agent for onboarding and early ramp.
-- A role-based guide that helps new hires understand next steps, owners, and
-  expectations.
-- A grounded RAG assistant that answers from fictionalized onboarding/policy
-  documents with citations.
-- A tool-using agent that can read and update onboarding/ramp state.
-- A trend-aware system that can surface delayed milestones, repeated blockers,
-  missed touchpoints, and declining pulse signals.
-- A manager/HR support aid that suggests humane interventions such as a buddy
-  check-in, access unblock, or expectations clarification.
-
-### AISHA Is Not
-
-- A replacement for HR, managers, mentors, or buddies.
-- A disciplinary system.
-- A surveillance tool.
-- A performance rating engine.
-- A mental-health diagnosis system.
-- A source of official BDO policy or official employee records.
-- A guarantee that a new hire will stay, perform, or feel connected.
-
-### Current Prototype Supports
-
-- Local-first Ollama LLMs.
-- Chroma RAG over onboarding/HR documents.
-- Citations for retrieved sources.
-- Guardrails for topic scope, prompt injection, citation enforcement, and PII
-  redaction.
-- Tool use for plan state, task completion, HR escalation, and people lookup.
-- SQLite state for employees, onboarding tasks, escalations, and pulse history.
-- Pulse check-ins and trend/risk display.
-- Streamlit new-hire chat and HR dashboard.
-
-### Current Prototype Does Not Yet Support
-
-- Real BDO HRIS integration.
-- Real employee authentication or SSO.
-- Real attendance, sign-in/sign-out, badge, or branch presence data.
-- Real calendar or meeting scheduling.
-- Real manager/buddy check-in verification.
-- Persistent chat history across app restarts unless later implemented.
-- Production access control or role-based permissions.
-- Full LLMOps/API/Docker claims unless those slices are implemented.
-
-### Expansion Plans
-
-- HRIS integration to sync hires, roles, managers, and onboarding milestones.
-- SSO and role-based access control.
-- Calendar integration for manager/buddy check-ins.
-- Absence-pattern integration as an optional, carefully governed future signal
-  for early support, focused on negative trends such as repeated unexplained
-  absences rather than hours-at-work monitoring or positive "belonging scores."
-- LMS/compliance platform integration for training completion.
-- Cohort analytics for role-based task benchmarks.
-- More robust privacy controls for what HR can and cannot see.
-- Persistent conversation memory with user-controlled visibility.
-- Production API, observability, and Docker deployment.
-
-Future absence/attendance boundary:
-
-If attendance-related data is ever integrated, frame it as absence-pattern
-awareness for support escalation, not presence tracking. AISHA should not infer
-belonging because someone stayed longer in the office, and it should not reward
-desk time. A safer future signal is: "Alyssa has multiple unexpected absences
-during a delayed ramp period; recommend a supportive check-in," combined with
-other onboarding context and strict privacy rules.
-
-## Migration Checklist
-
-When implementation begins, remove or rewrite every visible Meridian/Maya/Meri
-reference.
-
-- `app.py`: page title, captions, greeting, assistant name, demo text.
-- `src/stai/agent.py`: assistant persona and company context.
-- `src/stai/guardrails.py`: company/topic classifier wording.
-- `src/stai/pulse.py`: pulse wording and risk language.
-- `src/stai/tools.py`: tool descriptions and owner-routing wording.
-- `data/employees.json`: replace Maya/Diego/Priya seed personas.
-- `data/org.json`: replace Meridian org directory with fictionalized BDO org.
-- `data/plans.json`: replace 30-60-90 software/sales/analyst plans with BDO
-  onboarding/ramp plans.
-- `data/hr_docs/*.md`: replace Meridian handbook docs with fictionalized BDO
-  onboarding docs.
-- `README.md`: product name, setup narrative, demo script.
-- `docs/BUSINESS_CASE.md`: business case, market framing, disclaimer.
-- `ContextKnowledgeBase/*.md`: update story, UI brief, project state, module
-  checklist where wording references the old narrative.
-- `tests/*.py`: update assertions that mention Maya, Meridian, Meri, old roles,
-  old plan items, or old org contacts.
-
-Validation command after implementation:
-
-```powershell
-rg -n "Meridian|Maya|Meri|Meridian Labs|30-60-90|Software Engineer" .
-```
-
-The only acceptable hits after rebrand should be legacy migration notes or
-intentional changelog references.
+The final demonstration closes with the integrated acceptance report and non-root Linux container smoke. The module matrix claims twelve course modules with named owners and leaves SQL Agent explicitly unclaimed.
