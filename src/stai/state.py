@@ -211,7 +211,8 @@ class Repo:
             raise MedicalContentRejected("medical content must use Certificate Check")
 
     def add_policy_message(self, conversation_id: str, role: str, text: str, response_type: str | None = None) -> dict:
-        self._reject_medical_chat(text)
+        if role == "hire":
+            self._reject_medical_chat(text)
         message_id = str(uuid.uuid4())
         now = _utc_text()
         with self._connect() as conn:
@@ -229,6 +230,166 @@ class Repo:
         with self._connect() as conn:
             rows = conn.execute("SELECT * FROM policy_messages WHERE conversation_id=? ORDER BY ordinal", (conversation_id,)).fetchall()
         return [{"id": r["message_id"], "ordinal": r["ordinal"], "role": r["role"], "text": r["text"], "response_type": r["response_type"]} for r in rows]
+
+    def get_policy_conversation(self, conversation_id: str) -> dict | None:
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM policy_conversations WHERE conversation_id=?", (conversation_id,)).fetchone()
+        return dict(row) if row else None
+
+    def delete_policy_conversation(self, conversation_id: str) -> bool:
+        with self._connect() as conn:
+            cur = conn.execute("DELETE FROM policy_conversations WHERE conversation_id=?", (conversation_id,))
+            return cur.rowcount == 1
+
+    def save_policy_response(self, conversation_id: str, response) -> dict:
+        message = self.add_policy_message(conversation_id, "aisha", response.text, response.type)
+        with self._connect() as conn:
+            for citation in response.citations:
+                conn.execute(
+                    "INSERT OR IGNORE INTO policy_response_policies VALUES (?,?,?,?,?,?,?)",
+                    (message["id"], citation.policy_id, citation.handbook_version, "1", self.get_hire_profile("emp-alyssa").revision, response.applicability.value, response.evidence_state.value),
+                )
+            for ordinal, citation in enumerate(response.citations):
+                conn.execute(
+                    "INSERT INTO policy_response_citations VALUES (?,?,?,?,?,?)",
+                    (message["id"], ordinal, citation.policy_id, citation.handbook_version, citation.page_start, citation.page_end),
+                )
+        return message
+
+    def create_escalation_offer(
+        self, conversation_id: str, message_id: str, topic: str,
+        route_owner: str, route_channel: str, summary: str, policy_ids: list[str],
+    ) -> dict:
+        offer_id = str(uuid.uuid4())
+        now = _utc_now()
+        with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            conn.execute(
+                "INSERT INTO escalation_offers VALUES (?,?,?,?,?,?,?,?,?,?,?,1)",
+                (offer_id, "emp-alyssa", conversation_id, message_id, topic, route_owner, route_channel, summary, "pending", _utc_text(now + timedelta(hours=24)), _utc_text(now)),
+            )
+            for policy_id in policy_ids:
+                conn.execute("INSERT INTO escalation_offer_policies VALUES (?,?)", (offer_id, policy_id))
+        return {"offer_id": offer_id, "topic": topic, "route_owner": route_owner, "route_channel": route_channel, "proposed_summary": summary, "version": 1}
+
+    def consent_escalation_offer(self, offer_id: str, *, expected_version: int) -> dict:
+        case_id = str(uuid.uuid4())
+        now = _utc_text()
+        with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            offer = conn.execute("SELECT * FROM escalation_offers WHERE offer_id=?", (offer_id,)).fetchone()
+            if not offer:
+                raise KeyError("offer not found")
+            if offer["resource_version"] != expected_version:
+                raise ValueError("stale resource version")
+            policies = [r[0] for r in conn.execute("SELECT policy_id FROM escalation_offer_policies WHERE offer_id=?", (offer_id,))]
+            conn.execute(
+                "INSERT INTO escalation_cases VALUES (?,?,?,?,?,?,'open',?,?,?,1)",
+                (case_id, offer["hire_id"], offer["topic"], offer["proposed_summary"], offer["route_owner"], offer["route_channel"], now, None, None),
+            )
+            for policy_id in policies:
+                conn.execute("INSERT INTO escalation_case_policies VALUES (?,?)", (case_id, policy_id))
+            conn.execute("DELETE FROM escalation_offers WHERE offer_id=?", (offer_id,))
+        return {"case_id": case_id, "status": "open", "approved_summary": offer["proposed_summary"], "route_owner": offer["route_owner"], "route_channel": offer["route_channel"], "version": 1}
+
+    def list_escalation_cases(self) -> list[dict]:
+        with self._connect() as conn:
+            rows = conn.execute("SELECT * FROM escalation_cases ORDER BY created_at_utc DESC, case_id DESC").fetchall()
+        return [dict(row) for row in rows]
+
+    def create_attribute_change_request(self, employee_id: str, attribute_name: str, proposed_value: str, *, consent: bool) -> dict:
+        if not consent:
+            raise ValueError("explicit consent required")
+        allowed = {
+            "role_key": {"branch_banking_associate", "client_service_associate", "digital_banking_support_associate"},
+            "department_key": {"branch_banking", "branch_operations", "digital_channels"},
+            "employment_classification": {"probationary", "regular", "fixed_term"},
+            "work_site": {"branch", "head_office", "remote"},
+        }
+        if attribute_name not in allowed or proposed_value not in allowed[attribute_name]:
+            raise ValueError("invalid closed attribute value")
+        profile = self.get_hire_profile(employee_id)
+        request_id = str(uuid.uuid4())
+        now = _utc_text()
+        current = getattr(profile, attribute_name)
+        with self._connect() as conn:
+            conn.execute(
+                "INSERT INTO attribute_change_requests VALUES (?,?,?,?,?,?,'pending',?,?,?,1)",
+                (request_id, employee_id, attribute_name, current, proposed_value, profile.revision, None, now, None),
+            )
+        return {"request_id": request_id, "status": "pending", "attribute_name": attribute_name, "current_value": current, "proposed_value": proposed_value, "version": 1}
+
+    def resolve_attribute_change_request(self, request_id: str, *, approve: bool, expected_version: int, expected_profile_revision: int, hr_user: str) -> dict:
+        now = _utc_text()
+        status = "approved" if approve else "rejected"
+        with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            request = conn.execute("SELECT * FROM attribute_change_requests WHERE request_id=?", (request_id,)).fetchone()
+            if not request:
+                raise KeyError("request not found")
+            if request["resource_version"] != expected_version or request["profile_revision"] != expected_profile_revision:
+                raise ValueError("stale resource version")
+            if approve:
+                profile = conn.execute("SELECT * FROM hire_profiles WHERE hire_id=?", (request["hire_id"],)).fetchone()
+                if profile["profile_revision"] != expected_profile_revision:
+                    raise ValueError("stale profile revision")
+                column = request["attribute_name"]
+                conn.execute(f"UPDATE hire_profiles SET {column}=?, profile_revision=profile_revision+1, updated_at_utc=? WHERE hire_id=?", (request["proposed_value"], now, request["hire_id"]))
+                conn.execute("INSERT INTO hire_attribute_revisions VALUES (?,?,?,?,?,?,?,?)", (str(uuid.uuid4()), request["hire_id"], column, request["current_value"], request["proposed_value"], expected_profile_revision + 1, hr_user, now))
+            conn.execute("UPDATE attribute_change_requests SET status=?, confirming_hr_user=?, resolved_at_utc=?, resource_version=resource_version+1 WHERE request_id=?", (status, hr_user, now, request_id))
+        return {"request_id": request_id, "status": status, "version": expected_version + 1}
+
+    def create_validation_result(
+        self, *, status: str, missing_codes: list[str], inconsistency_codes: list[str],
+        warning_codes: list[str], review_codes: list[str], evaluation_date: date,
+        fingerprint: str | None, attempt_count: int = 1,
+    ) -> dict:
+        validation_id = str(uuid.uuid4())
+        now = _utc_text()
+        with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            conn.execute(
+                "INSERT INTO validation_results VALUES (?,?,?,?,?,?,?,?,?,?,?, ?,1)",
+                (validation_id, "emp-alyssa", status, "HRP-004", "1.0", self.get_hire_profile("emp-alyssa").revision, attempt_count, evaluation_date.isoformat(), now, fingerprint, "private", None),
+            )
+            ordinal = 0
+            for family, codes in (("missing", missing_codes), ("inconsistency", inconsistency_codes), ("warning", warning_codes), ("human_review", review_codes)):
+                for code in codes:
+                    conn.execute("INSERT INTO validation_result_codes VALUES (?,?,?,?)", (validation_id, family, code, ordinal))
+                    ordinal += 1
+            conn.execute("INSERT INTO validation_result_citations VALUES (?,?,?,?,?)", (validation_id, "HRP-004", "1.0", 78, None))
+        return {"validation_id": validation_id, "status": status, "share_state": "private", "version": 1}
+
+    def _set_validation_share(self, validation_id: str, *, share: bool, expected_version: int) -> dict:
+        now = _utc_text()
+        state = "shared" if share else "private"
+        with self._connect() as conn:
+            result = conn.execute("SELECT * FROM validation_results WHERE validation_id=?", (validation_id,)).fetchone()
+            if not result:
+                raise KeyError("result not found")
+            if result["resource_version"] != expected_version:
+                raise ValueError("stale resource version")
+            conn.execute("UPDATE validation_results SET share_state=?, shared_at_utc=?, resource_version=resource_version+1 WHERE validation_id=?", (state, now if share else None, validation_id))
+        return {"validation_id": validation_id, "share_state": state, "version": expected_version + 1}
+
+    def list_shared_validation_results(self) -> list[dict]:
+        with self._connect() as conn:
+            rows = conn.execute("SELECT validation_id,status,policy_id,handbook_version,created_at_utc,shared_at_utc,resource_version FROM validation_results WHERE share_state='shared' ORDER BY created_at_utc DESC, validation_id DESC").fetchall()
+            output = []
+            for row in rows:
+                codes = [dict(family=c[0], code=c[1]) for c in conn.execute("SELECT code_family,code FROM validation_result_codes WHERE validation_id=? ORDER BY ordinal", (row["validation_id"],))]
+                output.append({**dict(row), "codes": codes})
+        return output
+
+    def delete_validation_result(self, validation_id: str, *, expected_version: int) -> bool:
+        with self._connect() as conn:
+            result = conn.execute("SELECT resource_version FROM validation_results WHERE validation_id=?", (validation_id,)).fetchone()
+            if not result:
+                return False
+            if result[0] != expected_version:
+                raise ValueError("stale resource version")
+            conn.execute("DELETE FROM validation_results WHERE validation_id=?", (validation_id,))
+        return True
 
     def register_retrieval_build(self, build_id: str, handbook_version: str, manifest_identity: str, collection_name: str, *, verified: bool) -> None:
         now = _utc_text()

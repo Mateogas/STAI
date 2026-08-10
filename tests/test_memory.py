@@ -2,7 +2,23 @@
 
 from __future__ import annotations
 
+from datetime import date
+
 from stai.state import Repo
+
+
+def test_policy_conversation_delete_cascades_messages_but_consented_case_survives(tmp_path):
+    repo = Repo(tmp_path / "policy.db", secret_path=tmp_path / "key")
+    conversation = repo.create_policy_conversation("emp-alyssa", date(2026, 8, 10))
+    message = repo.add_policy_message(conversation["id"], "hire", "PAY-001 question")
+    offer = repo.create_escalation_offer(
+        conversation["id"], message["id"], "payroll", "Payroll Support",
+        "Fictional HR Help Desk", "Clarify PAY-001 applicability.", ["PAY-001"],
+    )
+    case = repo.consent_escalation_offer(offer["offer_id"], expected_version=1)
+    repo.delete_policy_conversation(conversation["id"])
+    assert repo.list_policy_messages(conversation["id"]) == []
+    assert repo.list_escalation_cases()[0]["case_id"] == case["case_id"]
 
 
 def test_chat_message_roundtrip(repo):
