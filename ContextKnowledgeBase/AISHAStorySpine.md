@@ -8,7 +8,7 @@ AISHA helps Alyssa answer a narrow question safely: “Which current onboarding 
 
 ## Source and profile authority
 
-The only policy source is the active immutable 108-page synthetic handbook build. A displayed material claim must map to an eligible page by policy ID, revision, handbook version, page, and artifact identity. A citation is not proof by itself; integrity, authority, status, topic, applicability, and claim validation must all pass.
+The active immutable 108-page synthetic handbook build is the only policy authority. A displayed policy claim must map to an eligible page by policy ID, revision, handbook version, page, and artifact identity. A reviewed Published Policy Clarification may supplement a linked policy but never contradict or replace it; a rule change requires a new handbook revision. A citation is not proof by itself; integrity, authority, status, topic, applicability, and claim validation must all pass.
 
 Alyssa’s applicability profile has four HR-confirmed attributes: Role Key, Department Key, Employment Classification, and Work Site. Conversation statements do not update them. If an unknown attribute can change the answer, AISHA asks one focused clarification and makes no personalized conclusion. A correction is a one-attribute request and HR approval creates a versioned profile revision.
 
@@ -19,9 +19,9 @@ Every policy turn ends as one typed outcome:
 1. Grounded Answer—eligible applicable evidence supports all material claims.
 2. Clarification Request—one missing confirmed attribute can change applicability.
 3. Abstention—the active eligible evidence cannot support a conclusion.
-4. Escalation Offer—a bounded human route and privacy-safe proposed summary are offered.
+4. Escalation Offer—eligible policy evidence answers part of the question but leaves a material Evidence Gap appropriate for HR.
 
-An offer is not a case. Only Alyssa’s explicit consent creates an HR-visible case. Before consent, AISHA states that the existing parent Policy Conversation and its future messages will be copied into a child Case Thread while the case remains open. HR reads that consented Case Thread, including HR-visible replies and status updates, but cannot browse unrelated Policy Conversations or private certificate content.
+An offer is not a case. A bare request to “ask HR,” a Handbook Omission, an unsupported topic, or a Knowledge Index Outage does not qualify. Only Alyssa’s explicit consent creates an HR-visible case. Before consent, AISHA states that the existing parent Policy Conversation and its future messages will be copied into a child Case Thread while the case remains open. HR reads that consented Case Thread, including HR-visible replies and status updates, but cannot browse unrelated Policy Conversations or private certificate content.
 
 ## Certificate story
 
@@ -33,7 +33,7 @@ History retains only a safe result. It excludes file bytes, filenames, MIME deta
 
 ### Ask AISHA
 
-Alyssa can create and reopen multiple named Policy Conversations. She asks about PAY-001 and receives a grounded result with claim-local structured evidence. An unsupported question abstains. An ACC-006 fixture with unknown Work Site asks exactly one deciding question. A holiday lookup uses only Philippine current/following-year facts and displays `Based on Nager.` A request for a person produces an offer; consent creates a Case Thread beneath the originating conversation. The thread shows unread and workflow status, mirrors later parent messages while open, and remains available for Hire and HR replies.
+Alyssa can create and reopen multiple named Policy Conversations. She asks about PAY-001 and receives a grounded result with claim-local structured evidence. An unsupported question abstains without creating HR work. An ACC-006 fixture with unknown Work Site asks exactly one deciding question. A holiday lookup uses only Philippine current/following-year facts and displays `Based on Nager.` Asking where to find a handbook-named but unspecified payroll route produces an evidence-gated offer; consent creates a Case Thread beneath the originating conversation. The thread shows unread and workflow status, mirrors later parent messages while open, and remains available for Hire and HR replies.
 
 ### Profile revision
 
@@ -45,7 +45,7 @@ Alyssa acknowledges the boundary, uploads a synthetic labelled PDF, and receives
 
 ### HR User
 
-HR sees consented Case Threads, attribute change requests, and currently shared safe validation results. HR cannot browse the Policy Conversation store directly: it sees only the copied conversation attached to a case after Alyssa accepts the explicit sharing notice. HR has no route for unrelated conversations, certificate bytes, extracted content, or medical detail. Resolving a case posts a Hire-visible result and stops future parent-message mirroring.
+HR sees consented Case Threads, attribute change requests, and currently shared safe validation results. HR cannot browse the Policy Conversation store directly: it sees only the copied conversation attached to a case after Alyssa accepts the explicit sharing notice. HR has no route for unrelated conversations, certificate bytes, extracted content, or medical detail. Resolving a case records its type and scope, posts a Hire-visible Case Resolution Memory, and stops future parent-message mirroring. AISHA can answer related follow-ups inside the resolved thread. A proposed reusable clarification requires a separate policy-owner review; case exceptions remain case-scoped and Policy Amendment Candidates wait for a new handbook revision.
 
 ## Evaluation story
 

@@ -141,7 +141,7 @@ def test_escalation_offer_to_consent_case(client):
     ).json()["data"]
     offer = http.post(
         f"/api/v1/hires/emp-alyssa/conversations/{conversation['id']}/messages",
-        headers=headers("offer"), json={"message": "Please connect me with a human about PAY-001"},
+        headers=headers("offer"), json={"message": "Where is the official payroll route?"},
     ).json()["data"]
     assert offer["type"] == "escalation_offer"
     consent = http.post(
@@ -169,7 +169,7 @@ def test_case_thread_api_mirrors_parent_and_separates_hr_internal_notes(client):
     offer = http.post(
         f"/api/v1/hires/emp-alyssa/conversations/{conversation['id']}/messages",
         headers=headers("thread-offer"),
-        json={"message": "Connect me with payroll support"},
+        json={"message": "Where is the official payroll route?"},
     ).json()["data"]
     case = http.post(
         f"/api/v1/hires/emp-alyssa/escalation-offers/{offer['offer_id']}/consent",
@@ -216,6 +216,80 @@ def test_case_thread_api_mirrors_parent_and_separates_hr_internal_notes(client):
     assert visible.json()["data"]["case"]["workflow_state"] == "waiting_for_hire"
 
 
+def test_structured_resolution_thread_memory_and_reviewed_reuse_api(client):
+    http, _repo = client
+    conversation = http.post(
+        "/api/v1/hires/emp-alyssa/conversations",
+        headers=headers("clarification-conversation"),
+        json={"simulated_date": "2026-08-10"},
+    ).json()["data"]
+    offer = http.post(
+        f"/api/v1/hires/emp-alyssa/conversations/{conversation['id']}/messages",
+        headers=headers("clarification-offer"),
+        json={"message": "Where is the official payroll route?"},
+    ).json()["data"]
+    case = http.post(
+        f"/api/v1/hires/emp-alyssa/escalation-offers/{offer['offer_id']}/consent",
+        headers=headers("clarification-consent"),
+        json={"expected_version": offer["version"]},
+    ).json()["data"]
+    case_id = case["case_id"]
+    closed = http.post(
+        f"/api/v1/hr/escalation-cases/{case_id}/close",
+        headers=headers("clarification-close"),
+        json={
+            "expected_version": case["resource_version"],
+            "hr_user": "hr-demo",
+            "resolution_summary": "Use the Payroll Support form in the onboarding portal.",
+            "resolution_type": "policy_clarification",
+            "resolution_scope": "organization",
+            "propose_for_reuse": True,
+        },
+    )
+    assert closed.status_code == 200
+    thread = http.get(
+        f"/api/v1/hires/emp-alyssa/escalation-cases/{case_id}/messages"
+    ).json()["data"]
+    assert thread["resolution"]["reuse_status"] == "pending_review"
+
+    follow_up = http.post(
+        f"/api/v1/hires/emp-alyssa/escalation-cases/{case_id}/messages",
+        headers=headers("clarification-follow-up"),
+        json={
+            "expected_version": thread["case"]["resource_version"],
+            "message": "What does that mean for me?",
+        },
+    )
+    assert follow_up.status_code == 201
+    assert "Case Resolution Memory" in follow_up.json()["data"]["messages"][-1]["text"]
+
+    reviewed = http.post(
+        f"/api/v1/hr/escalation-cases/{case_id}/clarification-review/approve",
+        headers=headers("clarification-review"),
+        json={
+            "expected_version": thread["resolution"]["resource_version"],
+            "hr_user": "policy-owner-demo",
+        },
+    )
+    assert reviewed.status_code == 200
+    assert reviewed.json()["data"]["reuse_status"] == "approved"
+
+    future = http.post(
+        "/api/v1/hires/emp-alyssa/conversations",
+        headers=headers("clarification-future-conversation"),
+        json={"simulated_date": "2026-08-10"},
+    ).json()["data"]
+    reused = http.post(
+        f"/api/v1/hires/emp-alyssa/conversations/{future['id']}/messages",
+        headers=headers("clarification-reused"),
+        json={"message": "Where is the official payroll route?"},
+    )
+    assert reused.status_code == 200
+    payload = reused.json()["data"]
+    assert payload["type"] == "grounded_answer"
+    assert payload["clarifications"][0]["clarification_id"] == reviewed.json()["data"]["resolution_id"]
+
+
 def test_production_payroll_transcript_has_identical_api_semantics(client):
     http, repo = client
     conversation = http.post(
@@ -242,7 +316,7 @@ def test_production_payroll_transcript_has_identical_api_semantics(client):
         results.append(response.json()["data"])
 
     assert [item["type"] for item in results] == [
-        "grounded_answer", "grounded_answer", "grounded_answer",
+        "grounded_answer", "escalation_offer", "escalation_offer",
         "escalation_offer", "escalation_confirmation", "grounded_answer",
     ]
     assert all(

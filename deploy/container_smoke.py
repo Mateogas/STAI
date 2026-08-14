@@ -56,7 +56,7 @@ def main() -> None:
             "route it please", "how does payroll work",
         ]
         expected = [
-            "grounded_answer", "grounded_answer", "grounded_answer",
+            "grounded_answer", "escalation_offer", "escalation_offer",
             "escalation_offer", "escalation_confirmation", "grounded_answer",
         ]
         for index, (prompt, outcome) in enumerate(zip(prompts, expected, strict=True)):

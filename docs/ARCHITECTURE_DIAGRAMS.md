@@ -103,6 +103,31 @@ flowchart LR
 
 The left navigation nests each Case Thread beneath its parent and shows text status and unread count. HR never queries the Policy Conversation tables through its product surface; the case workflow owns the copied thread, participant permissions, versions, events, and notifications. Certificate content and unrelated conversations never enter this path.
 
+## Evidence-gated clarification and memory
+
+```mermaid
+flowchart TD
+    Question["Supported-topic question"] --> Evidence{"Eligible policy evidence?"}
+    Evidence -- "None, outage, or subject omitted" --> Abstain["Abstain; no HR offer"]
+    Evidence -- "Complete" --> Answer["Grounded handbook answer"]
+    Evidence -- "Partial" --> Gap{"Material Evidence Gap?"}
+    Gap -- No --> Answer
+    Gap -- Yes --> Offer["Consent-first HR clarification offer"]
+    Offer --> Case["Shared Case Thread"]
+    Case --> Resolution["Typed HR resolution"]
+    Resolution --> ThreadMemory["Case Resolution Memory"]
+    ThreadMemory --> Followup["Related resolved-thread follow-ups"]
+    Resolution --> Type{"Resolution Type"}
+    Type -- "Case Exception" --> CaseOnly["Thread only"]
+    Type -- "Policy Amendment Candidate" --> Handbook["Wait for new handbook revision"]
+    Type -- "Policy Clarification" --> Review{"Policy-owner review"}
+    Review -- Reject --> CaseOnly
+    Review -- Approve --> Published["Published Policy Clarification"]
+    Published --> Supplement["Supplement later cited handbook answers"]
+```
+
+The model never decides that it is merely “unsure.” `EvidenceGapAssessor` requires eligible partial evidence and a closed gap type. Reviewed clarification attribution remains separate from handbook citations, and the active handbook remains the policy authority.
+
 ## Certificate flow
 
 ```mermaid

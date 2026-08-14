@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable
+from datetime import date
 
 from stai.guardrails import REFUSALS, redact_pii, validate_response_relevance
 from stai.models import (
@@ -100,6 +101,8 @@ class PolicyTurnEngine:
         agent_runner: AgentRunner | None = None,
         input_classifier=None,
         case_workflow=None,
+        clarification_workflow=None,
+        evidence_gap_assessor=None,
         history_limit: int = 8,
     ) -> None:
         self.repo = repo
@@ -111,7 +114,14 @@ class PolicyTurnEngine:
             from stai.cases import CaseWorkflow
 
             case_workflow = CaseWorkflow(repo)
+        if clarification_workflow is None or evidence_gap_assessor is None:
+            from stai.clarifications import EvidenceGapAssessor, PolicyClarificationWorkflow
+
+            clarification_workflow = clarification_workflow or PolicyClarificationWorkflow(repo)
+            evidence_gap_assessor = evidence_gap_assessor or EvidenceGapAssessor()
         self.case_workflow = case_workflow
+        self.clarification_workflow = clarification_workflow
+        self.evidence_gap_assessor = evidence_gap_assessor
         self.history_limit = history_limit
         self.version = records[0].handbook_version if records else "1.0"
 
@@ -166,7 +176,6 @@ class PolicyTurnEngine:
         elif resolved.dialogue_act in {DialogueAct.HELP_REQUEST, DialogueAct.ESCALATION_REQUEST}:
             response = self._offer_escalation(
                 conversation_id,
-                user_message["id"],
                 resolved,
                 pending_offer,
             )
@@ -202,7 +211,15 @@ class PolicyTurnEngine:
             )
             mode = ExecutionMode.DETERMINISTIC
         else:
-            response, mode = self._answer_policy(resolved, profile, previous_messages, message)
+            response, mode = self._answer_policy(
+                conversation_id,
+                user_message["id"],
+                resolved,
+                profile,
+                previous_messages,
+                message,
+                as_of=date.fromisoformat(conversation["simulated_date"]),
+            )
 
         response = self._redact(response)
         self.repo.save_policy_response(
@@ -347,8 +364,66 @@ class PolicyTurnEngine:
             referenced_message_id=referenced_message_id if not explicit_topic else None,
         )
 
-    def _answer_policy(self, resolved: ResolvedTurn, profile, messages: list[dict], current: str):
-        preflight = None
+    def _answer_policy(
+        self,
+        conversation_id: str,
+        user_message_id: str,
+        resolved: ResolvedTurn,
+        profile,
+        messages: list[dict],
+        current: str,
+        *,
+        as_of: date,
+    ):
+        preflight = self._preflight(resolved, profile)
+        gap = self.evidence_gap_assessor.assess(resolved.standalone_query, preflight)
+        approved = None
+        if gap.eligible:
+            approved = self.clarification_workflow.find_approved(
+                resolved.standalone_query,
+                policy_ids=set(gap.policy_ids),
+                topic=resolved.topic.value if resolved.topic else None,
+                hire_id=profile.employee_id,
+                as_of=as_of,
+            )
+            if not approved:
+                return (
+                    self._offer_evidence_gap(
+                        conversation_id,
+                        user_message_id,
+                        resolved,
+                        preflight,
+                        gap,
+                    ),
+                    ExecutionMode.DETERMINISTIC,
+                )
+        elif not self.evidence_gap_assessor.covers_subject(
+            resolved.standalone_query, preflight
+        ):
+            return (
+                Abstention(
+                    text=(
+                        "The active handbook does not cover the specific subject in this "
+                        "question. No HR ticket was offered because there is no eligible "
+                        "partial policy evidence to clarify."
+                    ),
+                    handbook_version=self.version,
+                    applicability=ApplicabilityStatus.APPLIES,
+                    evidence_state=EvidenceState.HANDBOOK_OMISSION,
+                    reason="handbook_omission",
+                ),
+                ExecutionMode.DETERMINISTIC,
+            )
+        if approved:
+            base = PolicyEngine(self.records, index=self.index).answer(
+                resolved.standalone_query,
+                profile,
+                topic=resolved.topic.value if resolved.topic else None,
+                policy_ids=set(resolved.policy_ids),
+                retrieval_result=preflight,
+            )
+            if isinstance(base, GroundedPolicyAnswer):
+                return self.clarification_workflow.supplement(base, approved), ExecutionMode.DETERMINISTIC
         if self.agent_runner:
             try:
                 run_result = self.agent_runner(
@@ -360,7 +435,6 @@ class PolicyTurnEngine:
                     candidate, eligible_identities = run_result
                 else:
                     candidate = run_result
-                    preflight = self._preflight(resolved, profile)
                     eligible_identities = self._identities(preflight)
                 if candidate and candidate.type != "abstention":
                     if isinstance(candidate, GroundedPolicyAnswer):
@@ -373,8 +447,6 @@ class PolicyTurnEngine:
                     return candidate, ExecutionMode.AGENT
             except Exception:
                 pass
-        if preflight is None:
-            preflight = self._preflight(resolved, profile)
         response = PolicyEngine(self.records, index=self.index).answer(
             resolved.standalone_query,
             profile,
@@ -523,19 +595,114 @@ class PolicyTurnEngine:
     def _offer_escalation(
         self,
         conversation_id: str,
-        user_message_id: str,
         resolved: ResolvedTurn,
         pending_offer: dict | None,
-    ) -> EscalationOffer:
+    ):
         if pending_offer:
-            payload = self.repo.get_escalation_offer(pending_offer["offer_id"])
-            return EscalationOffer.model_validate(payload)
+            return self._pending_offer_response(pending_offer)
+        from stai.cases import CaseActor
+
+        existing = next(
+            (
+                case
+                for case in self.case_workflow.list_cases(
+                    CaseActor.hire(), parent_conversation_id=conversation_id
+                )
+                if case["status"] == "open"
+                and (resolved.topic is None or case["topic"] == resolved.topic.value)
+            ),
+            None,
+        )
+        if existing:
+            return EscalationConfirmation(
+                text=(
+                    f"An open HR clarification ticket already covers this conversation: "
+                    f"case {existing['case_id']}. Continue there instead of creating a duplicate."
+                ),
+                handbook_version=self.version,
+                applicability=ApplicabilityStatus.APPLIES,
+                evidence_state=EvidenceState.READY,
+                case_id=existing["case_id"],
+                route_owner=existing["route_owner"],
+                route_channel=existing["route_channel"],
+                topic=OnboardingTopic(existing["topic"]),
+                version=existing["resource_version"],
+            )
+        return Abstention(
+            text=(
+                "I can create an HR clarification ticket only when eligible handbook evidence "
+                "answers part of a specific question but leaves a material gap. Ask the policy "
+                "question first, and I will offer HR when that condition is met."
+            ),
+            handbook_version=self.version,
+            applicability=ApplicabilityStatus.APPLIES,
+            evidence_state=EvidenceState.INSUFFICIENT,
+            reason="unresolved_ambiguity",
+        )
+
+    def _offer_evidence_gap(
+        self,
+        conversation_id: str,
+        user_message_id: str,
+        resolved: ResolvedTurn,
+        retrieval_result,
+        gap,
+    ):
+        pending = self.repo.get_pending_escalation_offer_for_conversation(conversation_id)
+        if pending:
+            return self._pending_offer_response(pending)
+        from stai.cases import CaseActor
+
+        existing = next(
+            (
+                case
+                for case in self.case_workflow.list_cases(
+                    CaseActor.hire(), parent_conversation_id=conversation_id
+                )
+                if case["status"] == "open" and case["topic"] == (resolved.topic or OnboardingTopic.HR_POLICIES).value
+            ),
+            None,
+        )
+        if existing:
+            return EscalationConfirmation(
+                text=(
+                    f"An open HR clarification ticket already covers this conversation: "
+                    f"case {existing['case_id']}. Continue there instead of creating a duplicate."
+                ),
+                handbook_version=self.version,
+                applicability=ApplicabilityStatus.APPLIES,
+                evidence_state=EvidenceState.READY,
+                case_id=existing["case_id"],
+                route_owner=existing["route_owner"],
+                route_channel=existing["route_channel"],
+                topic=OnboardingTopic(existing["topic"]),
+                version=existing["resource_version"],
+            )
         topic = resolved.topic or OnboardingTopic.HR_POLICIES
+        with self.repo.connection() as conn:
+            prior_count = int(
+                conn.execute(
+                    "SELECT COUNT(*) FROM escalation_cases c JOIN case_threads t ON t.case_id=c.case_id "
+                    "WHERE t.parent_conversation_id=? AND c.topic=?",
+                    (conversation_id, topic.value),
+                ).fetchone()[0]
+            )
+        if prior_count >= 2:
+            return Abstention(
+                text=(
+                    "This conversation has already used the allowed HR clarification tickets "
+                    "for this topic. Continue an existing ticket or start a new focused conversation."
+                ),
+                handbook_version=self.version,
+                applicability=ApplicabilityStatus.APPLIES,
+                evidence_state=EvidenceState.INSUFFICIENT,
+                reason="unresolved_ambiguity",
+            )
         record = next(
             (
                 item
                 for item in self.records
-                if item.policy_id in resolved.policy_ids and item.route
+                if item.policy_id in gap.policy_ids and item.route
             ),
             None,
         )
@@ -543,8 +710,9 @@ class PolicyTurnEngine:
             record = next((item for item in self.records if item.topic == topic.value and item.route), None)
         owner = (record.route if record and record.route else f"{topic.value}_support").replace("_", " ").title()
         label = topic.value.replace("_", " ").title()
-        summary = f"Request help with {label} onboarding guidance."
-        policy_ids = resolved.policy_ids or ([record.policy_id] if record and record.policy_id else [])
+        question = gap.unresolved_question or resolved.standalone_query
+        summary = f"Clarify {gap.gap_kind.value.replace('_', ' ')}: {question}"[:500]
+        policy_ids = gap.policy_ids or ([record.policy_id] if record and record.policy_id else [])
         row = self.repo.create_escalation_offer(
             conversation_id,
             user_message_id,
@@ -554,21 +722,65 @@ class PolicyTurnEngine:
             summary,
             policy_ids,
         )
+        self.clarification_workflow.record_offer_gap(row["offer_id"], gap)
+        primary = retrieval_result.evidence[0]
+        citation = PolicyCitation(
+            policy_id=primary.policy_id,
+            handbook_version=primary.handbook_version,
+            page_start=primary.page,
+        )
         return EscalationOffer(
             text=(
-                "I can create this case after you review the summary and sharing notice, "
-                "then consent."
+                f"The handbook confirms: {gap.safe_known_text} {citation.render()}\n\n"
+                f"However, {gap.reason}. Further clarification from HR is needed. "
+                "Would you like me to create an HR clarification ticket?"
             ),
             handbook_version=self.version,
             applicability=ApplicabilityStatus.APPLIES,
-            evidence_state=EvidenceState.READY,
+            evidence_state=EvidenceState.INSUFFICIENT,
+            citations=[citation],
             offer_id=row["offer_id"],
             route_owner=owner,
             route_channel="Fictional HR Help Desk",
             proposed_summary=summary,
             topic=topic,
             version=row["version"],
+            gap_kind=gap.gap_kind,
+            safe_known_text=gap.safe_known_text,
+            unresolved_question=gap.unresolved_question,
+            eligibility_reason=gap.reason,
         )
+
+    def _pending_offer_response(self, pending: dict) -> EscalationOffer:
+        payload = self.repo.get_escalation_offer(pending["offer_id"])
+        if payload and not payload.get("citations") and pending.get("policy_ids"):
+            record = next(
+                (
+                    item
+                    for item in self.records
+                    if item.policy_id in pending["policy_ids"]
+                    and item.content == payload.get("safe_known_text")
+                ),
+                None,
+            )
+            if not record:
+                record = next(
+                    (
+                        item
+                        for item in self.records
+                        if item.policy_id in pending["policy_ids"] and item.page_kind == "policy"
+                    ),
+                    None,
+                )
+            if record:
+                payload["citations"] = [
+                    {
+                        "policy_id": record.policy_id,
+                        "handbook_version": record.handbook_version,
+                        "page_start": record.page,
+                    }
+                ]
+        return EscalationOffer.model_validate(payload)
 
     @staticmethod
     def _redact(response):

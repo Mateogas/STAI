@@ -23,6 +23,7 @@ class AishaService:
     ) -> None:
         from stai.agent import LocalReactRunner
         from stai.cases import CaseWorkflow
+        from stai.clarifications import EvidenceGapAssessor, PolicyClarificationWorkflow
         from stai.guardrails import LocalInputClassifier
         from stai.medical import MedicalCheckService
         from stai.retriever import InMemoryHandbookIndex
@@ -33,6 +34,7 @@ class AishaService:
         self.medical = medical_service or MedicalCheckService(repo)
         self.handbook_index = handbook_index or InMemoryHandbookIndex(records)
         self.case_workflow = CaseWorkflow(repo)
+        self.clarification_workflow = PolicyClarificationWorkflow(repo)
         if agent_runner is None and agent_enabled:
             agent_runner = LocalReactRunner(repo, records, self.handbook_index)
         if input_classifier is None and agent_enabled:
@@ -44,6 +46,8 @@ class AishaService:
             agent_runner=agent_runner,
             input_classifier=input_classifier,
             case_workflow=self.case_workflow,
+            clarification_workflow=self.clarification_workflow,
+            evidence_gap_assessor=EvidenceGapAssessor(),
         )
 
     def create_conversation(self, employee_id: str, simulated_date: date) -> dict:
@@ -85,7 +89,9 @@ class AishaService:
         from stai.cases import CaseActor
 
         actor = CaseActor.hr() if hr else CaseActor.hire()
-        return self.case_workflow.get_thread(case_id, actor)
+        thread = self.case_workflow.get_thread(case_id, actor)
+        thread["resolution"] = self.clarification_workflow.get_resolution(case_id)
+        return thread
 
     def post_case_message(
         self,
@@ -99,6 +105,14 @@ class AishaService:
         from stai.cases import CaseActor
 
         actor = CaseActor.hr() if hr else CaseActor.hire()
+        case = self.case_workflow.get_case(case_id, actor)
+        if not hr and case["status"] == "closed":
+            return self.clarification_workflow.answer_thread(
+                case_id,
+                actor,
+                text,
+                expected_version=expected_version,
+            )
         return self.case_workflow.post_message(
             case_id,
             actor,
@@ -107,13 +121,51 @@ class AishaService:
             internal=internal,
         )
 
-    def resolve_case(self, case_id: str, summary: str, *, expected_version: int) -> dict:
+    def resolve_case(
+        self,
+        case_id: str,
+        summary: str,
+        *,
+        expected_version: int,
+        resolution_type="policy_clarification",
+        resolution_scope="case_only",
+        propose_for_reuse: bool = False,
+        effective_on=None,
+        expires_on=None,
+        hr_user: str = "hr-demo",
+    ) -> dict:
+        from stai.cases import CaseActor
+        from stai.models import CaseResolutionInput
+
+        self.clarification_workflow.resolve(
+            case_id,
+            CaseActor.hr(hr_user),
+            CaseResolutionInput(
+                answer=summary,
+                resolution_type=resolution_type,
+                resolution_scope=resolution_scope,
+                propose_for_reuse=propose_for_reuse,
+                effective_on=effective_on,
+                expires_on=expires_on,
+            ),
+            expected_version=expected_version,
+        )
+        return self.get_case_thread(case_id, hr=True)["case"]
+
+    def review_case_clarification(
+        self,
+        case_id: str,
+        *,
+        approve: bool,
+        expected_version: int,
+        hr_user: str = "policy-owner-demo",
+    ) -> dict:
         from stai.cases import CaseActor
 
-        return self.case_workflow.resolve(
+        return self.clarification_workflow.review(
             case_id,
-            CaseActor.hr(),
-            summary,
+            CaseActor.hr(hr_user),
+            approve=approve,
             expected_version=expected_version,
         )
 

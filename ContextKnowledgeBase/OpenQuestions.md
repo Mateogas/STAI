@@ -8,6 +8,8 @@ The issue #1 child-ticket decisions are closed and authoritative. Do not reopen 
 - The product supports Hires; it does not surveil them. HR sees consented Case Threads—including the linked parent history and future parent messages disclosed at consent—plus explicitly shared Validation Results and pending Attribute Change Requests. HR never sees unrelated chat or certificate/OCR content.
 - The canonical source is the generated 108-page AISHA Handbook v1.0, not the removed flat Markdown corpus.
 - Grounded claims require eligible active-version evidence and metadata-only policy/version/page citations.
+- HR clarification is evidence-gated: no eligible partial policy evidence means no automatic ticket offer. Raw HR replies never become global memory.
+- A reviewed Published Policy Clarification may supplement linked policy; case exceptions stay in their Case Thread and rule changes require a new Active Policy Revision.
 - Nager.Holidays is the external tool, bounded to Philippines and the simulated current/following year.
 - Medical certificate checking is a local completeness check, not authenticity, approval, diagnosis, or submission. Original documents use the separate fictional Official HR Document Route.
 - Public integration is only typed `/api/v1`; `/chat` and unversioned `/health` have no compatibility aliases.

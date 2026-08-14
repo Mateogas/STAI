@@ -7,10 +7,11 @@ The shipped demo supports one fictional Hire, Alyssa Reyes, across exactly three
 ## What is implemented
 
 - Four typed policy outcomes plus a separate consented Escalation Confirmation workflow result.
+- Deterministic Evidence Gap assessment: HR is offered only for a partially supported policy question, never for a bare human request, unsupported subject, or index outage.
 - A deterministic 108-page AISHA Handbook v1.0 with immutable page records and policy/version/page citations.
 - Hybrid Chroma retrieval with active-edition, authority, applicability, integrity, activation, and rollback gates.
 - A confirmed four-attribute Hire Profile; chat never changes applicability.
-- A shared `PolicyTurnEngine` with bounded restart-safe context, ordered server-owned Policy Conversations, consented child Case Threads, and result-only certificate History in normalized SQLite.
+- A shared `PolicyTurnEngine` with bounded restart-safe context, ordered server-owned Policy Conversations, consented child Case Threads, structured Case Resolution Memory, reviewed clarification reuse, and result-only certificate History in normalized SQLite.
 - Local PDF/image medical-certificate completeness checking with policy-before-file access, Tesseract OCR, deterministic rules, one retry, and private-by-default results.
 - A bounded Philippines-only Nager.Holidays tool with exact `Based on Nager.` attribution, seven-day cache, retry, validation, circuit breaking, and safe fallbacks.
 - Streamlit New Hire destinations—Ask AISHA, Certificate Check, History—with reopenable chats and nested HR ticket threads, plus a separate HR User workspace.
@@ -54,8 +55,10 @@ Run `uv run streamlit run app.py`, then use:
 2. **Clarification** — demonstrate ACC-006 with a missing or disputed Work Site and show one focused question.
 3. **Certificate Check** — acknowledge the local result-only notice, upload one synthetic PDF/PNG/JPEG, and inspect the deterministic result.
 4. **History** — share a Validation Result, revoke it, and delete it. Original files and extracted text never appear.
-5. **HR ticket thread** — review the explicit sharing notice, create a case, continue the parent chat, and see both the Hire and AISHA messages mirrored beneath it until HR resolves the case.
-6. **HR User** — reply in the consented Case Thread, add an HR-only note, resolve it with a Hire-visible summary, and show only currently shared Validation Results and pending Attribute Change Requests elsewhere.
+5. **Evidence-gated HR ticket** — ask `Where is the official payroll route?`, inspect the supported PAY-003 portion and material route gap, then review the explicit sharing notice and create the case. A bare `Connect me with HR` without a qualifying question does not create an offer.
+6. **Resolution memory** — resolve from HR with a type and scope, then ask AISHA a related follow-up inside the resolved child thread.
+7. **Reviewed reuse** — propose a non-case-only Policy Clarification, approve it in the demo review, and see it supplement a later handbook-grounded answer with separate attribution.
+8. **HR User** — also show HR-visible replies, HR-only notes, currently shared Validation Results, and pending Attribute Change Requests.
 
 The layout is verified at 320–390 CSS pixels, uses visible keyboard focus and non-color state text, provides 44-pixel app controls, and announces dynamic status through accessible live/status regions.
 
@@ -81,7 +84,7 @@ curl -X POST http://localhost:8000/api/v1/hires/emp-alyssa/conversations/CONVERS
 
 Every success uses `{data, meta}`; every error uses `{error, meta}`. Side effects require `Idempotency-Key`: the same key/input replays the semantic result across restarts, while different input returns `409`. Mutable resources use expected versions. Lists use newest-first cursors with a default of 20 and maximum of 100.
 
-Case endpoints expose the same nested workflow used by Streamlit: Hire and HR callers can list a case thread, post versioned replies, and resolve it. HR reads the copied Case Thread, not the underlying Policy Conversation store. Consent backfills the parent history and mirrors future parent messages while the case is open; resolution stops mirroring.
+Case endpoints expose the same nested workflow used by Streamlit: Hire and HR callers can list a case thread, post versioned replies, and resolve it with a typed scope. HR reads the copied Case Thread, not the underlying Policy Conversation store. Consent backfills the parent history and mirrors future parent messages while the case is open; resolution stops mirroring. Resolved Hire messages use Case Resolution Memory. `/clarification-review/{approve|reject}` controls broader reuse with its own optimistic version.
 
 Public responses never contain raw exceptions, model names, internal paths, snippets, scores, hashes, collection identities, certificate bytes, filenames/MIME metadata, OCR or extracted values, confidence data, diagnoses, or Document Fingerprints. Detected medical content is rejected before ordinary chat persistence.
 

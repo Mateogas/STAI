@@ -46,7 +46,7 @@ def test_streamlit_ask_uses_topic_safe_turn_engine():
 def test_streamlit_consent_button_shows_persisted_case_confirmation():
     at = AppTest.from_file(str(APP), default_timeout=90)
     at.run()
-    at.chat_input[0].set_value("Connect me with payroll support")
+    at.chat_input[0].set_value("Where is the official payroll route?")
     at.run()
     consent = next(button for button in at.button if button.label == "Consent and create case")
     consent.click()

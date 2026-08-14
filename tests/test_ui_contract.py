@@ -38,6 +38,11 @@ def test_conversation_and_nested_case_thread_contract_is_present():
         "Hire-visible reply",
         "HR-only note",
         "Resolution summary",
+        "Resolution type",
+        "Resolution scope",
+        "Propose this clarification for broader reuse",
+        "Ask AISHA about this HR resolution",
+        "Approve clarification",
     ):
         assert label in SOURCE
     assert "active_case_id" in SOURCE

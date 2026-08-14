@@ -283,7 +283,8 @@ def outcome_badge(response_type: str | None) -> None:
 
 
 def evidence_area(response) -> None:
-    if not response.citations:
+    clarifications = getattr(response, "clarifications", [])
+    if not response.citations and not clarifications:
         return
     with st.expander("Evidence", expanded=False):
         for citation in response.citations:
@@ -295,6 +296,12 @@ def evidence_area(response) -> None:
             st.markdown(
                 f"- **{citation.policy_id}** · revision 1 · AISHA Handbook "
                 f"v{citation.handbook_version} · {page} · active artifact"
+            )
+        for clarification in clarifications:
+            scope = clarification.resolution_scope.value.replace("_", " ").title()
+            st.markdown(
+                f"- **{clarification.clarification_id}** · reviewed HR clarification · "
+                f"{scope} · supplements {', '.join(clarification.related_policy_ids)}"
             )
 
 
@@ -474,6 +481,7 @@ def hire_case_thread(service: AishaService, case_id: str) -> None:
     service.case_workflow.mark_notifications_read(case_id, CaseActor.hire())
     thread = service.get_case_thread(case_id)
     case = thread["case"]
+    resolution = thread.get("resolution")
     parent = case.get("parent_conversation_id")
     parent_title = "Original conversation"
     if parent:
@@ -499,14 +507,23 @@ def hire_case_thread(service: AishaService, case_id: str) -> None:
             "visible to HR until this ticket closes.</div>",
             unsafe_allow_html=True,
         )
-    elif case["resolution_summary"]:
-        st.success(f"Resolved: {case['resolution_summary']}")
+    elif resolution:
+        st.success(f"Resolved: {resolution['answer']}")
+        st.caption(
+            f"{resolution['resolution_type'].replace('_', ' ').title()} · "
+            f"{resolution['resolution_scope'].replace('_', ' ').title()} · "
+            f"Reuse: {resolution['reuse_status'].replace('_', ' ').title()}"
+        )
     for item in thread["messages"]:
         role = "user" if item["actor_role"] == "hire" else "assistant"
         with st.chat_message(role):
             speaker = {
                 "hire": "You",
-                "aisha": "AISHA · mirrored parent message",
+                "aisha": (
+                    "AISHA · mirrored parent message"
+                    if item.get("source_policy_message_id")
+                    else "AISHA · case resolution memory"
+                ),
                 "hr": "HR User · ticket reply",
                 "system": "Case workflow",
             }[item["actor_role"]]
@@ -518,6 +535,18 @@ def hire_case_thread(service: AishaService, case_id: str) -> None:
             service.post_case_message(
                 case_id,
                 reply,
+                expected_version=case["resource_version"],
+            )
+            st.rerun()
+    elif resolution:
+        follow_up = st.chat_input(
+            "Ask AISHA about this HR resolution",
+            key=f"case-resolution-follow-up-{case_id}",
+        )
+        if follow_up:
+            service.post_case_message(
+                case_id,
+                follow_up,
                 expected_version=case["resource_version"],
             )
             st.rerun()
@@ -758,7 +787,11 @@ def render_hr_cases(service: AishaService) -> None:
                 internal = item["visibility"] == "hr_internal"
                 speaker = {
                     "hire": "Hire",
-                    "aisha": "AISHA · mirrored parent message",
+                    "aisha": (
+                        "AISHA · mirrored parent message"
+                        if item.get("source_policy_message_id")
+                        else "AISHA · case resolution memory"
+                    ),
                     "hr": "HR User",
                     "system": "Case workflow",
                 }[item["actor_role"]]
@@ -803,15 +836,78 @@ def render_hr_cases(service: AishaService) -> None:
                     key=f"resolution-{case['case_id']}",
                     placeholder="Explain what was resolved or what the Hire should do next.",
                 )
+                resolution_type = st.selectbox(
+                    "Resolution type",
+                    [
+                        "Policy clarification",
+                        "Case exception",
+                        "Policy amendment candidate",
+                        "Unable to resolve",
+                    ],
+                    key=f"resolution-type-{case['case_id']}",
+                )
+                resolution_scope = st.selectbox(
+                    "Resolution scope",
+                    ["Case only", "Hire", "Organization"],
+                    key=f"resolution-scope-{case['case_id']}",
+                )
+                reusable = False
+                if resolution_type == "Policy clarification":
+                    reusable = st.checkbox(
+                        "Propose this clarification for broader reuse",
+                        key=f"resolution-reuse-{case['case_id']}",
+                        help=(
+                            "A policy owner must review it. Case exceptions and amendment "
+                            "candidates never become reusable automatically."
+                        ),
+                    )
+                invalid_reuse = reusable and resolution_scope == "Case only"
+                if invalid_reuse:
+                    st.caption("Choose Hire or Organization scope before proposing reuse.")
                 if st.button(
                     "Resolve case", key=f"resolve-case-{case['case_id']}",
-                    disabled=not resolution.strip(),
+                    disabled=not resolution.strip() or invalid_reuse,
                 ):
                     service.resolve_case(
                         case["case_id"], resolution,
                         expected_version=case["resource_version"],
+                        resolution_type=resolution_type.lower().replace(" ", "_"),
+                        resolution_scope=resolution_scope.lower().replace(" ", "_"),
+                        propose_for_reuse=reusable,
                     )
                     st.rerun()
+            else:
+                resolution = thread.get("resolution")
+                if resolution:
+                    st.markdown(
+                        "**Structured resolution**  \n"
+                        f"Type: {resolution['resolution_type'].replace('_', ' ').title()}  \n"
+                        f"Scope: {resolution['resolution_scope'].replace('_', ' ').title()}  \n"
+                        f"Reuse: {resolution['reuse_status'].replace('_', ' ').title()}"
+                    )
+                    if resolution["reuse_status"] == "pending_review":
+                        approve, reject = st.columns(2)
+                        if approve.button(
+                            "Approve clarification",
+                            key=f"approve-clarification-{case['case_id']}",
+                            type="primary",
+                        ):
+                            service.review_case_clarification(
+                                case["case_id"],
+                                approve=True,
+                                expected_version=resolution["resource_version"],
+                            )
+                            st.rerun()
+                        if reject.button(
+                            "Reject reuse",
+                            key=f"reject-clarification-{case['case_id']}",
+                        ):
+                            service.review_case_clarification(
+                                case["case_id"],
+                                approve=False,
+                                expected_version=resolution["resource_version"],
+                            )
+                            st.rerun()
 
 
 def render_hr_results(repo: Repo) -> None:

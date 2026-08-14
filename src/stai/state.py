@@ -23,6 +23,7 @@ MIGRATION_PATHS = (
     MIGRATION_DIR / "0002_policy_domain.sql",
     MIGRATION_DIR / "0003_policy_turn_results.sql",
     MIGRATION_DIR / "0004_case_threads.sql",
+    MIGRATION_DIR / "0005_policy_clarifications.sql",
 )
 
 
@@ -67,7 +68,11 @@ class Repo:
                 "INSERT OR IGNORE INTO schema_migrations VALUES (?,?,?)",
                 (4, "case_threads", _utc_text()),
             )
-            conn.execute("PRAGMA user_version=4")
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_migrations VALUES (?,?,?)",
+                (5, "policy_clarifications", _utc_text()),
+            )
+            conn.execute("PRAGMA user_version=5")
             self._seed_policy_state(conn)
 
     @contextmanager
@@ -456,7 +461,11 @@ class Repo:
                     (row["offer_id"],),
                 )
             ]
-        return {**dict(row), "policy_ids": policies}
+            gap = conn.execute(
+                "SELECT * FROM escalation_offer_evidence_gaps WHERE offer_id=?",
+                (row["offer_id"],),
+            ).fetchone()
+        return {**dict(row), "policy_ids": policies, **(dict(gap) if gap else {})}
 
     def create_escalation_offer(
         self, conversation_id: str, message_id: str, topic: str,
@@ -477,14 +486,30 @@ class Repo:
     def get_escalation_offer(self, offer_id: str) -> dict | None:
         with self._connect() as conn:
             row = conn.execute("SELECT * FROM escalation_offers WHERE offer_id=?", (offer_id,)).fetchone()
+            gap = conn.execute(
+                "SELECT * FROM escalation_offer_evidence_gaps WHERE offer_id=?", (offer_id,)
+            ).fetchone()
         if not row:
             return None
+        known = gap["safe_known_text"] if gap else None
+        unresolved = gap["unresolved_question"] if gap else None
+        text = (
+            f"The handbook confirms: {known} However, {gap['eligibility_reason']}. "
+            "Would you like me to create an HR clarification ticket?"
+            if gap
+            else "I can create this privacy-safe case after you consent."
+        )
         return {
-            "type": "escalation_offer", "text": "I can create this privacy-safe case after you consent.",
-            "handbook_version": "1.0", "applicability": "applies", "evidence_state": "ready",
+            "type": "escalation_offer", "text": text,
+            "handbook_version": "1.0", "applicability": "applies",
+            "evidence_state": "insufficient_evidence",
             "citations": [], "offer_id": row["offer_id"], "route_owner": row["route_owner"],
             "route_channel": row["route_channel"], "proposed_summary": row["proposed_summary"],
             "topic": row["topic"], "version": row["resource_version"],
+            "gap_kind": gap["gap_kind"] if gap else None,
+            "safe_known_text": known,
+            "unresolved_question": unresolved,
+            "eligibility_reason": gap["eligibility_reason"] if gap else None,
             "shares_parent_conversation": True,
             "sharing_notice": (
                 "Creating this case shares this conversation's existing and future messages "

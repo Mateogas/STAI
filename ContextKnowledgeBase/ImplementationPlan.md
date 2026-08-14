@@ -31,3 +31,14 @@ No later work should reintroduce ramp plans, task/pulse/risk surveillance, filen
 | 5. Relevance validation | Complete | Structurally valid wrong-topic agent answers fail before display |
 | 6. Persistence/replay | Complete | Schema epoch 3 safe typed result replay without snippets or hidden reasoning |
 | 7. Acceptance/deployment | Implemented; external staging run required per release | Full suite, container transcript smoke, and explicit disposable-staging gate |
+
+## v1.2 evidence-gated HR clarification memory
+
+| Slice | Result | Exit evidence |
+|---|---|---|
+| 1. Domain and authority | Complete | Evidence Gap, Case Resolution Memory, clarification review, and amendment boundary recorded in glossary/ADR |
+| 2. Persistence | Complete | Schema epoch 5 stores offer/case gaps and typed versioned resolutions |
+| 3. Eligibility | Complete | Partial eligible evidence can offer; omissions, outages, unsupported subjects, and bare human requests cannot |
+| 4. Thread memory | Complete | Related resolved-thread follow-ups use the HR resolution without reopening the case |
+| 5. Reviewed reuse | Complete | Only approved non-case-only Policy Clarifications supplement later handbook-grounded answers |
+| 6. Surfaces and acceptance | Complete when the full suite and responsive walkthrough pass | Streamlit, `/api/v1`, regression, persistence, and privacy evidence agree |

@@ -91,6 +91,22 @@ class CaseWorkflow:
                     "INSERT INTO escalation_case_policies VALUES (?,?)",
                     (case_id, policy_id),
                 )
+            gap = conn.execute(
+                "SELECT gap_kind,safe_known_text,unresolved_question,eligibility_reason "
+                "FROM escalation_offer_evidence_gaps WHERE offer_id=?",
+                (offer_id,),
+            ).fetchone()
+            if gap:
+                conn.execute(
+                    "INSERT INTO case_evidence_gaps VALUES (?,?,?,?,?)",
+                    (
+                        case_id,
+                        gap["gap_kind"],
+                        gap["safe_known_text"],
+                        gap["unresolved_question"],
+                        gap["eligibility_reason"],
+                    ),
+                )
             conn.execute(
                 "INSERT INTO case_threads VALUES (?,?,?,?,?,?,?,?,?)",
                 (
@@ -243,48 +259,15 @@ class CaseWorkflow:
         *,
         expected_version: int,
     ) -> dict:
-        if actor.role != CaseActorRole.HR:
-            raise PermissionError("only HR can resolve a case")
-        clean = " ".join(summary.split())
-        if not clean or len(clean) > 2000:
-            raise ValueError("resolution summary must contain 1 to 2000 characters")
-        self.repo.validate_policy_message(clean)
-        now = _utc_text()
-        with self.repo.connection() as conn:
-            conn.execute("BEGIN IMMEDIATE")
-            case = self._case_row(conn, case_id)
-            if case["status"] != "open":
-                raise ValueError("the case is already closed")
-            if case["resource_version"] != expected_version:
-                raise ValueError("stale resource version")
-            ordinal = int(
-                conn.execute(
-                    "SELECT COALESCE(MAX(ordinal),0)+1 FROM case_messages WHERE case_id=?",
-                    (case_id,),
-                ).fetchone()[0]
-            )
-            conn.execute(
-                "INSERT INTO case_messages VALUES (?,?,?,?,?,?,?,?,?)",
-                (
-                    str(uuid.uuid4()), case_id, ordinal, "hr", actor.actor_id,
-                    "shared", f"Resolution: {clean}", None, now,
-                ),
-            )
-            conn.execute(
-                "UPDATE escalation_cases SET status='closed',closed_at_utc=?,closing_hr_user=?,"
-                "resource_version=resource_version+1 WHERE case_id=?",
-                (now, actor.actor_id, case_id),
-            )
-            conn.execute(
-                "UPDATE case_threads SET sharing_active=0,workflow_state='resolved',"
-                "assigned_hr_user=?,resolution_summary=?,resolved_at_utc=? WHERE case_id=?",
-                (actor.actor_id, clean, now, case_id),
-            )
-            self._event(conn, case_id, "case_resolved", actor, {"hire_visible": True}, now)
-            self._notification(
-                conn, case_id, "hire", case["hire_id"], "case_resolved",
-                "Your HR support case was resolved", now,
-            )
+        from stai.clarifications import PolicyClarificationWorkflow
+        from stai.models import CaseResolutionInput
+
+        PolicyClarificationWorkflow(self.repo).resolve(
+            case_id,
+            actor,
+            CaseResolutionInput(answer=summary),
+            expected_version=expected_version,
+        )
         return self.get_case(case_id, actor)
 
     def get_case(self, case_id: str, actor: CaseActor) -> dict:

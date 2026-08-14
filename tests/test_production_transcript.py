@@ -26,8 +26,8 @@ def test_production_payroll_transcript_keeps_context_and_never_crosses_topic(tmp
 
     assert [turn.type for turn in turns] == [
         "grounded_answer",
-        "grounded_answer",
-        "grounded_answer",
+        "escalation_offer",
+        "escalation_offer",
         "escalation_offer",
         "escalation_confirmation",
         "grounded_answer",

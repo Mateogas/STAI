@@ -141,7 +141,11 @@ class PolicyEngine:
 
     def _abstain(self, reason: str) -> Abstention:
         return Abstention(
-            text="The active handbook does not contain enough eligible evidence for a reliable answer. I can help route this to HR.",
+            text=(
+                "The active handbook does not contain enough eligible evidence for a reliable "
+                "answer. No HR ticket was offered because AISHA could not confirm a partially "
+                "supported policy question."
+            ),
             handbook_version=self.version,
             applicability=ApplicabilityStatus.APPLIES,
             evidence_state=EvidenceState.INSUFFICIENT,

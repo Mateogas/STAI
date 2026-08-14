@@ -53,7 +53,7 @@ Run or display the genuine Nager evidence. State exactly `Based on Nager.` Expla
 
 ### 5. Consent-first case and profile revision — 75 seconds — Bon Aquino
 
-Ask for a human about PAY-001. Show the Escalation Offer’s route and privacy-safe summary, then show that HR has no case yet. Consent explicitly; the case appears. In HR User, close it with the expected resource version.
+Ask where to find the official payroll route. Show the supported PAY-003 portion and the deterministic route gap, then show that HR has no case yet. Demonstrate that a bare human request cannot bypass eligibility. Consent explicitly; the case appears. In HR User, resolve it with a type and scope, ask one related question in the resolved thread, and separately review a proposed reusable Policy Clarification.
 
 Create a one-attribute Work Site request, then approve or reject it from HR. Explain that approval creates a revision; conversation text never becomes profile authority.
 

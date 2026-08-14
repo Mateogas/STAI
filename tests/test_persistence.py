@@ -18,17 +18,18 @@ def make_repo(tmp_path: Path) -> Repo:
 
 def test_schema_pragmas_and_single_alyssa_seed(tmp_path: Path) -> None:
     repo = make_repo(tmp_path)
-    assert repo.schema_version == 4
+    assert repo.schema_version == 5
     assert repo.get_hire_profile("emp-alyssa").role_key == "branch_banking_associate"
     assert repo.list_hire_ids() == ["emp-alyssa"]
     with sqlite3.connect(repo.db_path) as conn:
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 4
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == 5
         assert conn.execute("PRAGMA foreign_keys").fetchone()[0] == 0  # connection-local
         tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     assert {
         "hires", "hire_profiles", "policy_conversations", "policy_turn_results",
         "validation_results", "active_retrieval_build", "case_threads",
-        "case_messages", "case_events", "case_notifications",
+        "case_messages", "case_events", "case_notifications", "case_evidence_gaps",
+        "case_resolutions", "escalation_offer_evidence_gaps",
     } <= tables
 
 
@@ -108,7 +109,7 @@ def test_typed_turn_state_persists_public_result_not_query_or_reasoning(tmp_path
         row = conn.execute("SELECT * FROM policy_turn_results").fetchone()
     payload = json.loads(row["safe_payload_json"])
     assert row["resolved_topic"] == "payroll"
-    assert payload["type"] == "grounded_answer"
+    assert payload["type"] == "escalation_offer"
     serialized = json.dumps(dict(row)).lower()
     assert "standalone_query" not in serialized
     assert "chain-of-thought" not in serialized

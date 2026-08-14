@@ -61,6 +61,34 @@ class EvidenceState(StrEnum):
     HANDBOOK_OMISSION = "handbook_omission"
 
 
+class EvidenceGapKind(StrEnum):
+    MISSING_PROCEDURE = "missing_procedure"
+    EXCEPTION_UNCLEAR = "exception_unclear"
+    POLICY_CONFLICT = "policy_conflict"
+    ROUTE_UNCLEAR = "route_unclear"
+
+
+class ResolutionType(StrEnum):
+    POLICY_CLARIFICATION = "policy_clarification"
+    CASE_EXCEPTION = "case_exception"
+    POLICY_AMENDMENT_CANDIDATE = "policy_amendment_candidate"
+    UNABLE_TO_RESOLVE = "unable_to_resolve"
+
+
+class ResolutionScope(StrEnum):
+    CASE_ONLY = "case_only"
+    HIRE = "hire"
+    ORGANIZATION = "organization"
+
+
+class ClarificationReuseStatus(StrEnum):
+    THREAD_ONLY = "thread_only"
+    PENDING_REVIEW = "pending_review"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    PENDING_HANDBOOK = "pending_handbook"
+
+
 class HireProfile(BaseModel):
     employee_id: str
     role_key: Literal[
@@ -105,6 +133,18 @@ class PolicyCitation(BaseModel):
         return f"[{self.policy_id} \N{MIDDLE DOT} AISHA Handbook v{self.handbook_version} \N{MIDDLE DOT} {pages}]"
 
 
+class HumanClarificationReference(BaseModel):
+    clarification_id: str
+    source_case_id: str
+    related_policy_ids: list[str] = Field(default_factory=list)
+    resolution_scope: ResolutionScope
+    approved_at_utc: str
+    expires_on: date | None = None
+
+    def render(self) -> str:
+        return f"[HR clarification {self.clarification_id}]"
+
+
 class PolicyClaim(BaseModel):
     text: str = Field(min_length=1, max_length=2000)
     citation_indexes: list[int] = Field(default_factory=list)
@@ -121,6 +161,7 @@ class PolicyResponseBase(BaseModel):
 class GroundedPolicyAnswer(PolicyResponseBase):
     type: Literal["grounded_answer"] = "grounded_answer"
     claims: list[PolicyClaim] = Field(default_factory=list)
+    clarifications: list[HumanClarificationReference] = Field(default_factory=list)
 
 
 class ClarificationRequest(PolicyResponseBase):
@@ -152,6 +193,10 @@ class EscalationOffer(PolicyResponseBase):
     proposed_summary: str = Field(min_length=1, max_length=500)
     topic: OnboardingTopic
     version: int = Field(default=1, ge=1)
+    gap_kind: EvidenceGapKind | None = None
+    safe_known_text: str | None = Field(default=None, max_length=2000)
+    unresolved_question: str | None = Field(default=None, max_length=1000)
+    eligibility_reason: str | None = Field(default=None, max_length=500)
     shares_parent_conversation: bool = True
     sharing_notice: str = (
         "Creating this case shares this conversation's existing and future messages "
@@ -168,6 +213,37 @@ class EscalationConfirmation(PolicyResponseBase):
     route_channel: str
     topic: OnboardingTopic
     version: int = Field(default=1, ge=1)
+
+
+class EscalationEligibility(BaseModel):
+    eligible: bool
+    reason: str = Field(min_length=1, max_length=500)
+    gap_kind: EvidenceGapKind | None = None
+    safe_known_text: str | None = Field(default=None, max_length=2000)
+    unresolved_question: str | None = Field(default=None, max_length=1000)
+    policy_ids: list[str] = Field(default_factory=list)
+
+
+class CaseResolutionInput(BaseModel):
+    answer: str = Field(min_length=1, max_length=2000)
+    resolution_type: ResolutionType = ResolutionType.POLICY_CLARIFICATION
+    resolution_scope: ResolutionScope = ResolutionScope.CASE_ONLY
+    propose_for_reuse: bool = False
+    effective_on: date | None = None
+    expires_on: date | None = None
+
+    @model_validator(mode="after")
+    def validate_reuse_and_dates(self) -> "CaseResolutionInput":
+        if self.propose_for_reuse and (
+            self.resolution_type != ResolutionType.POLICY_CLARIFICATION
+            or self.resolution_scope == ResolutionScope.CASE_ONLY
+        ):
+            raise ValueError(
+                "only a non-case-only Policy Clarification can be proposed for reuse"
+            )
+        if self.effective_on and self.expires_on and self.expires_on < self.effective_on:
+            raise ValueError("expires_on cannot precede effective_on")
+        return self
 
 
 class ResolvedTurn(BaseModel):

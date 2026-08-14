@@ -216,6 +216,17 @@ The internal determination that eligible retrieved evidence covers a Policy
 Claim strongly enough to state it; it never determines Policy Applicability.
 _Avoid_: Retrieval score, eligibility, model confidence
 
+**Evidence Gap**:
+A material unresolved detail that remains after eligible policy evidence answers
+part of a Hire's question; it is distinct from a Handbook Omission, retrieval
+failure, or general model uncertainty.
+_Avoid_: Low confidence, no search result, unsupported topic
+
+**Escalation Eligibility**:
+The deterministic decision that an Evidence Gap is appropriate for an HR
+clarification offer; it never follows solely from a Hire asking for HR.
+_Avoid_: Model confidence, automatic escalation, unrestricted HR access
+
 **Version Disclosure**:
 The concise statement "Based on AISHA Handbook v{version}" shown with grounded
 policy guidance; it identifies the basis without adding a general warning.
@@ -291,6 +302,36 @@ _Avoid_: Private HR note, telemetry event, Policy Response
 A durable unread signal that a Case Thread was created or received a Hire-visible
 update; it can later be delivered by an external notification channel.
 _Avoid_: Ephemeral toast, raw chat alert, telemetry record
+
+**Case Resolution Memory**:
+An HR-confirmed answer retained with one resolved Escalation Case and available
+to AISHA for follow-up questions inside that Case Thread.
+_Avoid_: Handbook amendment, global model memory, Published Policy Clarification
+
+**Resolution Type**:
+The meaning HR assigns to a Case Resolution Memory: Policy Clarification, Case
+Exception, Policy Amendment Candidate, or Unable to Resolve.
+_Avoid_: Ticket label, policy status, free-form category
+
+**Resolution Scope**:
+The population to which a Case Resolution Memory is declared relevant: Case
+Only, the confirmed Hire, or Organization-Wide; scope never establishes policy authority.
+_Avoid_: Access permission, Policy Applicability, audience guess
+
+**Policy Clarification Candidate**:
+A Case Resolution Memory that HR proposes for reuse beyond its Case Thread;
+it remains non-authoritative until reviewed.
+_Avoid_: Learned policy, automatic memory, handbook update
+
+**Published Policy Clarification**:
+A reviewed, versioned explanation linked to existing Onboarding Policies that
+may supplement but never contradict or replace the Active Policy Revision.
+_Avoid_: Case Exception, Policy Revision, model memory
+
+**Policy Amendment Candidate**:
+An HR resolution indicating that the authoritative rule itself may need to
+change; it cannot affect answers until incorporated into a new Active Policy Revision.
+_Avoid_: Published Policy Clarification, automatic handbook edit, Case Exception
 
 ### Document validation and evaluation
 

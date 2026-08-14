@@ -19,7 +19,7 @@ from pydantic import BaseModel, Field
 from stai.config import settings
 from stai.handbook import build_handbook
 from stai.medical import preflight_upload
-from stai.models import ApplicabilityStatus
+from stai.models import ApplicabilityStatus, ResolutionScope, ResolutionType
 from stai.retriever import load_page_records
 from stai.service import AishaService
 from stai.state import IdempotencyConflict, MedicalContentRejected, Repo
@@ -179,6 +179,15 @@ class VersionAction(BaseModel):
 class HrVersionAction(VersionAction):
     hr_user: str = Field(min_length=1, max_length=80)
     resolution_summary: str = Field(default="Resolved by HR.", min_length=1, max_length=2000)
+    resolution_type: ResolutionType = ResolutionType.POLICY_CLARIFICATION
+    resolution_scope: ResolutionScope = ResolutionScope.CASE_ONLY
+    propose_for_reuse: bool = False
+    effective_on: date | None = None
+    expires_on: date | None = None
+
+
+class ClarificationReviewAction(VersionAction):
+    hr_user: str = Field(default="policy-owner-demo", min_length=1, max_length=80)
 
 
 class CaseMessageCreate(VersionAction):
@@ -399,15 +408,49 @@ def create_hr_case_message(case_id: str, body: HrCaseMessageCreate, request: Req
 
 
 @app.post("/api/v1/hr/escalation-cases/{case_id}/close")
-def close_hr_case(case_id: str, body: HrVersionAction, request: Request, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), repo: Repo = Depends(get_repo)):
+def close_hr_case(case_id: str, body: HrVersionAction, request: Request, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), repo: Repo = Depends(get_repo), service: AishaService = Depends(get_service)):
     key = _key(idempotency_key); scope, canonical = f"case:close:{case_id}", _canonical(body)
     replay = _check_replay(repo, scope, key, canonical, request)
     if isinstance(replay, JSONResponse): return replay
     if replay: return success(request, repo.get_escalation_case(case_id))
-    try: item = repo.close_escalation_case(case_id, expected_version=body.expected_version, hr_user=body.hr_user, resolution_summary=body.resolution_summary)
+    try:
+        item = service.resolve_case(
+            case_id,
+            body.resolution_summary,
+            expected_version=body.expected_version,
+            resolution_type=body.resolution_type,
+            resolution_scope=body.resolution_scope,
+            propose_for_reuse=body.propose_for_reuse,
+            effective_on=body.effective_on,
+            expires_on=body.expires_on,
+            hr_user=body.hr_user,
+        )
     except KeyError: return safe_error(request, 404, "case_not_found", "The escalation case was not found.")
     except ValueError: return safe_error(request, 409, "stale_resource_version", "The escalation case has changed.")
     _save_replay(repo, scope, key, canonical, "escalation_case", case_id, item["resource_version"], 200, "closed")
+    return success(request, item)
+
+
+@app.post("/api/v1/hr/escalation-cases/{case_id}/clarification-review/{action}")
+def review_case_clarification(case_id: str, action: str, body: ClarificationReviewAction, request: Request, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), repo: Repo = Depends(get_repo), service: AishaService = Depends(get_service)):
+    if action not in {"approve", "reject"}:
+        return safe_error(request, 404, "action_not_found", "The clarification review action was not found.")
+    key = _key(idempotency_key)
+    scope, canonical = f"clarification:{action}:{case_id}", _canonical(body)
+    replay = _check_replay(repo, scope, key, canonical, request)
+    if isinstance(replay, JSONResponse): return replay
+    if replay:
+        return success(request, service.clarification_workflow.get_resolution(case_id))
+    try:
+        item = service.review_case_clarification(
+            case_id,
+            approve=action == "approve",
+            expected_version=body.expected_version,
+            hr_user=body.hr_user,
+        )
+    except KeyError: return safe_error(request, 404, "case_resolution_not_found", "The case resolution was not found.")
+    except (ValueError, PermissionError): return safe_error(request, 409, "clarification_review_rejected", "The clarification changed or cannot be reviewed.")
+    _save_replay(repo, scope, key, canonical, "case_resolution", item["resolution_id"], item["resource_version"], 200, item["reuse_status"])
     return success(request, item)
 
 

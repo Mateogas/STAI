@@ -115,22 +115,23 @@ def test_pending_offer_requires_unambiguous_consent_language(tmp_path: Path) -> 
     assert repo.list_escalation_cases() == []
 
 
-def test_informational_route_question_does_not_create_escalation(tmp_path: Path) -> None:
+def test_partial_route_question_offers_evidence_gated_escalation(tmp_path: Path) -> None:
     repo, records, conversation = setup(tmp_path)
     service = AishaService(repo, records)
     response = service.send_message(
         conversation["id"],
         "Where can I find the official payroll route?",
     )
-    assert response.type == "grounded_answer"
+    assert response.type == "escalation_offer"
     assert response.citations[0].policy_id == "PAY-003"
-    assert repo.get_pending_escalation_offer_for_conversation(conversation["id"]) is None
+    assert response.gap_kind.value == "route_unclear"
+    assert repo.get_pending_escalation_offer_for_conversation(conversation["id"]) is not None
 
 
 def test_consent_button_flow_persists_confirmation_and_answers_status(tmp_path: Path) -> None:
     repo, records, conversation = setup(tmp_path)
     service = AishaService(repo, records)
-    offer = service.send_message(conversation["id"], "Connect me with payroll support")
+    offer = service.send_message(conversation["id"], "Where is the official payroll route?")
 
     before_consent = service.send_message(conversation["id"], "Have you created it for me?")
     assert before_consent.type == "escalation_offer"

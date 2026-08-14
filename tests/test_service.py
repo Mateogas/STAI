@@ -38,7 +38,7 @@ def test_certificate_content_never_enters_conversation_memory(tmp_path: Path) ->
 def test_escalation_offer_requires_separate_consent(tmp_path: Path) -> None:
     service = make_service(tmp_path)
     conversation = service.create_conversation("emp-alyssa", date(2026, 8, 10))
-    offer = service.send_message(conversation["id"], "Please connect me with a human about PAY-001")
+    offer = service.send_message(conversation["id"], "Where is the official payroll route?")
     assert offer.type == "escalation_offer"
     assert service.repo.list_escalation_cases() == []
     case = service.consent_escalation(offer.offer_id, expected_version=1)
@@ -83,4 +83,3 @@ def test_result_share_revoke_delete_lifecycle_is_result_only(tmp_path: Path) -> 
     assert revoked["share_state"] == "private"
     service.delete_validation_result(result["validation_id"], expected_version=3)
     assert service.repo.count_validation_results() == 0
-

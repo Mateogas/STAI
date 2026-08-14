@@ -27,6 +27,8 @@ Then select one route:
 - Four HR-confirmed applicability attributes; chat is never profile authority.
 - Structured policy citations use policy/version/page/artifact identity.
 - Escalation is offer-before-case and requires explicit consent.
+- Escalation requires a deterministic Evidence Gap backed by eligible partial policy evidence; omissions, outages, unsupported topics, and bare human requests do not qualify.
+- Case Resolution Memory is thread-scoped. Only a reviewed Published Policy Clarification may supplement later answers, and policy changes require a new handbook revision.
 - Certificate Check is local completeness only with result-only history.
 - HR has no direct policy-conversation read path. Explicit case consent copies the linked parent history and mirrors future parent messages into the HR-visible Case Thread until resolution; unrelated conversations and certificate content remain inaccessible.
 - Public integration is typed `/api/v1` only.

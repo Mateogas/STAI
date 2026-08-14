@@ -137,7 +137,7 @@ def verify_dialogue_regression() -> dict:
             "route it please", "how does payroll work",
         ]
         expected = [
-            "grounded_answer", "grounded_answer", "grounded_answer",
+            "grounded_answer", "escalation_offer", "escalation_offer",
             "escalation_offer", "escalation_confirmation", "grounded_answer",
         ]
         results = [service.send_message(conversation["id"], prompt) for prompt in prompts]
