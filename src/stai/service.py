@@ -17,13 +17,12 @@ class AishaService:
         *,
         medical_service=None,
         handbook_index=None,
-        agent_enabled: bool = False,
         agent_runner=None,
         input_classifier=None,
     ) -> None:
         from stai.agent import LocalReactRunner
         from stai.cases import CaseWorkflow
-        from stai.clarifications import EvidenceGapAssessor, PolicyClarificationWorkflow
+        from stai.clarifications import PolicyClarificationWorkflow
         from stai.guardrails import LocalInputClassifier
         from stai.medical import MedicalCheckService
         from stai.retriever import InMemoryHandbookIndex
@@ -35,9 +34,9 @@ class AishaService:
         self.handbook_index = handbook_index or InMemoryHandbookIndex(records)
         self.case_workflow = CaseWorkflow(repo)
         self.clarification_workflow = PolicyClarificationWorkflow(repo)
-        if agent_runner is None and agent_enabled:
+        if agent_runner is None:
             agent_runner = LocalReactRunner(repo, records, self.handbook_index)
-        if input_classifier is None and agent_enabled:
+        if input_classifier is None:
             input_classifier = LocalInputClassifier()
         self.turn_engine = PolicyTurnEngine(
             repo,
@@ -47,7 +46,6 @@ class AishaService:
             input_classifier=input_classifier,
             case_workflow=self.case_workflow,
             clarification_workflow=self.clarification_workflow,
-            evidence_gap_assessor=EvidenceGapAssessor(),
         )
 
     def create_conversation(self, employee_id: str, simulated_date: date) -> dict:

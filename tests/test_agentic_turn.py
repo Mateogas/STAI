@@ -58,14 +58,10 @@ def test_payday_wording_retrieves_the_schedule_procedure(service, prompt: str) -
     assert "15th" in response.text
 
 
-def test_conversational_hr_catalog_is_scoped_and_does_not_run_the_agent(tmp_path: Path) -> None:
+def test_conversational_hr_catalog_is_scoped_and_runs_through_agent(tmp_path: Path) -> None:
     repo = Repo(tmp_path / "state.db", secret_path=tmp_path / "install.key")
     records = load_page_records(build_handbook(tmp_path / "handbook").rag_pages_path)
-    service = AishaService(
-        repo,
-        records,
-        agent_runner=lambda *_args: (_ for _ in ()).throw(AssertionError("catalog must not run the answer agent")),
-    )
+    service = AishaService(repo, records)
     response = ask(service, "What other HR policies could I ask about?")
     assert response.type == "grounded_answer"
     assert "**HR Policies**" in response.text

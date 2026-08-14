@@ -72,7 +72,7 @@ flowchart TD
     Found -- No --> Abstain["Abstention; no unrelated citation"]
     Found -- Yes --> Applicable{"All constraining attributes known?"}
     Applicable -- No --> Clarify["One focused clarification; no mutation"]
-    Applicable -- Yes --> Claim["ReAct candidate or deterministic degraded composer"]
+    Applicable -- Yes --> Claim["Typed ReAct plan and response draft"]
     Claim --> Validate["Schema, applicability, topic relevance, claim, and citation validation"]
     Validate --> Valid{"Valid?"}
     Valid -- No --> SafeAbstain["Fail-closed typed abstention"]

@@ -227,7 +227,7 @@ class HandbookIndex(Protocol):
 
 
 class InMemoryHandbookIndex:
-    """Verified-record adapter used by deterministic tests and safe degradation."""
+    """Verified-record adapter used explicitly by deterministic unit tests."""
 
     def __init__(self, records: list[HandbookPageRecord]) -> None:
         self.records = records
@@ -255,7 +255,7 @@ class InMemoryHandbookIndex:
 
 
 class ChromaHandbookIndex(InMemoryHandbookIndex):
-    """Active-build Chroma adapter with a verified lexical degradation path."""
+    """Required active-build Chroma adapter; retrieval failures are surfaced."""
 
     def __init__(self, repo, records: list[HandbookPageRecord], *, dense_lookup=None) -> None:
         super().__init__(records)
@@ -351,8 +351,9 @@ class ChromaHandbookIndex(InMemoryHandbookIndex):
                 if document.metadata.get("record_id")
             ]
             self.last_search_mode = "active_chroma"
-        except Exception:
-            self.last_search_mode = "verified_lexical_fallback"
+        except Exception as exc:
+            self.last_search_mode = "unavailable"
+            raise KnowledgeIndexIntegrityError("active Chroma retrieval failed") from exc
         return hybrid_retrieve(
             query,
             profile,

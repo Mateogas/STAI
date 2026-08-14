@@ -256,7 +256,6 @@ def get_service() -> AishaService:
         get_repo(),
         records,
         handbook_index=index,
-        agent_enabled=settings.agent_enabled,
     )
 
 

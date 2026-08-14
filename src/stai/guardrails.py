@@ -103,16 +103,13 @@ def _default_llm():
 def classify_input(message: str, llm=None) -> GuardrailVerdict:
     """Run the few-shot input classifier. ``llm`` is injectable for tests."""
     llm = llm or _default_llm()
-    try:
-        response = llm.invoke(build_classifier_messages(message))
-        content = response.content if hasattr(response, "content") else str(response)
-        if isinstance(content, list):
-            content = " ".join(
-                b.get("text", "") if isinstance(b, dict) else str(b) for b in content
-            )
-        return parse_verdict(content)
-    except Exception as exc:
-        return GuardrailVerdict(category="on_topic", reason=f"fail-open: {exc}")
+    response = llm.invoke(build_classifier_messages(message))
+    content = response.content if hasattr(response, "content") else str(response)
+    if isinstance(content, list):
+        content = " ".join(
+            b.get("text", "") if isinstance(b, dict) else str(b) for b in content
+        )
+    return parse_verdict(content)
 
 
 class LocalInputClassifier:
@@ -123,7 +120,7 @@ class LocalInputClassifier:
 
     def __call__(self, message: str) -> GuardrailVerdict:
         if not self.available():
-            return GuardrailVerdict(category="on_topic", reason="fail-open probe unavailable")
+            raise RuntimeError("required input-classifier model is unavailable")
         return classify_input(message)
 
     def available(self) -> bool:

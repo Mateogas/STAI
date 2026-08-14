@@ -27,7 +27,7 @@ No later work should reintroduce ramp plans, task/pulse/risk surveillance, filen
 | 1. Deep turn seam | Complete | Streamlit and API delegate to `PolicyTurnEngine.handle_turn` |
 | 2. Context and actions | Complete | Restart-safe topic/reference state and offer-before-chat-consent progression |
 | 3. Retrieval repair | Complete | Stopword-safe weighted lexical plus active Chroma candidates and topic hard gate |
-| 4. Production ReAct | Complete | Reachability-probed ReAct primary path with validated deterministic degradation |
+| 4. Production ReAct | Complete | Mandatory ReAct plan/response path with typed finalization and no local answer fallback |
 | 5. Relevance validation | Complete | Structurally valid wrong-topic agent answers fail before display |
 | 6. Persistence/replay | Complete | Schema epoch 3 safe typed result replay without snippets or hidden reasoning |
 | 7. Acceptance/deployment | Implemented; external staging run required per release | Full suite, container transcript smoke, and explicit disposable-staging gate |

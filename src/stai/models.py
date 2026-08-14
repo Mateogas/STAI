@@ -63,7 +63,6 @@ class AgentAction(StrEnum):
 class ExecutionMode(StrEnum):
     AGENT = "agent"
     DETERMINISTIC = "deterministic"
-    DEGRADED = "degraded"
 
 
 class ApplicabilityStatus(StrEnum):
@@ -268,7 +267,7 @@ class CaseResolutionInput(BaseModel):
 
 
 class ResolvedTurn(BaseModel):
-    """Private, bounded context resolution used before retrieval or action."""
+    """Private, bounded plan produced by the ReAct agent for one turn."""
 
     dialogue_act: DialogueAct
     topic: OnboardingTopic | None = None
@@ -281,6 +280,269 @@ class ResolvedTurn(BaseModel):
     clarification_question: str | None = Field(default=None, max_length=500)
     clarification_choices: list[str] = Field(default_factory=list, max_length=4)
     agent_actions: list[AgentAction] = Field(default_factory=list)
+
+
+class AgentResponseDraft(BaseModel):
+    """Typed, non-mutating response proposed by ReAct for deterministic validation."""
+
+    response_type: Literal[
+        "grounded_answer",
+        "clarification_request",
+        "abstention",
+        "escalation_offer",
+        "case_action",
+    ]
+    text: str = Field(min_length=1, max_length=8000)
+    handbook_version: str = Field(pattern=r"^\d+\.\d+$")
+    applicability: ApplicabilityStatus = ApplicabilityStatus.APPLIES
+    evidence_state: EvidenceState = EvidenceState.READY
+    citations: list[PolicyCitation] = Field(default_factory=list)
+    claims: list[PolicyClaim] = Field(default_factory=list)
+    reason: Literal[
+        "unsupported_topic",
+        "insufficient_evidence",
+        "unresolved_ambiguity",
+        "policy_conflict",
+        "knowledge_index_outage",
+        "integrity_failure",
+        "handbook_omission",
+        "calendar_conflict",
+        "calendar_unavailable",
+    ] | None = None
+    question: str | None = Field(default=None, max_length=500)
+    choices: list[str] = Field(default_factory=list, max_length=4)
+    gap_kind: EvidenceGapKind | None = None
+    safe_known_text: str | None = Field(default=None, max_length=2000)
+    unresolved_question: str | None = Field(default=None, max_length=1000)
+    eligibility_reason: str | None = Field(default=None, max_length=500)
+    case_action: Literal["consent_pending_offer", "report_case_status"] | None = None
+
+    @model_validator(mode="after")
+    def validate_shape(self) -> "AgentResponseDraft":
+        if self.response_type == "grounded_answer" and (
+            not self.citations or not self.claims
+        ):
+            raise ValueError("grounded answers require citations and claims")
+        if self.response_type == "clarification_request" and not self.question:
+            raise ValueError("clarification requests require a question")
+        if self.response_type == "abstention" and not self.reason:
+            raise ValueError("abstentions require a reason")
+        if self.response_type == "escalation_offer" and (
+            not self.gap_kind
+            or not self.safe_known_text
+            or not self.unresolved_question
+            or not self.eligibility_reason
+            or not self.citations
+        ):
+            raise ValueError("escalation offers require a cited, explicit evidence gap")
+        if self.response_type == "case_action" and not self.case_action:
+            raise ValueError("case actions require a case_action")
+        return self
+
+
+class AgentPlanDraft(BaseModel):
+    """Small structured planning schema used by local function-calling models."""
+
+    dialogue_act: DialogueAct
+    topic: OnboardingTopic | None = None
+    policy_ids: list[str] = Field(default_factory=list)
+    standalone_query: str = Field(min_length=1, max_length=4000)
+    agent_actions: list[AgentAction] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_empty_topic(cls, value):
+        if isinstance(value, dict) and value.get("topic") in ("", {}, []):
+            value = {**value, "topic": None}
+        return value
+
+
+class AgentResponseTypeDraft(BaseModel):
+    """One-field response-shape selection kept separate from intent planning."""
+
+    response_type: Literal[
+        "grounded_answer",
+        "clarification_request",
+        "abstention",
+        "escalation_offer",
+        "case_action",
+    ]
+
+
+class AgentEscalationDraft(BaseModel):
+    text: str = Field(min_length=1, max_length=8000)
+    handbook_version: str = Field(pattern=r"^\d+\.\d+$")
+    citations: list[PolicyCitation] = Field(min_length=1)
+    gap_kind: EvidenceGapKind
+    safe_known_text: str = Field(min_length=1, max_length=2000)
+    unresolved_question: str = Field(min_length=1, max_length=1000)
+    eligibility_reason: str = Field(min_length=1, max_length=500)
+
+
+class AgentGroundedDraft(BaseModel):
+    text: str = Field(min_length=1, max_length=8000)
+    handbook_version: str = Field(pattern=r"^\d+\.\d+$")
+    applicability: ApplicabilityStatus
+    evidence_state: EvidenceState
+    citations: list[PolicyCitation] = Field(min_length=1)
+    claims: list[PolicyClaim] = Field(min_length=1)
+
+
+class AgentClaimsDraft(BaseModel):
+    claims: list[PolicyClaim] = Field(min_length=1)
+
+
+class AgentClarificationDraft(BaseModel):
+    text: str = Field(min_length=1, max_length=8000)
+    handbook_version: str = Field(pattern=r"^\d+\.\d+$")
+    applicability: ApplicabilityStatus
+    evidence_state: EvidenceState
+    question: str = Field(min_length=1, max_length=500)
+    choices: list[str] = Field(default_factory=list, max_length=4)
+
+
+class AgentAbstentionDraft(BaseModel):
+    text: str = Field(min_length=1, max_length=8000)
+    handbook_version: str = Field(pattern=r"^\d+\.\d+$")
+    applicability: ApplicabilityStatus
+    evidence_state: EvidenceState
+    reason: Literal[
+        "unsupported_topic",
+        "insufficient_evidence",
+        "unresolved_ambiguity",
+        "policy_conflict",
+        "knowledge_index_outage",
+        "integrity_failure",
+        "handbook_omission",
+        "calendar_conflict",
+        "calendar_unavailable",
+    ]
+
+
+class AgentCaseActionDraft(BaseModel):
+    text: str = Field(min_length=1, max_length=8000)
+    handbook_version: str = Field(pattern=r"^\d+\.\d+$")
+    case_action: Literal["consent_pending_offer", "report_case_status"]
+
+
+class AgentTurnDecision(BaseModel):
+    """Flat wire schema carrying a typed plan and response from the ReAct loop."""
+
+    dialogue_act: DialogueAct
+    topic: OnboardingTopic | None = None
+    policy_ids: list[str] = Field(default_factory=list)
+    standalone_query: str = Field(min_length=1, max_length=4000)
+    referenced_message_id: str | None = None
+    catalog_scope: OnboardingTopic | None = None
+    policy_subarea: str | None = Field(default=None, max_length=100)
+    payroll_intent: PayrollSubIntent | None = None
+    agent_actions: list[AgentAction] = Field(default_factory=list)
+
+    response_type: Literal[
+        "grounded_answer",
+        "clarification_request",
+        "abstention",
+        "escalation_offer",
+        "case_action",
+    ]
+    text: str = Field(min_length=1, max_length=8000)
+    handbook_version: str = Field(pattern=r"^\d+\.\d+$")
+    applicability: ApplicabilityStatus = ApplicabilityStatus.APPLIES
+    evidence_state: EvidenceState = EvidenceState.READY
+    citations: list[PolicyCitation] = Field(default_factory=list)
+    claims: list[PolicyClaim] = Field(default_factory=list)
+    reason: Literal[
+        "unsupported_topic",
+        "insufficient_evidence",
+        "unresolved_ambiguity",
+        "policy_conflict",
+        "knowledge_index_outage",
+        "integrity_failure",
+        "handbook_omission",
+        "calendar_conflict",
+        "calendar_unavailable",
+    ] | None = None
+    question: str | None = Field(default=None, max_length=500)
+    choices: list[str] = Field(default_factory=list, max_length=4)
+    gap_kind: EvidenceGapKind | None = None
+    safe_known_text: str | None = Field(default=None, max_length=2000)
+    unresolved_question: str | None = Field(default=None, max_length=1000)
+    eligibility_reason: str | None = Field(default=None, max_length=500)
+    case_action: Literal["consent_pending_offer", "report_case_status"] | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_ollama_optional_values(cls, value):
+        """Normalize empty placeholders emitted by local function-calling models."""
+        if not isinstance(value, dict):
+            return value
+        payload = dict(value)
+        optional_enums = (
+            "topic",
+            "catalog_scope",
+            "payroll_intent",
+            "gap_kind",
+            "case_action",
+        )
+        optional_text = (
+            "referenced_message_id",
+            "policy_subarea",
+            "question",
+            "safe_known_text",
+            "unresolved_question",
+            "eligibility_reason",
+        )
+        for key in (*optional_enums, *optional_text):
+            if payload.get(key) in ("", {}, []):
+                payload[key] = None
+        if not payload.get("standalone_query"):
+            payload["standalone_query"] = "not applicable"
+        if not payload.get("evidence_state"):
+            payload["evidence_state"] = (
+                EvidenceState.INSUFFICIENT.value
+                if payload.get("response_type") in {"abstention", "clarification_request"}
+                else EvidenceState.READY.value
+            )
+        return payload
+
+    @property
+    def plan(self) -> ResolvedTurn:
+        return ResolvedTurn(
+            dialogue_act=self.dialogue_act,
+            topic=self.topic,
+            policy_ids=self.policy_ids,
+            standalone_query=self.standalone_query,
+            referenced_message_id=self.referenced_message_id,
+            catalog_scope=self.catalog_scope,
+            policy_subarea=self.policy_subarea,
+            payroll_intent=self.payroll_intent,
+            agent_actions=self.agent_actions,
+        )
+
+    @property
+    def response(self) -> AgentResponseDraft:
+        return AgentResponseDraft(
+            response_type=self.response_type,
+            text=self.text,
+            handbook_version=self.handbook_version,
+            applicability=self.applicability,
+            evidence_state=self.evidence_state,
+            citations=self.citations,
+            claims=self.claims,
+            reason=self.reason,
+            question=self.question,
+            choices=self.choices,
+            gap_kind=self.gap_kind,
+            safe_known_text=self.safe_known_text,
+            unresolved_question=self.unresolved_question,
+            eligibility_reason=self.eligibility_reason,
+            case_action=self.case_action,
+        )
+
+    @model_validator(mode="after")
+    def validate_response_shape(self) -> "AgentTurnDecision":
+        self.response
+        return self
 
 
 PolicyResponse = Annotated[

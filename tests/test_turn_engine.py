@@ -1,9 +1,14 @@
 from datetime import date
 from pathlib import Path
 
+import pytest
+
+from stai.agent import AgentRun
 from stai.handbook import build_handbook
 from stai.models import (
     ApplicabilityStatus,
+    AgentTurnDecision,
+    DialogueAct,
     EvidenceState,
     GroundedPolicyAnswer,
     GuardrailVerdict,
@@ -13,6 +18,7 @@ from stai.models import (
 from stai.retriever import ChromaHandbookIndex, load_page_records
 from stai.service import AishaService
 from stai.state import Repo
+from stai.tools import RunCapture
 
 
 def setup(tmp_path: Path):
@@ -37,12 +43,37 @@ def candidate(records, policy_id: str) -> GroundedPolicyAnswer:
     )
 
 
+def candidate_run(records, profile, policy_id: str, *, topic: str):
+    response = candidate(records, policy_id)
+    record = next(
+        item for item in records
+        if item.policy_id == policy_id and item.page == response.citations[0].page_start
+    )
+    capture = RunCapture(profile=profile)
+    identity = (policy_id, record.handbook_version, record.page)
+    capture.retrieved_identities.add(identity)
+    capture.evidence_contents[identity] = record.content
+    payload = response.model_dump(mode="json")
+    payload["response_type"] = payload.pop("type")
+    payload.pop("clarifications", None)
+    payload.update(
+        dialogue_act=DialogueAct.QUESTION.value,
+        topic=topic,
+        policy_ids=[policy_id],
+        standalone_query="How does payroll work?",
+        agent_actions=["retrieve_policy"],
+    )
+    return AgentRun(AgentTurnDecision.model_validate(payload), capture)
+
+
 def test_agent_candidate_is_used_and_execution_mode_is_persisted(tmp_path: Path) -> None:
     repo, records, conversation = setup(tmp_path)
     service = AishaService(
         repo,
         records,
-        agent_runner=lambda _resolved, _profile, _messages: candidate(records, "PAY-001"),
+        agent_runner=lambda profile, _messages, _context: candidate_run(
+            records, profile, "PAY-001", topic="payroll"
+        ),
     )
     response = service.send_message(conversation["id"], "How does payroll work?")
     assert response.citations[0].policy_id == "PAY-001"
@@ -54,11 +85,13 @@ def test_wrong_topic_agent_candidate_is_rejected_before_display(tmp_path: Path) 
     service = AishaService(
         repo,
         records,
-        agent_runner=lambda _resolved, _profile, _messages: candidate(records, "ACC-005"),
+        agent_runner=lambda profile, _messages, _context: candidate_run(
+            records, profile, "ACC-005", topic="payroll"
+        ),
     )
-    response = service.send_message(conversation["id"], "How does payroll work?")
-    assert response.citations[0].policy_id == "PAY-001"
-    assert repo.get_latest_turn_context(conversation["id"])["execution_mode"] == "degraded"
+    with pytest.raises(ValueError, match="mixed policy IDs"):
+        service.send_message(conversation["id"], "How does payroll work?")
+    assert repo.get_latest_turn_context(conversation["id"]) is None
 
 
 def test_chroma_adapter_supplies_dense_candidates_but_keeps_topic_gate(tmp_path: Path) -> None:
@@ -154,13 +187,10 @@ def test_consent_button_flow_persists_confirmation_and_answers_status(tmp_path: 
     assert repo.get_latest_turn_context(conversation["id"])["dialogue_act"] == "action_status"
 
 
-def test_policy_discovery_lists_active_catalog_instead_of_one_hr_policy(tmp_path: Path) -> None:
+def test_policy_discovery_runs_agent_and_lists_active_catalog(tmp_path: Path) -> None:
     repo, records, conversation = setup(tmp_path)
 
-    def agent_must_not_run(*_args):
-        raise AssertionError("catalog discovery must be deterministic")
-
-    service = AishaService(repo, records, agent_runner=agent_must_not_run)
+    service = AishaService(repo, records)
     response = service.send_message(conversation["id"], "What policies could I ask about?")
 
     assert response.type == "grounded_answer"
@@ -176,3 +206,4 @@ def test_policy_discovery_lists_active_catalog_instead_of_one_hr_policy(tmp_path
         *(f"HRP-{number:03d}" for number in range(1, 8)),
     }
     assert repo.get_latest_turn_context(conversation["id"])["dialogue_act"] == "capability_discovery"
+    assert repo.get_latest_turn_context(conversation["id"])["execution_mode"] == "agent"

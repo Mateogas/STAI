@@ -18,6 +18,27 @@ class RunCapture:
     tool_calls: list[str] = field(default_factory=list)
     retrieved_identities: set[tuple[str, str, int]] = field(default_factory=set)
     evidence_metadata: list[dict] = field(default_factory=list)
+    evidence_contents: dict[tuple[str, str, int], str] = field(default_factory=dict)
+    applicability_checks: dict[str, dict] = field(default_factory=dict)
+    profile: HireProfile | None = None
+
+    def record_evidence(self, item, records) -> dict:
+        identity = (item.policy_id, item.handbook_version, item.page)
+        self.retrieved_identities.add(identity)
+        self.evidence_contents[identity] = item.content
+        metadata = {
+            "policy_id": item.policy_id,
+            "handbook_version": item.handbook_version,
+            "page": item.page,
+            "authority": item.page_kind,
+            "topic": next(
+                (row.topic for row in records if row.record_id == item.record_id), None
+            ),
+            "applicability": item.applicability.value,
+        }
+        if metadata not in self.evidence_metadata:
+            self.evidence_metadata.append(metadata)
+        return {**metadata, "content": item.content}
 
 
 def build_policy_tools(
@@ -27,13 +48,12 @@ def build_policy_tools(
     *,
     holiday_service=None,
     handbook_index=None,
-    resolved_topic: str | None = None,
 ):
     from stai.policy import evaluate_applicability as evaluate_policy_applicability
     from stai.public_holidays import NagerHolidayService
     from stai.retriever import InMemoryHandbookIndex
 
-    capture = RunCapture()
+    capture = RunCapture(profile=profile)
     calendar = holiday_service or NagerHolidayService(repo)
     index = handbook_index or InMemoryHandbookIndex(records)
 
@@ -48,27 +68,23 @@ def build_policy_tools(
 
     @tool
     def search_handbook(query: str) -> str:
-        """Retrieve eligible Payroll, Resource Access, or HR Policy evidence."""
+        """Search eligible handbook pages using a natural-language query; call again to revise it."""
         capture.tool_calls.append("search_handbook")
-        result = index.search(query, profile, topic=resolved_topic)
-        evidence = []
-        for item in result.evidence:
-            identity = (item.policy_id, item.handbook_version, item.page)
-            capture.retrieved_identities.add(identity)
-            metadata = {
-                "policy_id": item.policy_id,
-                "handbook_version": item.handbook_version,
-                "page": item.page,
-                "authority": item.page_kind,
-                "topic": next((row.topic for row in records if row.record_id == item.record_id), None),
-                "applicability": item.applicability.value,
-            }
-            if metadata not in capture.evidence_metadata:
-                capture.evidence_metadata.append(metadata)
-            # Content is ephemeral tool context only. Capture/public metadata
-            # deliberately omit it.
-            evidence.append({**metadata, "content": item.content})
+        result = index.search(query, profile, k=8)
+        evidence = [capture.record_evidence(item, records) for item in result.evidence]
         return json.dumps({"outcome": result.outcome.value, "required_attribute": result.required_attribute, "evidence": evidence})
+
+    @tool
+    def read_policy_bundle(policy_id: str) -> str:
+        """Read every page for one exact handbook ID, for example PAY-001 or HRP-007."""
+        capture.tool_calls.append("read_policy_bundle")
+        if not policy_id.startswith(("PAY-", "ACC-", "HRP-")):
+            return json.dumps({"outcome": "invalid_policy_id"})
+        result = index.search(policy_id, profile, policy_ids={policy_id}, k=20)
+        selected = [item for item in result.evidence if item.policy_id == policy_id]
+        evidence = [capture.record_evidence(item, records) for item in selected]
+        outcome = result.outcome.value if evidence else "insufficient_evidence"
+        return json.dumps({"outcome": outcome, "policy_id": policy_id, "evidence": evidence})
 
     @tool
     def discover_policies(scope: str = "all") -> str:
@@ -84,11 +100,26 @@ def build_policy_tools(
             if scope != "all" and record.topic != scope:
                 continue
             decision = evaluate_policy_applicability(record, profile)
+            identity = (record.policy_id, record.handbook_version, record.page)
+            capture.retrieved_identities.add(identity)
+            capture.evidence_contents[identity] = record.content
+            metadata = {
+                "policy_id": record.policy_id,
+                "handbook_version": record.handbook_version,
+                "page": record.page,
+                "authority": record.page_kind,
+                "topic": record.topic,
+                "applicability": decision.status.value,
+            }
+            if metadata not in capture.evidence_metadata:
+                capture.evidence_metadata.append(metadata)
             policies.append({
                 "policy_id": record.policy_id,
                 "title": record.title.removesuffix(" - 1"),
                 "topic": record.topic,
                 "applicability": decision.status.value,
+                "handbook_version": record.handbook_version,
+                "page": record.page,
             })
         return json.dumps({"outcome": "ready", "scope": scope, "policies": policies})
 
@@ -103,7 +134,12 @@ def build_policy_tools(
         if record is None:
             return json.dumps({"outcome": "not_found"})
         decision = evaluate_policy_applicability(record, profile)
-        return json.dumps({"outcome": decision.status.value, "required_attribute": decision.required_attribute})
+        payload = {
+            "outcome": decision.status.value,
+            "required_attribute": decision.required_attribute,
+        }
+        capture.applicability_checks[policy_id] = payload
+        return json.dumps(payload)
 
     @tool
     def lookup_public_holidays(year: int) -> str:
@@ -143,6 +179,7 @@ def build_policy_tools(
         get_active_handbook,
         discover_policies,
         search_handbook,
+        read_policy_bundle,
         evaluate_applicability,
         lookup_public_holidays,
         check_case_status,

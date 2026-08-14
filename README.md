@@ -41,11 +41,13 @@ uv run python -m stai.ingestion
 
 Ingestion builds a version/hash-named staging collection from `handbook/dist/rag-pages.jsonl`, verifies it, and atomically changes the SQLite active pointer. It never resets an active collection in place. A failed or partial build leaves the current pointer untouched.
 
-Both Streamlit and `/api/v1` call the same turn engine. It resolves follow-ups
-before retrieval, hard-gates candidates to the resolved topic, uses the ReAct
-loop when Ollama is reachable, and falls back to the verified deterministic
-composer when the model is unavailable. `/api/v1/health` reports the actual
-agent and active-index state; `degraded` is not presented as fully ready.
+Both Streamlit and `/api/v1` call the same turn engine. Every supported turn
+enters the ReAct loop with bounded conversation context. ReAct resolves intent,
+revises retrieval, reads policy bundles, and returns a typed plan and response
+draft. Deterministic code then validates handbook/citation identity,
+applicability, exact claim support, privacy, and consent before persistence or
+mutation. There is no local answer fallback; missing model or index readiness
+causes `/api/v1/health` to return `503`.
 
 ## Streamlit journeys
 

@@ -1,5 +1,7 @@
 from types import SimpleNamespace
 
+import pytest
+
 from stai.guardrails import classify_input, parse_verdict, redact_pii, validate_policy_output
 
 
@@ -15,10 +17,11 @@ def test_classifier_parses_closed_categories_and_fails_open():
     assert classify_input("payroll", llm=FakeLLM('{"category":"on_topic"}')).allowed
 
 
-def test_classifier_failure_is_fail_open():
+def test_classifier_failure_is_surfaced_without_local_fallback():
     class Boom:
         def invoke(self, _): raise ConnectionError("offline")
-    assert classify_input("PAY-001", llm=Boom()).allowed
+    with pytest.raises(ConnectionError, match="offline"):
+        classify_input("PAY-001", llm=Boom())
 
 
 def test_malformed_or_unsupported_model_output_fails_closed():

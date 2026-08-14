@@ -45,11 +45,11 @@ def test_only_versioned_health_endpoint_remains(client):
     assert http.get("/health").status_code == 404
     assert http.post("/chat", json={}).status_code == 404
     response = http.get("/api/v1/health")
-    assert response.status_code == 200
+    assert response.status_code == 503
     payload = response.json()
-    assert payload["data"]["status"] == "degraded"
+    assert payload["data"]["status"] == "unavailable"
     assert payload["data"]["knowledge_index"] == "degraded"
-    assert payload["data"]["agent_model"] == "degraded"
+    assert payload["data"]["agent_model"] == "ready"
     assert payload["data"]["nager"] == "unknown"
     assert payload["meta"]["api_version"] == "v1"
 

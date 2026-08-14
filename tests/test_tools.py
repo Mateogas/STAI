@@ -15,6 +15,7 @@ def test_policy_react_tool_sequence_is_schema_bounded(tmp_path: Path) -> None:
         "get_active_handbook",
         "discover_policies",
         "search_handbook",
+        "read_policy_bundle",
         "evaluate_applicability",
         "lookup_public_holidays",
         "check_case_status",

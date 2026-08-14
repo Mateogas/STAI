@@ -106,7 +106,7 @@ Likely questions:
 
 **Why not SQL Agent?** Chroma RAG is the selected retrieval module. SQLite operations are handwritten deterministic repository methods; no LLM generates SQL. SQL Agent is explicitly unclaimed.
 
-**Why does classifier failure fail open?** It avoids making a small model outage a product outage. The consequential schema, applicability, evidence, citation, consent, version, and medical gates still fail closed.
+**Why does classifier failure fail closed?** The production design requires both configured local models. Readiness returns `503` when either is unavailable, so a classifier outage cannot silently widen the agent boundary or trigger a local answer fallback.
 
 **Can HR read Alyssa’s chat or certificate?** HR cannot browse Policy Conversations. After explicit consent, the linked history and future parent messages are copied into that case's shared thread until resolution. Unrelated chats and all certificate/OCR content remain inaccessible; only currently shared safe Validation Result metadata is visible.
 

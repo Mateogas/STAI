@@ -95,7 +95,6 @@ def get_service() -> AishaService:
         get_repo(),
         records,
         handbook_index=ChromaHandbookIndex(get_repo(), records),
-        agent_enabled=settings.agent_enabled,
     )
 
 
@@ -236,7 +235,7 @@ def health(
     if sqlite_state == "unavailable":
         status, code = "unavailable", 503
     elif index_state != "ready" or agent_state != "ready" or guardrail_state != "ready":
-        status, code = "degraded", 200
+        status, code = "unavailable", 503
     else:
         status, code = "ready", 200
     return success(request, {
