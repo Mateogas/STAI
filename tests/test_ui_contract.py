@@ -26,3 +26,24 @@ def test_selected_dialogue_information_hierarchy_is_present():
     for label in ("Ask AISHA", "Certificate Check", "History", "New Hire", "HR User"):
         assert label in SOURCE
     assert "persona picker" not in SOURCE.lower()
+
+
+def test_approved_dialogue_visual_contract_is_preserved():
+    for token in (
+        "--aisha-navy: #0a2450",
+        "--aisha-blue: #0b4da2",
+        "--aisha-gold: #c9962c",
+        "--aisha-paper: #fffdfa",
+        "--aisha-canvas: #f2efe8",
+    ):
+        assert token in SOURCE
+    for shell_region in (
+        "aisha_topbar",
+        "dialogue_nav",
+        "dialogue_chat",
+        "dialogue_context",
+        "aisha-brand",
+        "aisha-logo",
+    ):
+        assert shell_region in SOURCE
+    assert "st.columns([1.05, 3, 1.15]" in SOURCE
