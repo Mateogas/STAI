@@ -42,8 +42,16 @@ def test_ambiguous_get_payroll_asks_about_the_hires_goal(service, prompt: str) -
     ]
 
 
-def test_payday_wording_retrieves_the_schedule_procedure(service) -> None:
-    response = ask(service, "Which days do I get my payroll?")
+@pytest.mark.parametrize(
+    "prompt",
+    [
+        "Which days do I get my payroll?",
+        "When is my next payroll?",
+        "When is the next payroll schedule?",
+    ],
+)
+def test_payday_wording_retrieves_the_schedule_procedure(service, prompt: str) -> None:
+    response = ask(service, prompt)
     assert response.type == "grounded_answer"
     assert response.citations[0].policy_id == "PAY-001"
     assert "semi-monthly" in response.text.lower()

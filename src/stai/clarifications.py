@@ -26,13 +26,14 @@ _STOPWORDS = {
     "every", "get", "happens", "have", "how", "i", "if", "in", "is", "it",
     "inside", "makes", "me", "my", "need", "of", "on", "one", "or", "please", "see",
     "that", "the", "then", "there", "this", "to", "using", "well", "what",
-    "where", "which", "with", "you",
+    "when", "where", "which", "with", "you",
 }
 _SUBJECT_ALIASES = {
     "day": {"date", "schedule", "timing"},
     "days": {"date", "schedule", "timing", "semi-monthly"},
     "paid": {"pay", "payroll", "schedule", "timing", "wages"},
     "payday": {"date", "pay", "schedule", "timing"},
+    "next": {"following", "scheduled", "upcoming"},
     "wrong": {"correct", "correction", "change", "update"},
     "fix": {"correct", "correction", "change", "update"},
     "number": {"account", "details", "record"},

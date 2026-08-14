@@ -236,7 +236,7 @@ class PolicyTurnEngine:
         preflight = self._preflight(resolved, profile)
         if (
             preflight.outcome.value == "ready"
-            and not self.evidence_gap_assessor.covers_subject(resolved.standalone_query, preflight)
+            and not self.evidence_gap_assessor.covers_subject(current, preflight)
         ):
             return (
                 Abstention(
@@ -273,7 +273,7 @@ class PolicyTurnEngine:
                     ),
                     ExecutionMode.DETERMINISTIC,
                 )
-        elif not self.evidence_gap_assessor.covers_subject(resolved.standalone_query, preflight):
+        elif not self.evidence_gap_assessor.covers_subject(current, preflight):
             return (
                 Abstention(
                     text=(
