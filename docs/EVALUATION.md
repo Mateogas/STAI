@@ -22,6 +22,7 @@ Canonical artifacts:
 - Calibration / Locked / combined: `evaluation/results/v1.0/{calibration,locked,combined}.json`
 - Live Nager evidence: `evaluation/results/v1.1/live-nager.json`
 - Integrated gate report: `evaluation/results/v1.1/acceptance.json`
+- Local LLM-as-judge report: `evaluation/results/v1.2/llm-judge.json`
 - Canonical module matrix: `ContextKnowledgeBase/ModuleChecklist.md`
 
 ## Frozen Composite Safety Benchmark
@@ -80,7 +81,7 @@ The response/applicability/medical confusion matrices in deterministic-contract 
 
 `tests/test_medical_validation.py` verifies deterministic name ends, optional middle name, required fields, `MM/DD/YYYY` dates, consultation/issue/evaluation ordering, absence ranges, and duration agreement. `tests/test_medical_ocr.py` verifies magic-byte type detection, PDF text extraction, and unsafe embedded-content rejection. `tests/test_medical_privacy.py` proves applicability and acknowledgement happen before opening bytes and that rejected/failing inputs create no result.
 
-The API/container smoke uses a wholly synthetic labelled PDF. Local extraction produces `Complete`; its public result contains only status/codes, policy citation, profile revision, attempts, timestamps, share state, version, disclaimer, and Official HR Document Route instruction. The source file and extracted values are discarded. This proves deterministic demo behavior only—not authenticity, approval, medical assessment, or document submission.
+The API/container smoke uses a wholly synthetic labelled PDF. Local extraction produces `Complete`; its public result contains only status/codes, policy citation, profile revision, attempts, timestamps, share state, version, disclaimer, Official HR Document Route instruction, and a closed Certificate Agent action trace. The source file, extracted values, prompts, and model reasoning are discarded. This proves deterministic demo behavior only—not authenticity, approval, medical assessment, or document submission.
 
 ## Nager evaluation
 
@@ -109,6 +110,12 @@ SQLite tests prove required PRAGMAs, one Alyssa seed, schema-epoch-3 typed turn 
 `tests/test_production_transcript.py`, `tests/test_turn_engine.py`, and the API suite replay the six-turn payroll incident that previously lost context and cited ACC-005. The gate requires three grounded payroll results, a Payroll Support offer, explicit chat consent with one case, and a final PAY-001 answer. Any non-PAY citation is a hard failure. The same contract runs in the non-root container smoke. `deploy/predeploy_dialogue.py` repeats it against an explicitly disposable staging database and additionally requires health `ready`, which proves both the configured agent model and active Chroma collection are reachable.
 
 This regression is deterministic contract evidence. The predeployment run exercises the live configured model, but a single passing staging run is not a statistical model-quality study.
+
+## Local LLM-as-judge v1.2
+
+`uv run python -m stai.llm_judge --offline-agent` generates the six canonical responses through the deterministic policy fallback, then evaluates them with a separate local Qwen judge. The judge is reference-based: each case supplies its predeclared expected outcome, allowed policy IDs, and concise synthetic success criteria. Outcome and policy-ID agreement are verified in code; the model scores grounding, relevance, action quality, and safety on a closed 1–5 scale and may emit only closed failure codes relevant to that case.
+
+All Ollama chat and embedding constructors set `num_gpu=0`. The evaluation-only 7B judge is intentionally separate from the smaller interactive agent/guardrail models. Questions and candidate answers are ephemeral; the v1.2 artifact stores only case IDs, closed scores/failure codes, aggregate scores, pass rate, execution mode, and judge model identity. The run is evidence about this synthetic regression and local model configuration, not production accuracy.
 
 ## Known limitations
 

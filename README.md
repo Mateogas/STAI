@@ -12,7 +12,7 @@ The shipped demo supports one fictional Hire, Alyssa Reyes, across exactly three
 - Hybrid Chroma retrieval with active-edition, authority, applicability, integrity, activation, and rollback gates.
 - A confirmed four-attribute Hire Profile; chat never changes applicability.
 - A shared `PolicyTurnEngine` with typed Agent Plans, bounded restart-safe context, semantic policy catalogs, payroll/HR sub-intents, consented child Case Threads, structured Case Resolution Memory, reviewed clarification reuse, and result-only certificate History in normalized SQLite.
-- Local PDF/image medical-certificate completeness checking with policy-before-file access, Tesseract OCR, deterministic rules, one retry, and private-by-default results.
+- A bounded Certificate Agent for local PDF/image completeness checking: it confirms HRP-004, invokes Tesseract/deterministic validation, and exposes only a safe action trace—never document text or hidden reasoning.
 - A bounded Philippines-only Nager.Holidays tool with exact `Based on Nager.` attribution, seven-day cache, retry, validation, circuit breaking, and safe fallbacks.
 - Streamlit New Hire destinations—Ask AISHA, Certificate Check, History—with reopenable chats and nested HR ticket threads, plus a separate HR User workspace.
 - A typed `/api/v1` contract with safe envelopes/errors, request IDs, fixed simulated dates, configured CORS, idempotency, resource versions, and cursor pagination.
@@ -21,7 +21,7 @@ The shipped demo supports one fictional Hire, Alyssa Reyes, across exactly three
 
 ## Local setup
 
-Python 3.12 and [`uv`](https://docs.astral.sh/uv/) are required. Ollama is needed only for the live ReAct/embedding path; the complete logic/API test suite uses fakes and does not require Ollama or network access.
+Python 3.12 and [`uv`](https://docs.astral.sh/uv/) are required. Ollama is needed only for the live ReAct/embedding and optional local-judge paths; the complete logic/API test suite uses fakes and does not require Ollama or network access. Every Ollama client explicitly sets `num_gpu=0`, so this supported profile does not offload to NVIDIA, AMD, or other GPUs.
 
 ```bash
 uv sync
@@ -30,14 +30,18 @@ uv run streamlit run app.py
 uv run uvicorn stai.api:app --host 127.0.0.1 --port 8000
 ```
 
-For the optional live model/index path:
+For the optional live model/index path and evaluation-only judge:
 
 ```bash
-ollama pull llama3.1:8b
+ollama pull llama3.2
 ollama pull qwen2.5:3b-instruct
 ollama pull nomic-embed-text
+ollama pull qwen2.5:7b-instruct  # optional; evaluation judge only
 uv run python -m stai.ingestion
+uv run python -m stai.llm_judge --offline-agent
 ```
+
+On Windows, install Tesseract OCR and set `STAI_TESSERACT_CMD=C:/Program Files/Tesseract-OCR/tesseract.exe` if it is not already on `PATH`. Copy `.env.example` to `.env` for the complete CPU-only profile.
 
 Ingestion builds a version/hash-named staging collection from `handbook/dist/rag-pages.jsonl`, verifies it, and atomically changes the SQLite active pointer. It never resets an active collection in place. A failed or partial build leaves the current pointer untouched.
 
@@ -96,6 +100,7 @@ Certificate Check is a synchronous local completeness check under fictional poli
 - Active/embedded PDF content, corrupt structure, MIME/extension mismatch, and oversized media fail before extraction.
 - Text-layer PDF extraction and local Tesseract OCR remain on the demo machine.
 - Only safe result status/codes, policy citation, profile revision, attempts, timestamps, share state, and version persist.
+- The persisted Certificate Agent trace is a closed list of tool/action names; model reasoning, prompts, OCR text, and extracted fields are not persisted or returned.
 - Upload Rejection and Check Failure create no Validation Result or fingerprint.
 - One replacement retry is available for low-confidence or unrecognized-date extraction.
 - The original document must be submitted separately through the fictional Official HR Document Route; AISHA does not upload or confirm submission.
@@ -121,10 +126,11 @@ The versioned benchmark contains 60 synthetic cases: 18 policy/applicability, 12
 
 ```bash
 uv run python -m stai.evaluation
+uv run python -m stai.llm_judge --offline-agent
 uv run python -m stai.acceptance
 ```
 
-The frozen prompt benchmark remains in `evaluation/results/v1.0/`. The integrated v1.1 acceptance report adds the deployed six-turn payroll regression, restart-safe context, wrong-topic citation gate, and offer-to-consent progression at `evaluation/results/v1.1/acceptance.json`. These offline checks do not claim live-model, statistical, production, or real BDO performance.
+The frozen prompt benchmark remains in `evaluation/results/v1.0/`. The integrated v1.1 acceptance report adds the deployed six-turn payroll regression, restart-safe context, wrong-topic citation gate, and offer-to-consent progression at `evaluation/results/v1.1/acceptance.json`. The optional v1.2 local LLM-as-judge uses case-specific synthetic reference criteria and saves only aggregate/closed-score evidence to `evaluation/results/v1.2/llm-judge.json`. These checks do not claim production or real BDO performance.
 
 ## Docker and Linux/Proxmox
 

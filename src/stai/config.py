@@ -27,14 +27,20 @@ class Settings(BaseSettings):
     )
 
     # --- Ollama models ---
-    agent_model: str = "llama3.1:8b"          # must support native tool calling
+    agent_model: str = "llama3.2:latest"       # CPU-sized; must support native tool calling
     # Few-shot classifier. Keep separately configurable for demo hardware.
     # scored 14/15 on the topic battery where llama3.2:1b scored 8/15
     # (over-blocked benefits jargon); set STAI_GUARDRAIL_MODEL=llama3.2:1b
     # if latency matters more than accuracy on the demo hardware.
     guardrail_model: str = "qwen2.5:3b-instruct"
+    # Evaluation-only: the 7B judge follows the closed rubric materially more
+    # reliably than the 3B runtime classifier while remaining practical on CPU.
+    judge_model: str = "qwen2.5:7b-instruct"
     embed_model: str = "nomic-embed-text"
     ollama_base_url: str = "http://localhost:11434"
+    # The capstone's supported local profile is CPU-only.  Keep this explicit:
+    # Ollama otherwise auto-detects and may offload layers to an available GPU.
+    ollama_num_gpu: int = 0
     agent_temperature: float = 0.0
     agent_seed: int = 20260810
     agent_enabled: bool = True
@@ -57,6 +63,7 @@ class Settings(BaseSettings):
     certificate_max_pixels: int = 25_000_000
     certificate_timeout_seconds: int = 30
     certificate_ocr_confidence: float = 0.80
+    tesseract_cmd: Path | None = None
 
     # Browser origins allowed to call the explicitly demo-only REST API.
     cors_origins: list[str] = ["http://localhost:8501", "http://127.0.0.1:8501"]

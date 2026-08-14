@@ -323,9 +323,9 @@ class ChromaHandbookIndex(InMemoryHandbookIndex):
                     k=k,
                 )
             from langchain_chroma import Chroma
-            from langchain_ollama import OllamaEmbeddings
 
             from stai.config import settings
+            from stai.ollama_runtime import build_embeddings
 
             active = self.repo.get_active_retrieval_build()
             if not active:
@@ -338,10 +338,7 @@ class ChromaHandbookIndex(InMemoryHandbookIndex):
                 raise RuntimeError("active retrieval identity does not match verified records")
             store = Chroma(
                 collection_name=active["collection_name"],
-                embedding_function=OllamaEmbeddings(
-                    model=settings.embed_model,
-                    base_url=settings.ollama_base_url,
-                ),
+                embedding_function=build_embeddings(),
                 persist_directory=str(settings.chroma_dir),
             )
             documents = store.similarity_search(query, k=max(k * 3, 12))

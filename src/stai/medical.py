@@ -58,6 +58,16 @@ class PreflightResult(BaseModel):
     code: str | None = None
 
 
+class CertificateAgentExecution(BaseModel):
+    mode: Literal["not_started", "react", "deterministic_degraded"] = "not_started"
+    actions: list[Literal[
+        "confirm_certificate_policy",
+        "run_local_ocr_validation",
+        "validate_certificate_result",
+        "persist_safe_result",
+    ]] = Field(default_factory=list)
+
+
 class MedicalCheckOutcome(BaseModel):
     kind: Literal[
         "validation_result", "retry_required", "does_not_apply",
@@ -80,6 +90,7 @@ class MedicalCheckOutcome(BaseModel):
     retry_token: str | None = None
     retry_expires_at_utc: str | None = None
     manual_field_summary: dict[str, str] | None = None
+    agent_execution: CertificateAgentExecution = Field(default_factory=CertificateAgentExecution)
     disclaimer: str = "Local completeness check only—not authenticity, approval, or medical assessment."
     official_hr_document_route: str = "Submit the original separately through the fictional Official HR Document Route."
     fingerprint: str | None = Field(default=None, exclude=True)
@@ -153,6 +164,10 @@ def extract_local_text(data: bytes, kind: str) -> str:
 def _ocr_image(image: Image.Image) -> str:
     import pytesseract
 
+    if settings.tesseract_cmd is not None:
+        # Windows installers commonly update PATH only for newly opened shells.
+        # An explicit local path keeps the already-running demo deterministic.
+        pytesseract.pytesseract.tesseract_cmd = str(settings.tesseract_cmd)
     oriented = image.convert("RGB")
     return pytesseract.image_to_string(oriented, lang="eng")
 
@@ -234,9 +249,16 @@ def validate_certificate_fields(
 
 
 class MedicalCheckService:
-    def __init__(self, repo: Repo, *, extractor: Callable[[bytes, str], CertificateFields] | None = None) -> None:
+    def __init__(
+        self,
+        repo: Repo,
+        *,
+        extractor: Callable[[bytes, str], CertificateFields] | None = None,
+        agent_runner=None,
+    ) -> None:
         self.repo = repo
         self.extractor = extractor or self._default_extract
+        self.agent_runner = agent_runner
 
     @staticmethod
     def _default_extract(data: bytes, kind: str) -> CertificateFields:
@@ -262,8 +284,38 @@ class MedicalCheckService:
         if not preflight.accepted:
             return MedicalCheckOutcome(kind="upload_rejection", code=preflight.code)
         try:
-            fields = self.extractor(data, preflight.kind or "pdf")
-            validation = validate_certificate_fields(fields, "Alyssa Reyes", evaluation_date, retry_used=retry_used)
+            cached: dict[str, DeterministicValidation] = {}
+
+            def analyze() -> DeterministicValidation:
+                if "validation" not in cached:
+                    fields = self.extractor(data, preflight.kind or "pdf")
+                    cached["validation"] = validate_certificate_fields(
+                        fields,
+                        "Alyssa Reyes",
+                        evaluation_date,
+                        retry_used=retry_used,
+                    )
+                return cached["validation"]
+
+            run = None
+            if self.agent_runner is not None:
+                try:
+                    run = self.agent_runner(analyze)
+                except Exception:
+                    run = None
+            if run is not None and run.actions == [
+                "confirm_certificate_policy",
+                "run_local_ocr_validation",
+            ]:
+                validation = run.validation
+                execution_mode = "react"
+                actions = list(run.actions)
+            else:
+                validation = analyze()
+                execution_mode = "deterministic_degraded"
+                actions = ["confirm_certificate_policy", "run_local_ocr_validation"]
+            actions.append("validate_certificate_result")
+            execution = CertificateAgentExecution(mode=execution_mode, actions=actions)
             key = self.repo.ensure_installation_key()
             fingerprint = hmac.new(key, data, hashlib.sha256).hexdigest()
             if validation.retry_required:
@@ -274,7 +326,12 @@ class MedicalCheckService:
                     code="low_confidence_or_unrecognized_date",
                     retry_token=token,
                     retry_expires_at_utc=expiry.isoformat().replace("+00:00", "Z"),
+                    agent_execution=execution,
                 )
+            persisted_execution = CertificateAgentExecution(
+                mode=execution_mode,
+                actions=[*actions, "persist_safe_result"],
+            )
             result = self.repo.create_validation_result(
                 status=validation.status.value,
                 missing_codes=validation.missing_codes,
@@ -284,6 +341,7 @@ class MedicalCheckService:
                 evaluation_date=evaluation_date,
                 fingerprint=fingerprint,
                 attempt_count=2 if retry_used else 1,
+                agent_execution=persisted_execution.model_dump(mode="json"),
             )
             return MedicalCheckOutcome(
                 kind="validation_result",
@@ -298,6 +356,7 @@ class MedicalCheckService:
                 share_state=result["share_state"],
                 version=result["resource_version"],
                 citations=result["citations"],
+                agent_execution=CertificateAgentExecution(**result["agent_execution"]),
                 manual_field_summary=(
                     {name: "" for name in REQUIRED_TEXT_FIELDS}
                     if retry_used and validation.status == ValidationStatus.NEEDS_HUMAN_REVIEW else None

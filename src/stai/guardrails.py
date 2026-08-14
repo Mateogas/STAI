@@ -90,13 +90,12 @@ def parse_verdict(raw: str) -> GuardrailVerdict:
 
 
 def _default_llm():
-    from langchain_ollama import ChatOllama
+    from stai.ollama_runtime import build_chat_model
 
-    return ChatOllama(
+    return build_chat_model(
         model=settings.guardrail_model,
-        base_url=settings.ollama_base_url,
         temperature=0,
-        format="json",
+        json_mode=True,
     )
 
 

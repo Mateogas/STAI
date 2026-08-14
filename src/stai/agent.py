@@ -18,11 +18,10 @@ from stai.tools import build_policy_tools
 
 
 def build_llm(temperature: float = 0):
-    from langchain_ollama import ChatOllama
+    from stai.ollama_runtime import build_chat_model
 
-    return ChatOllama(
+    return build_chat_model(
         model=settings.agent_model,
-        base_url=settings.ollama_base_url,
         temperature=temperature,
         seed=settings.agent_seed,
     )

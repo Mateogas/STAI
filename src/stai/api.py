@@ -159,6 +159,7 @@ def _public_validation_result(row: dict) -> dict:
         "version": row["resource_version"], "missing_codes": grouped["missing"],
         "inconsistency_codes": grouped["inconsistency"], "warning_codes": grouped["warning"],
         "review_codes": grouped["human_review"], "citations": row.get("citations", []),
+        "agent_execution": row["agent_execution"],
         "created_at_utc": row["created_at_utc"], "simulated_evaluation_date": row["simulated_evaluation_date"],
         "disclaimer": row["disclaimer"], "official_hr_document_route": row["official_hr_document_route"],
     }

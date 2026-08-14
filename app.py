@@ -603,6 +603,11 @@ def certificate_check(service: AishaService) -> None:
     if outcome.kind == "validation_result":
         status = (outcome.status or "complete").replace("_", " ").title()
         st.success(status)
+        with st.expander("How AISHA checked this", expanded=True):
+            mode = outcome.agent_execution.mode.replace("_", " ").title()
+            st.caption(f"Execution: {mode} · no hidden reasoning or document text is shown")
+            for step in outcome.agent_execution.actions:
+                st.markdown(f"- {step.replace('_', ' ').title()}")
         codes = outcome.missing_codes + outcome.inconsistency_codes + outcome.review_codes
         if codes:
             st.markdown("**Result details**")

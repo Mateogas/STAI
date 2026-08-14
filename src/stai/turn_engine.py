@@ -88,7 +88,12 @@ class PolicyTurnEngine:
         user_message = self.repo.add_policy_message(conversation_id, "hire", message)
         profile = self.repo.get_hire_profile(conversation["hire_id"])
 
-        if blocked_category:
+        contextual_consent = (
+            resolved.dialogue_act == DialogueAct.CONSENT
+            and pending_offer is not None
+            and blocked_category == "off_topic"
+        )
+        if blocked_category and not contextual_consent:
             resolved = resolved.model_copy(update={"dialogue_act": DialogueAct.UNSUPPORTED})
             response = Abstention(
                 text=REFUSALS[blocked_category],

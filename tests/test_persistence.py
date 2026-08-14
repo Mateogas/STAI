@@ -2,6 +2,7 @@ import os
 import json
 import sqlite3
 from datetime import date
+import os
 from pathlib import Path
 
 import pytest
@@ -18,11 +19,11 @@ def make_repo(tmp_path: Path) -> Repo:
 
 def test_schema_pragmas_and_single_alyssa_seed(tmp_path: Path) -> None:
     repo = make_repo(tmp_path)
-    assert repo.schema_version == 6
+    assert repo.schema_version == 7
     assert repo.get_hire_profile("emp-alyssa").role_key == "branch_banking_associate"
     assert repo.list_hire_ids() == ["emp-alyssa"]
     with sqlite3.connect(repo.db_path) as conn:
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 6
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == 7
         assert conn.execute("PRAGMA foreign_keys").fetchone()[0] == 0  # connection-local
         tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     assert {
@@ -47,7 +48,10 @@ def test_installation_key_is_mode_0600_and_not_recreated_with_results(tmp_path: 
     repo = make_repo(tmp_path)
     first = repo.ensure_installation_key()
     assert len(first) == 32
-    assert oct(repo.secret_path.stat().st_mode & 0o777) == "0o600"
+    if os.name == "nt":
+        assert repo.secret_path.is_file() and os.access(repo.secret_path, os.R_OK | os.W_OK)
+    else:
+        assert oct(repo.secret_path.stat().st_mode & 0o777) == "0o600"
     repo.insert_test_validation_result("val-1")
     repo.secret_path.unlink()
     with pytest.raises(RuntimeError, match="certificate checking is disabled"):

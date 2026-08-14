@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import fcntl
 import hashlib
 import hmac
 import json
@@ -19,6 +18,12 @@ from stai.handbook import ACTIVE_HANDBOOK_VERSION
 from stai.models import HireProfile
 
 
+if os.name == "nt":  # pragma: win32 cover
+    import msvcrt
+else:  # pragma: posix cover
+    import fcntl
+
+
 MIGRATION_DIR = Path(__file__).with_name("migrations")
 MIGRATION_PATHS = (
     MIGRATION_DIR / "0002_policy_domain.sql",
@@ -26,6 +31,7 @@ MIGRATION_PATHS = (
     MIGRATION_DIR / "0004_case_threads.sql",
     MIGRATION_DIR / "0005_policy_clarifications.sql",
     MIGRATION_DIR / "0006_agent_mediated_cases.sql",
+    MIGRATION_DIR / "0007_certificate_agent.sql",
 )
 
 
@@ -78,7 +84,11 @@ class Repo:
                 "INSERT OR IGNORE INTO schema_migrations VALUES (?,?,?)",
                 (6, "agent_mediated_cases", _utc_text()),
             )
-            conn.execute("PRAGMA user_version=6")
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_migrations VALUES (?,?,?)",
+                (7, "certificate_agent", _utc_text()),
+            )
+            conn.execute("PRAGMA user_version=7")
             self._seed_policy_state(conn)
 
     @contextmanager
@@ -110,12 +120,24 @@ class Repo:
     @contextmanager
     def installation_lock(self) -> Iterator[None]:
         self.lock_path.parent.mkdir(parents=True, exist_ok=True)
-        with self.lock_path.open("a+") as lock:
-            fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+        with self.lock_path.open("a+b") as lock:
+            if os.name == "nt":
+                lock.seek(0, os.SEEK_END)
+                if lock.tell() == 0:
+                    lock.write(b"\0")
+                    lock.flush()
+                lock.seek(0)
+                msvcrt.locking(lock.fileno(), msvcrt.LK_LOCK, 1)
+            else:
+                fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
             try:
                 yield
             finally:
-                fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
+                if os.name == "nt":
+                    lock.seek(0)
+                    msvcrt.locking(lock.fileno(), msvcrt.LK_UNLCK, 1)
+                else:
+                    fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
 
     def _seed_policy_state(self, conn: sqlite3.Connection) -> None:
         now = _utc_text()
@@ -649,6 +671,7 @@ class Repo:
         self, *, status: str, missing_codes: list[str], inconsistency_codes: list[str],
         warning_codes: list[str], review_codes: list[str], evaluation_date: date,
         fingerprint: str | None, attempt_count: int = 1,
+        agent_execution: dict | None = None,
     ) -> dict:
         validation_id = str(uuid.uuid4())
         now = _utc_text()
@@ -673,6 +696,24 @@ class Repo:
                     conn.execute("INSERT INTO validation_result_codes VALUES (?,?,?,?)", (validation_id, family, code, ordinal))
                     ordinal += 1
             conn.execute("INSERT INTO validation_result_citations VALUES (?,?,?,?,?)", (validation_id, "HRP-004", ACTIVE_HANDBOOK_VERSION, 78, None))
+            execution = agent_execution or {
+                "mode": "deterministic_degraded",
+                "actions": [
+                    "confirm_certificate_policy",
+                    "run_local_ocr_validation",
+                    "validate_certificate_result",
+                    "persist_safe_result",
+                ],
+            }
+            conn.execute(
+                "INSERT INTO validation_result_agent_runs VALUES (?,?)",
+                (validation_id, execution["mode"]),
+            )
+            for ordinal, action in enumerate(execution["actions"]):
+                conn.execute(
+                    "INSERT INTO validation_result_agent_actions VALUES (?,?,?)",
+                    (validation_id, ordinal, action),
+                )
         return self.get_validation_result(validation_id)
 
     def _set_validation_share(self, validation_id: str, *, share: bool, expected_version: int) -> dict:
@@ -713,8 +754,30 @@ class Repo:
                     (validation_id,),
                 )
             ]
+            run = conn.execute(
+                "SELECT execution_mode FROM validation_result_agent_runs WHERE validation_id=?",
+                (validation_id,),
+            ).fetchone()
+            actions = [
+                item[0]
+                for item in conn.execute(
+                    "SELECT action FROM validation_result_agent_actions "
+                    "WHERE validation_id=? ORDER BY ordinal",
+                    (validation_id,),
+                )
+            ]
+            agent_execution = {
+                "mode": run[0] if run else "deterministic_degraded",
+                "actions": actions or [
+                    "confirm_certificate_policy",
+                    "run_local_ocr_validation",
+                    "validate_certificate_result",
+                    "persist_safe_result",
+                ],
+            }
         return {
             **dict(row), "codes": codes, "citations": citations,
+            "agent_execution": agent_execution,
             "disclaimer": "Local completeness check only—not authenticity, approval, or medical assessment.",
             "official_hr_document_route": "Submit the original separately through the fictional Official HR Document Route.",
         }
@@ -901,6 +964,23 @@ def cutover_legacy_database(db_path: Path | str, *, verifier: Callable[[Repo], b
     if not verifier(candidate):
         sibling.unlink(missing_ok=True)
         raise RuntimeError("replacement verification failed")
-    with sibling.open("rb") as stream:
+    # Windows requires a writable descriptor for fsync; no bytes are changed.
+    with sibling.open("r+b") as stream:
         os.fsync(stream.fileno())
-    os.replace(sibling, target)
+    if os.name == "nt" and target.exists():
+        # Windows cannot always replace a SQLite file that was opened earlier
+        # in the process. Preserve a same-directory rollback copy across the
+        # two renames instead of deleting the verified source database.
+        backup = target.with_suffix(target.suffix + ".cutover-backup")
+        if backup.exists():
+            raise RuntimeError("cutover backup already exists")
+        os.replace(target, backup)
+        try:
+            os.replace(sibling, target)
+        except Exception:
+            os.replace(backup, target)
+            raise
+        else:
+            backup.unlink()
+    else:
+        os.replace(sibling, target)

@@ -1,8 +1,13 @@
 from io import BytesIO
+from pathlib import Path
+from types import SimpleNamespace
+import sys
 
+from PIL import Image
 from reportlab.pdfgen.canvas import Canvas
 
-from stai.medical import detect_upload_kind, extract_local_text, preflight_upload
+from stai.config import settings
+from stai.medical import _ocr_image, detect_upload_kind, extract_local_text, preflight_upload
 
 
 def synthetic_pdf() -> bytes:
@@ -30,3 +35,17 @@ def test_local_pdf_text_layer_extraction() -> None:
 def test_active_or_embedded_pdf_content_is_rejected() -> None:
     result = preflight_upload(b"%PDF-1.7\n/JavaScript /EmbeddedFile", "certificate.pdf")
     assert result.code == "active_or_embedded_content"
+
+
+def test_ocr_uses_explicit_local_tesseract_command(monkeypatch) -> None:
+    configured = Path(r"C:\Program Files\Tesseract-OCR\tesseract.exe")
+    runtime = SimpleNamespace(tesseract_cmd="tesseract")
+    fake = SimpleNamespace(
+        pytesseract=runtime,
+        image_to_string=lambda image, *, lang: "local OCR",
+    )
+    monkeypatch.setitem(sys.modules, "pytesseract", fake)
+    monkeypatch.setattr(settings, "tesseract_cmd", configured, raising=False)
+
+    assert _ocr_image(Image.new("RGB", (10, 10), "white")) == "local OCR"
+    assert runtime.tesseract_cmd == str(configured)
