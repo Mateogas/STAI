@@ -99,6 +99,7 @@ class PolicyTurnEngine:
         index: HandbookIndex | None = None,
         agent_runner: AgentRunner | None = None,
         input_classifier=None,
+        case_workflow=None,
         history_limit: int = 8,
     ) -> None:
         self.repo = repo
@@ -106,6 +107,11 @@ class PolicyTurnEngine:
         self.index = index or InMemoryHandbookIndex(records)
         self.agent_runner = agent_runner
         self.input_classifier = input_classifier
+        if case_workflow is None:
+            from stai.cases import CaseWorkflow
+
+            case_workflow = CaseWorkflow(repo)
+        self.case_workflow = case_workflow
         self.history_limit = history_limit
         self.version = records[0].handbook_version if records else "1.0"
 
@@ -134,9 +140,13 @@ class PolicyTurnEngine:
             )
             mode = ExecutionMode.DETERMINISTIC
         elif resolved.dialogue_act == DialogueAct.CONSENT and pending_offer:
-            case = self.repo.consent_escalation_offer(
+            from stai.cases import CaseActor
+
+            case = self.case_workflow.consent_offer(
+                conversation_id,
                 pending_offer["offer_id"],
                 expected_version=pending_offer["resource_version"],
+                actor=CaseActor.hire(conversation["hire_id"]),
             )
             response = EscalationConfirmation(
                 text=(
@@ -150,7 +160,7 @@ class PolicyTurnEngine:
                 route_owner=case["route_owner"],
                 route_channel=case["route_channel"],
                 topic=resolved.topic or OnboardingTopic.HR_POLICIES,
-                version=case["version"],
+                version=case["resource_version"],
             )
             mode = ExecutionMode.DETERMINISTIC
         elif resolved.dialogue_act in {DialogueAct.HELP_REQUEST, DialogueAct.ESCALATION_REQUEST}:
@@ -534,6 +544,7 @@ class PolicyTurnEngine:
         owner = (record.route if record and record.route else f"{topic.value}_support").replace("_", " ").title()
         label = topic.value.replace("_", " ").title()
         summary = f"Request help with {label} onboarding guidance."
+        policy_ids = resolved.policy_ids or ([record.policy_id] if record and record.policy_id else [])
         row = self.repo.create_escalation_offer(
             conversation_id,
             user_message_id,
@@ -541,10 +552,13 @@ class PolicyTurnEngine:
             owner,
             "Fictional HR Help Desk",
             summary,
-            resolved.policy_ids,
+            policy_ids,
         )
         return EscalationOffer(
-            text="I can create this privacy-safe case after you review the summary and consent.",
+            text=(
+                "I can create this case after you review the summary and sharing notice, "
+                "then consent."
+            ),
             handbook_version=self.version,
             applicability=ApplicabilityStatus.APPLIES,
             evidence_state=EvidenceState.READY,

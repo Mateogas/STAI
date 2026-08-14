@@ -152,6 +152,11 @@ class EscalationOffer(PolicyResponseBase):
     proposed_summary: str = Field(min_length=1, max_length=500)
     topic: OnboardingTopic
     version: int = Field(default=1, ge=1)
+    shares_parent_conversation: bool = True
+    sharing_notice: str = (
+        "Creating this case shares this conversation's existing and future messages "
+        "with HR until the case closes."
+    )
 
 
 class EscalationConfirmation(PolicyResponseBase):

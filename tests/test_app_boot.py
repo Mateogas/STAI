@@ -55,3 +55,12 @@ def test_streamlit_consent_button_shows_persisted_case_confirmation():
     text = " ".join(item.value for item in at.markdown)
     assert "created successfully" in text
     assert any("Case reference:" in item.value for item in at.success)
+    assert any("HR ticket" in button.label for button in at.button)
+
+    open_thread = next(button for button in at.button if button.label == "Open HR ticket thread")
+    open_thread.click()
+    at.run()
+    assert not at.exception
+    thread_text = " ".join(item.value for item in at.markdown)
+    assert "Parent sharing is active" in thread_text
+    assert "HR ticket thread" in thread_text

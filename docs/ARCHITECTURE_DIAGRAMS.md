@@ -30,7 +30,7 @@ flowchart LR
 
     subgraph Outputs["Privacy-safe outcomes"]
         PolicyResult["Grounded answer, clarification, abstention, or offer"]
-        Case["Consented escalation case"]
+        Case["Consented child Case Thread"]
         Attribute["One-attribute revision request"]
         Validation["Result-only validation history"]
         Telemetry["Closed schema-v2 operation metadata"]
@@ -83,6 +83,25 @@ flowchart TD
 ```
 
 Evidence exposed to users is structured identity—policy ID, revision, handbook version, page, and artifact hashes—not stored raw snippets or model-authored filename citations. Conversation history is server owned and ordered. Safe typed turn state resolves follow-ups across restarts, while conversation statements never become authority for Hire Profile attributes. A wrong-topic citation is invalid even when its page identity was retrieved.
+
+## Consented Case Thread flow
+
+```mermaid
+flowchart LR
+    Parent["Policy Conversation"] --> Offer["Escalation offer plus sharing notice"]
+    Offer --> Consent{"Hire consents?"}
+    Consent -- No --> Private["No case and no HR visibility"]
+    Consent -- Yes --> Backfill["Copy existing parent history"]
+    Backfill --> Thread["Child Case Thread"]
+    Parent -- "Future Hire and AISHA messages while open" --> Thread
+    Thread --> HR["HR reply or internal note"]
+    HR -- "Hire-visible reply" --> Thread
+    HR -- "HR-only note" --> HR
+    Thread --> Resolve["Visible resolution summary"]
+    Resolve --> Stop["Resolved; parent mirroring stops"]
+```
+
+The left navigation nests each Case Thread beneath its parent and shows text status and unread count. HR never queries the Policy Conversation tables through its product surface; the case workflow owns the copied thread, participant permissions, versions, events, and notifications. Certificate content and unrelated conversations never enter this path.
 
 ## Certificate flow
 

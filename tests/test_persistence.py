@@ -18,14 +18,18 @@ def make_repo(tmp_path: Path) -> Repo:
 
 def test_schema_pragmas_and_single_alyssa_seed(tmp_path: Path) -> None:
     repo = make_repo(tmp_path)
-    assert repo.schema_version == 3
+    assert repo.schema_version == 4
     assert repo.get_hire_profile("emp-alyssa").role_key == "branch_banking_associate"
     assert repo.list_hire_ids() == ["emp-alyssa"]
     with sqlite3.connect(repo.db_path) as conn:
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 3
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == 4
         assert conn.execute("PRAGMA foreign_keys").fetchone()[0] == 0  # connection-local
         tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-    assert {"hires", "hire_profiles", "policy_conversations", "policy_turn_results", "validation_results", "active_retrieval_build"} <= tables
+    assert {
+        "hires", "hire_profiles", "policy_conversations", "policy_turn_results",
+        "validation_results", "active_retrieval_build", "case_threads",
+        "case_messages", "case_events", "case_notifications",
+    } <= tables
 
 
 def test_connection_enables_required_runtime_pragmas(tmp_path: Path) -> None:

@@ -5,7 +5,7 @@ The issue #1 child-ticket decisions are closed and authoritative. Do not reopen 
 - Scope is exactly Payroll, Resource Access, and HR Policies.
 - Alyssa Reyes is the only shipped Hire; applicability comes only from four HR-confirmed profile attributes and their revisions.
 - BDO is a fictionalized educational story anchor only, with the visible non-affiliation disclaimer.
-- The product supports Hires; it does not surveil them. HR sees only consented cases, explicitly shared Validation Results, and pending Attribute Change Requests—never private chat or certificate/OCR content.
+- The product supports Hires; it does not surveil them. HR sees consented Case Threads—including the linked parent history and future parent messages disclosed at consent—plus explicitly shared Validation Results and pending Attribute Change Requests. HR never sees unrelated chat or certificate/OCR content.
 - The canonical source is the generated 108-page AISHA Handbook v1.0, not the removed flat Markdown corpus.
 - Grounded claims require eligible active-version evidence and metadata-only policy/version/page citations.
 - Nager.Holidays is the external tool, bounded to Philippines and the simulated current/following year.

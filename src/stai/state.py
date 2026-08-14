@@ -22,6 +22,7 @@ MIGRATION_DIR = Path(__file__).with_name("migrations")
 MIGRATION_PATHS = (
     MIGRATION_DIR / "0002_policy_domain.sql",
     MIGRATION_DIR / "0003_policy_turn_results.sql",
+    MIGRATION_DIR / "0004_case_threads.sql",
 )
 
 
@@ -62,7 +63,11 @@ class Repo:
                 "INSERT OR IGNORE INTO schema_migrations VALUES (?,?,?)",
                 (3, "policy_turn_results", _utc_text()),
             )
-            conn.execute("PRAGMA user_version=3")
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_migrations VALUES (?,?,?)",
+                (4, "case_threads", _utc_text()),
+            )
+            conn.execute("PRAGMA user_version=4")
             self._seed_policy_state(conn)
 
     @contextmanager
@@ -172,6 +177,14 @@ class Repo:
                 "INSERT INTO policy_messages VALUES (?,?,?,?,?,?,?)",
                 (message_id, conversation_id, ordinal, role, text, response_type, now),
             )
+            self._mirror_policy_message(
+                conn,
+                message_id=message_id,
+                conversation_id=conversation_id,
+                role=role,
+                text=text,
+                created_at_utc=now,
+            )
             conn.execute("UPDATE policy_conversations SET updated_at_utc=?, resource_version=resource_version+1 WHERE conversation_id=?", (now, conversation_id))
         return {"id": message_id, "ordinal": ordinal, "role": role, "text": text}
 
@@ -188,8 +201,11 @@ class Repo:
     def list_policy_conversations(self, employee_id: str) -> list[dict]:
         with self._connect() as conn:
             rows = conn.execute(
-                "SELECT conversation_id,hire_id,simulated_date,created_at_utc,updated_at_utc,resource_version "
-                "FROM policy_conversations WHERE hire_id=? ORDER BY created_at_utc DESC,conversation_id DESC",
+                "SELECT c.conversation_id,c.hire_id,c.simulated_date,c.created_at_utc,c.updated_at_utc,"
+                "c.resource_version,COALESCE((SELECT substr(m.text,1,80) FROM policy_messages m "
+                "WHERE m.conversation_id=c.conversation_id AND m.role='hire' ORDER BY m.ordinal LIMIT 1),"
+                "'New conversation') AS title FROM policy_conversations c WHERE c.hire_id=? "
+                "ORDER BY c.updated_at_utc DESC,c.conversation_id DESC",
                 (employee_id,),
             ).fetchall()
         return [dict(row) for row in rows]
@@ -223,6 +239,14 @@ class Repo:
             conn.execute(
                 "INSERT INTO policy_messages VALUES (?,?,?,?,?,?,?)",
                 (message_id, conversation_id, message_ordinal, "aisha", response.text, response.type, now),
+            )
+            self._mirror_policy_message(
+                conn,
+                message_id=message_id,
+                conversation_id=conversation_id,
+                role="aisha",
+                text=response.text,
+                created_at_utc=now,
             )
             conn.execute(
                 "UPDATE policy_conversations SET updated_at_utc=?, resource_version=resource_version+1 WHERE conversation_id=?",
@@ -262,6 +286,84 @@ class Repo:
             "text": response.text,
             "response_type": response.type,
         }
+
+    @staticmethod
+    def _mirror_policy_message(
+        conn,
+        *,
+        message_id: str,
+        conversation_id: str,
+        role: str,
+        text: str,
+        created_at_utc: str,
+    ) -> None:
+        """Mirror a parent message into every actively sharing child Case Thread."""
+        cases = conn.execute(
+            "SELECT c.case_id,c.hire_id,c.route_owner FROM escalation_cases c "
+            "JOIN case_threads t ON t.case_id=c.case_id "
+            "WHERE t.parent_conversation_id=? AND t.sharing_active=1 AND c.status='open'",
+            (conversation_id,),
+        ).fetchall()
+        for case in cases:
+            exists = conn.execute(
+                "SELECT 1 FROM case_messages WHERE case_id=? AND source_policy_message_id=?",
+                (case["case_id"], message_id),
+            ).fetchone()
+            if exists:
+                continue
+            ordinal = int(
+                conn.execute(
+                    "SELECT COALESCE(MAX(ordinal),0)+1 FROM case_messages WHERE case_id=?",
+                    (case["case_id"],),
+                ).fetchone()[0]
+            )
+            conn.execute(
+                "INSERT INTO case_messages VALUES (?,?,?,?,?,?,?,?,?)",
+                (
+                    str(uuid.uuid4()),
+                    case["case_id"],
+                    ordinal,
+                    role,
+                    case["hire_id"] if role == "hire" else "aisha",
+                    "shared",
+                    text,
+                    message_id,
+                    created_at_utc,
+                ),
+            )
+            conn.execute(
+                "INSERT INTO case_events VALUES (?,?,?,?,?,?,?)",
+                (
+                    str(uuid.uuid4()),
+                    case["case_id"],
+                    "parent_message_mirrored",
+                    role,
+                    case["hire_id"] if role == "hire" else "aisha",
+                    json.dumps({"source_policy_message_id": message_id}, sort_keys=True),
+                    created_at_utc,
+                ),
+            )
+            if role == "hire":
+                conn.execute(
+                    "UPDATE case_threads SET workflow_state='waiting_for_hr' WHERE case_id=?",
+                    (case["case_id"],),
+                )
+                conn.execute(
+                    "INSERT INTO case_notifications VALUES (?,?,?,?,?,?,?,NULL)",
+                    (
+                        str(uuid.uuid4()),
+                        case["case_id"],
+                        "hr",
+                        case["route_owner"],
+                        "parent_message",
+                        "The Hire continued the shared parent conversation",
+                        created_at_utc,
+                    ),
+                )
+            conn.execute(
+                "UPDATE escalation_cases SET resource_version=resource_version+1 WHERE case_id=?",
+                (case["case_id"],),
+            )
 
     def get_policy_response_payload(self, message_id: str) -> dict | None:
         with self._connect() as conn:
@@ -303,6 +405,11 @@ class Repo:
                 offer_id=offer["offer_id"], route_owner=offer["route_owner"],
                 route_channel=offer["route_channel"], proposed_summary=offer["proposed_summary"],
                 topic=offer["topic"], version=offer["resource_version"],
+                shares_parent_conversation=True,
+                sharing_notice=(
+                    "Creating this case shares this conversation's existing and future "
+                    "messages with HR until the case closes."
+                ),
             )
         return payload
 
@@ -378,36 +485,49 @@ class Repo:
             "citations": [], "offer_id": row["offer_id"], "route_owner": row["route_owner"],
             "route_channel": row["route_channel"], "proposed_summary": row["proposed_summary"],
             "topic": row["topic"], "version": row["resource_version"],
+            "shares_parent_conversation": True,
+            "sharing_notice": (
+                "Creating this case shares this conversation's existing and future messages "
+                "with HR until the case closes."
+            ),
         }
 
     def consent_escalation_offer(self, offer_id: str, *, expected_version: int) -> dict:
-        case_id = str(uuid.uuid4())
-        now = _utc_text()
         with self._connect() as conn:
-            conn.execute("BEGIN IMMEDIATE")
-            offer = conn.execute("SELECT * FROM escalation_offers WHERE offer_id=?", (offer_id,)).fetchone()
-            if not offer:
-                raise KeyError("offer not found")
-            if offer["resource_version"] != expected_version:
-                raise ValueError("stale resource version")
-            policies = [r[0] for r in conn.execute("SELECT policy_id FROM escalation_offer_policies WHERE offer_id=?", (offer_id,))]
-            conn.execute(
-                "INSERT INTO escalation_cases VALUES (?,?,?,?,?,?,'open',?,?,?,1)",
-                (case_id, offer["hire_id"], offer["topic"], offer["proposed_summary"], offer["route_owner"], offer["route_channel"], now, None, None),
-            )
-            for policy_id in policies:
-                conn.execute("INSERT INTO escalation_case_policies VALUES (?,?)", (case_id, policy_id))
-            conn.execute("DELETE FROM escalation_offers WHERE offer_id=?", (offer_id,))
-        return {"case_id": case_id, "status": "open", "approved_summary": offer["proposed_summary"], "route_owner": offer["route_owner"], "route_channel": offer["route_channel"], "version": 1}
+            offer = conn.execute(
+                "SELECT conversation_id,hire_id FROM escalation_offers WHERE offer_id=?",
+                (offer_id,),
+            ).fetchone()
+        if not offer:
+            raise KeyError("offer not found")
+        from stai.cases import CaseActor, CaseWorkflow
+
+        return CaseWorkflow(self).consent_offer(
+            offer["conversation_id"],
+            offer_id,
+            expected_version=expected_version,
+            actor=CaseActor.hire(offer["hire_id"]),
+        )
 
     def list_escalation_cases(self) -> list[dict]:
         with self._connect() as conn:
-            rows = conn.execute("SELECT * FROM escalation_cases ORDER BY created_at_utc DESC, case_id DESC").fetchall()
+            rows = conn.execute(
+                "SELECT c.*,t.parent_conversation_id,t.originating_message_id,t.sharing_active,"
+                "t.workflow_state,t.assigned_hr_user,t.resolution_summary,t.resolved_at_utc "
+                "FROM escalation_cases c LEFT JOIN case_threads t ON t.case_id=c.case_id "
+                "ORDER BY c.created_at_utc DESC,c.case_id DESC"
+            ).fetchall()
         return [dict(row) for row in rows]
 
     def get_escalation_case(self, case_id: str) -> dict | None:
         with self._connect() as conn:
-            row = conn.execute("SELECT * FROM escalation_cases WHERE case_id=?", (case_id,)).fetchone()
+            row = conn.execute(
+                "SELECT c.*,t.parent_conversation_id,t.originating_message_id,t.sharing_active,"
+                "t.workflow_state,t.assigned_hr_user,t.resolution_summary,t.resolved_at_utc "
+                "FROM escalation_cases c LEFT JOIN case_threads t ON t.case_id=c.case_id "
+                "WHERE c.case_id=?",
+                (case_id,),
+            ).fetchone()
             if not row:
                 return None
             policy_ids = [item[0] for item in conn.execute(
@@ -415,20 +535,22 @@ class Repo:
             )]
         return {**dict(row), "policy_ids": policy_ids}
 
-    def close_escalation_case(self, case_id: str, *, expected_version: int, hr_user: str) -> dict:
-        now = _utc_text()
-        with self._connect() as conn:
-            conn.execute("BEGIN IMMEDIATE")
-            row = conn.execute("SELECT * FROM escalation_cases WHERE case_id=?", (case_id,)).fetchone()
-            if not row:
-                raise KeyError("case not found")
-            if row["resource_version"] != expected_version:
-                raise ValueError("stale resource version")
-            conn.execute(
-                "UPDATE escalation_cases SET status='closed',closed_at_utc=?,closing_hr_user=?,resource_version=resource_version+1 WHERE case_id=?",
-                (now, hr_user, case_id),
-            )
-        return self.get_escalation_case(case_id)
+    def close_escalation_case(
+        self,
+        case_id: str,
+        *,
+        expected_version: int,
+        hr_user: str,
+        resolution_summary: str = "Resolved by HR.",
+    ) -> dict:
+        from stai.cases import CaseActor, CaseWorkflow
+
+        return CaseWorkflow(self).resolve(
+            case_id,
+            CaseActor.hr(hr_user),
+            resolution_summary,
+            expected_version=expected_version,
+        )
 
     def create_attribute_change_request(self, employee_id: str, attribute_name: str, proposed_value: str, *, consent: bool) -> dict:
         if not consent:

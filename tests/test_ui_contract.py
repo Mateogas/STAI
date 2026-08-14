@@ -28,6 +28,22 @@ def test_selected_dialogue_information_hierarchy_is_present():
     assert "persona picker" not in SOURCE.lower()
 
 
+def test_conversation_and_nested_case_thread_contract_is_present():
+    for label in (
+        "New conversation",
+        "Your conversations",
+        "HR ticket thread",
+        "Parent sharing is active",
+        "Reply in this HR ticket thread",
+        "Hire-visible reply",
+        "HR-only note",
+        "Resolution summary",
+    ):
+        assert label in SOURCE
+    assert "active_case_id" in SOURCE
+    assert "ticket_tree_" in SOURCE
+
+
 def test_approved_dialogue_visual_contract_is_preserved():
     for token in (
         "--aisha-navy: #0a2450",

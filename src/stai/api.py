@@ -178,6 +178,15 @@ class VersionAction(BaseModel):
 
 class HrVersionAction(VersionAction):
     hr_user: str = Field(min_length=1, max_length=80)
+    resolution_summary: str = Field(default="Resolved by HR.", min_length=1, max_length=2000)
+
+
+class CaseMessageCreate(VersionAction):
+    message: str = Field(min_length=1, max_length=4000)
+
+
+class HrCaseMessageCreate(CaseMessageCreate):
+    internal: bool = False
 
 
 class AttributeCreate(BaseModel):
@@ -312,9 +321,15 @@ def consent_escalation(employee_id: str, offer_id: str, body: VersionAction, req
 
 
 @app.get("/api/v1/hires/{employee_id}/escalation-cases")
-def hire_cases(employee_id: str, request: Request, repo: Repo = Depends(get_repo)):
-    _hire(employee_id); items = [row for row in repo.list_escalation_cases() if row["hire_id"] == employee_id]
+def hire_cases(employee_id: str, request: Request, service: AishaService = Depends(get_service)):
+    _hire(employee_id); items = service.list_cases()
     return success(request, {"items": items, "next_cursor": None})
+
+
+@app.get("/api/v1/hires/{employee_id}/conversations/{conversation_id}/escalation-cases")
+def conversation_cases(employee_id: str, conversation_id: str, request: Request, service: AishaService = Depends(get_service)):
+    _hire(employee_id)
+    return success(request, {"items": service.list_cases(parent_conversation_id=conversation_id), "next_cursor": None})
 
 
 @app.get("/api/v1/hires/{employee_id}/escalation-cases/{case_id}")
@@ -324,9 +339,32 @@ def hire_case(employee_id: str, case_id: str, request: Request, repo: Repo = Dep
     return success(request, item)
 
 
+@app.get("/api/v1/hires/{employee_id}/escalation-cases/{case_id}/messages")
+def hire_case_messages(employee_id: str, case_id: str, request: Request, service: AishaService = Depends(get_service)):
+    _hire(employee_id)
+    try: thread = service.get_case_thread(case_id)
+    except (KeyError, PermissionError): return safe_error(request, 404, "case_not_found", "The escalation case was not found.")
+    return success(request, thread)
+
+
+@app.post("/api/v1/hires/{employee_id}/escalation-cases/{case_id}/messages")
+def create_hire_case_message(employee_id: str, case_id: str, body: CaseMessageCreate, request: Request, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), service: AishaService = Depends(get_service)):
+    _hire(employee_id); key = _key(idempotency_key); scope, canonical = f"case:hire-message:{case_id}", _canonical(body)
+    replay = _check_replay(service.repo, scope, key, canonical, request)
+    if isinstance(replay, JSONResponse): return replay
+    if replay: return success(request, service.get_case_thread(case_id))
+    try:
+        thread = service.post_case_message(case_id, body.message, expected_version=body.expected_version)
+    except KeyError: return safe_error(request, 404, "case_not_found", "The escalation case was not found.")
+    except (ValueError, PermissionError): return safe_error(request, 409, "case_message_rejected", "The case changed or the message is not allowed.")
+    version = thread["case"]["resource_version"]
+    _save_replay(service.repo, scope, key, canonical, "escalation_case", case_id, version, 201, "case_message_added")
+    return success(request, thread, status=201)
+
+
 @app.get("/api/v1/hr/escalation-cases")
-def hr_cases(request: Request, repo: Repo = Depends(get_repo)):
-    return success(request, {"items": repo.list_escalation_cases(), "next_cursor": None})
+def hr_cases(request: Request, service: AishaService = Depends(get_service)):
+    return success(request, {"items": service.list_cases(hr=True), "next_cursor": None})
 
 
 @app.get("/api/v1/hr/escalation-cases/{case_id}")
@@ -335,13 +373,38 @@ def hr_case(case_id: str, request: Request, repo: Repo = Depends(get_repo)):
     return success(request, item) if item else safe_error(request, 404, "case_not_found", "The escalation case was not found.")
 
 
+@app.get("/api/v1/hr/escalation-cases/{case_id}/messages")
+def hr_case_messages(case_id: str, request: Request, service: AishaService = Depends(get_service)):
+    try: thread = service.get_case_thread(case_id, hr=True)
+    except KeyError: return safe_error(request, 404, "case_not_found", "The escalation case was not found.")
+    return success(request, thread)
+
+
+@app.post("/api/v1/hr/escalation-cases/{case_id}/messages")
+def create_hr_case_message(case_id: str, body: HrCaseMessageCreate, request: Request, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), service: AishaService = Depends(get_service)):
+    key = _key(idempotency_key); scope, canonical = f"case:hr-message:{case_id}", _canonical(body)
+    replay = _check_replay(service.repo, scope, key, canonical, request)
+    if isinstance(replay, JSONResponse): return replay
+    if replay: return success(request, service.get_case_thread(case_id, hr=True))
+    try:
+        thread = service.post_case_message(
+            case_id, body.message, expected_version=body.expected_version,
+            hr=True, internal=body.internal,
+        )
+    except KeyError: return safe_error(request, 404, "case_not_found", "The escalation case was not found.")
+    except (ValueError, PermissionError): return safe_error(request, 409, "case_message_rejected", "The case changed or the message is not allowed.")
+    version = thread["case"]["resource_version"]
+    _save_replay(service.repo, scope, key, canonical, "escalation_case", case_id, version, 201, "case_message_added")
+    return success(request, thread, status=201)
+
+
 @app.post("/api/v1/hr/escalation-cases/{case_id}/close")
 def close_hr_case(case_id: str, body: HrVersionAction, request: Request, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), repo: Repo = Depends(get_repo)):
     key = _key(idempotency_key); scope, canonical = f"case:close:{case_id}", _canonical(body)
     replay = _check_replay(repo, scope, key, canonical, request)
     if isinstance(replay, JSONResponse): return replay
     if replay: return success(request, repo.get_escalation_case(case_id))
-    try: item = repo.close_escalation_case(case_id, expected_version=body.expected_version, hr_user=body.hr_user)
+    try: item = repo.close_escalation_case(case_id, expected_version=body.expected_version, hr_user=body.hr_user, resolution_summary=body.resolution_summary)
     except KeyError: return safe_error(request, 404, "case_not_found", "The escalation case was not found.")
     except ValueError: return safe_error(request, 409, "stale_resource_version", "The escalation case has changed.")
     _save_replay(repo, scope, key, canonical, "escalation_case", case_id, item["resource_version"], 200, "closed")

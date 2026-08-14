@@ -7,10 +7,10 @@ Implemented production boundaries:
 - One canonical 108-page AISHA Handbook v1.0 generated from normalized YAML, with page manifest, immutable RAG page records, hashes, and a publication report.
 - Immutable hash-named Chroma builds, hybrid lexical/dense candidates, deterministic authority/applicability gates, verified activation, rollback, and metadata-only citations.
 - Four typed Policy Responses: Grounded Answer, Clarification Request, Abstention, and consent-first Escalation Offer.
-- A normalized SQLite epoch 3 for Alyssa's confirmed profile, ordered policy conversations, safe typed turn context/results, claim/citation metadata, cases, attribute revisions, Validation Results, retry/idempotency state, holiday cache, retrieval pointer, and safe reset.
+- A normalized SQLite epoch 4 for Alyssa's confirmed profile, ordered policy conversations, safe typed turn context/results, claim/citation metadata, consented Case Threads/messages/events/notifications, attribute revisions, Validation Results, retry/idempotency state, holiday cache, retrieval pointer, and safe reset.
 - Local certificate preflight, PDF text or image OCR, deterministic name/date/duration rules, one retry, result-only persistence, private-by-default history, and explicit share/revoke/delete.
 - A versioned `/api/v1` surface with safe envelopes, configured CORS, fixed simulated dates, server-owned history, idempotent replay, versions, cursors, role-separated demo namespaces, and one health endpoint.
-- Streamlit Ask AISHA, Certificate Check, History, and HR structured views with responsive, keyboard, focus, status, and announcement evidence.
+- Streamlit Ask AISHA, Certificate Check, History, and HR structured views with reopenable conversations, nested child Case Threads, shared-parent banners, HR replies and internal notes, responsive layout, keyboard focus, status, and announcement evidence.
 - One shared `PolicyTurnEngine` that resolves bounded follow-up context, hard-gates retrieval by topic, invokes ReAct when Ollama is ready, safely degrades to verified deterministic composition, and handles offer-before-consent escalation progression.
 - A v1.1 six-turn production regression across the module, API, and Linux container smoke; wrong-topic citations are hard failures.
 - Nager.Holidays as a bounded Philippines-only current/following-year tool with exact `Based on Nager.` attribution, seven-day cache, retry, validation, circuit breaker, and offline fallback.

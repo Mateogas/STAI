@@ -28,7 +28,7 @@ Then select one route:
 - Structured policy citations use policy/version/page/artifact identity.
 - Escalation is offer-before-case and requires explicit consent.
 - Certificate Check is local completeness only with result-only history.
-- HR has no policy-conversation read path and no certificate-content path.
+- HR has no direct policy-conversation read path. Explicit case consent copies the linked parent history and mirrors future parent messages into the HR-visible Case Thread until resolution; unrelated conversations and certificate content remain inaccessible.
 - Public integration is typed `/api/v1` only.
 - Telemetry is closed metadata through JSONL → shipper → authenticated relay → separate MLflow.
 - Chroma RAG is claimed; SQL Agent is explicitly unclaimed.

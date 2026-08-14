@@ -24,16 +24,16 @@ This scope is deliberately more useful than an unrestricted HR chatbot. Narrow b
 |---|---|
 | Payroll, access, or HR-policy question | Grounded Answer, Clarification Request, Abstention, or Escalation Offer from one typed policy contract |
 | Applicability | Deterministic evaluation of Role Key, Department Key, Employment Classification, and Work Site |
-| Human support | Privacy-safe offer first; an HR case exists only after explicit Hire consent |
+| Human support | Sharing notice and offer first; explicit Hire consent creates a child Case Thread that HR can answer |
 | Profile correction | One-attribute change request; HR approval creates a versioned revision |
 | Holiday fact | Read-only Philippine lookup for the simulated current/following year with `Based on Nager.` attribution |
 | Certificate check | Local structural/completeness check after acknowledgement, with result-only History |
-| Hire continuity | Server-owned ordered policy conversations that never override profile authority |
-| HR visibility | Consented case summaries, attribute requests, and currently shared safe validation-result metadata—never raw policy chat or certificate contents |
+| Hire continuity | Server-owned ordered policy conversations with reopenable child Case Threads that never override profile authority |
+| HR visibility | Consented Case Threads, attribute requests, and currently shared safe validation-result metadata—never unrelated policy chat or certificate contents |
 
 ## Privacy and trust design
 
-Trust is part of the product, not a disclaimer added at the end. HR cannot browse Alyssa’s Policy Conversations. Chat cannot silently convert an informal statement into an authoritative profile fact. Escalation is offer-before-case, and certificate results are share-before-HR-view. Sharing can be revoked and a result can be deleted.
+Trust is part of the product, not a disclaimer added at the end. HR cannot browse Alyssa’s Policy Conversations. When Alyssa creates a case, the consent screen explicitly states that the linked parent history and its future messages will be copied into an HR-visible child Case Thread until resolution. Other conversations remain private. Chat cannot silently convert an informal statement into an authoritative profile fact. Escalation is offer-before-case, and certificate results are share-before-HR-view. Validation sharing can be revoked and a result can be deleted.
 
 Certificate Check is especially bounded. It can identify whether required fictional demo fields appear and are structurally consistent, but it cannot authenticate a certificate, assess health, approve employment, or submit a document. Processing is local. Public history excludes document bytes, filename/MIME details, extracted text and values, diagnosis, confidence, and fingerprint. The original belongs in a separate fictional Official HR Document Route.
 

@@ -21,7 +21,7 @@ Every policy turn ends as one typed outcome:
 3. Abstention—the active eligible evidence cannot support a conclusion.
 4. Escalation Offer—a bounded human route and privacy-safe proposed summary are offered.
 
-An offer is not a case. Only Alyssa’s explicit consent creates an HR-visible case. HR receives the summary, state, and versions, never the private policy transcript.
+An offer is not a case. Only Alyssa’s explicit consent creates an HR-visible case. Before consent, AISHA states that the existing parent Policy Conversation and its future messages will be copied into a child Case Thread while the case remains open. HR reads that consented Case Thread, including HR-visible replies and status updates, but cannot browse unrelated Policy Conversations or private certificate content.
 
 ## Certificate story
 
@@ -33,7 +33,7 @@ History retains only a safe result. It excludes file bytes, filenames, MIME deta
 
 ### Ask AISHA
 
-Alyssa asks about PAY-001 and receives a grounded result with claim-local structured evidence. An unsupported question abstains. An ACC-006 fixture with unknown Work Site asks exactly one deciding question. A holiday lookup uses only Philippine current/following-year facts and displays `Based on Nager.` A request for a person produces an offer; consent creates the case.
+Alyssa can create and reopen multiple named Policy Conversations. She asks about PAY-001 and receives a grounded result with claim-local structured evidence. An unsupported question abstains. An ACC-006 fixture with unknown Work Site asks exactly one deciding question. A holiday lookup uses only Philippine current/following-year facts and displays `Based on Nager.` A request for a person produces an offer; consent creates a Case Thread beneath the originating conversation. The thread shows unread and workflow status, mirrors later parent messages while open, and remains available for Hire and HR replies.
 
 ### Profile revision
 
@@ -45,7 +45,7 @@ Alyssa acknowledges the boundary, uploads a synthetic labelled PDF, and receives
 
 ### HR User
 
-HR sees only consented cases, attribute change requests, and currently shared safe validation results. There is no HR route for policy conversations, certificate bytes, extracted content, or medical detail.
+HR sees consented Case Threads, attribute change requests, and currently shared safe validation results. HR cannot browse the Policy Conversation store directly: it sees only the copied conversation attached to a case after Alyssa accepts the explicit sharing notice. HR has no route for unrelated conversations, certificate bytes, extracted content, or medical detail. Resolving a case posts a Hire-visible result and stops future parent-message mirroring.
 
 ## Evaluation story
 

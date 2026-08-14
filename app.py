@@ -186,11 +186,23 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 }
 .aisha-disclaimer { max-width: 800px; margin: 24px auto 0; color: var(--aisha-muted); font-size: 11px; text-align: center; }
 .aisha-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+.aisha-thread-heading { margin: 14px 0 6px; color: var(--aisha-muted); font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+[class*="st-key-ticket_tree_"] { margin: 2px 0 8px 10px; padding-left: 10px; border-left: 2px solid #c5ceda; }
+.aisha-sharing-banner { margin: .75rem 1rem 0; padding: .75rem .85rem; border-left: 4px solid var(--aisha-gold); border-radius: 0 8px 8px 0; background: var(--aisha-soft-gold); color: #604900; font-size: 12px; }
+.aisha-case-breadcrumb { color: var(--aisha-muted); font-size: 12px; }
+.aisha-case-speaker { margin-bottom: 5px; color: var(--aisha-blue); font-size: 11px; font-weight: 800; text-transform: uppercase; }
+.aisha-case-internal { border-style: dashed !important; background: #f4f1ea !important; }
+.st-key-conversation_list .stButton > button { min-height: 40px !important; justify-content: flex-start; text-align: left; }
+.st-key-conversation_list .stButton > button p { font-size: 12px; }
 
 .stButton > button { border: 1px solid #9ca8b9; border-radius: 9px; background: white; color: var(--aisha-ink); }
 .stButton > button[kind="primary"], button[data-testid="stBaseButton-primary"] {
   border-color: var(--aisha-blue) !important; background: var(--aisha-blue) !important; color: white !important;
 }
+.stButton > button[kind="primary"] p,
+button[data-testid="stBaseButton-primary"] p { color: white !important; }
+.stButton > button[kind="primary"]:hover,
+button[data-testid="stBaseButton-primary"]:hover { color: white !important; }
 .stButton > button:hover { border-color: var(--aisha-gold); color: var(--aisha-navy); }
 [data-testid="stFileUploaderDropzone"] { border-color: #9aa5b5; background: #fbfaf7; }
 
@@ -296,8 +308,9 @@ def action_area(service: AishaService, conversation_id: str, message: dict) -> N
     if payload["type"] == "escalation_offer":
         st.markdown(
             "**Nothing has been shared yet.** If you consent, HR will receive only "
-            f"this summary: “{payload['proposed_summary']}”\n\n"
-            f"Route: {payload['route_owner']} · {payload['route_channel']}"
+            f"this summary first: “{payload['proposed_summary']}”\n\n"
+            f"Route: {payload['route_owner']} · {payload['route_channel']}\n\n"
+            f"**Conversation sharing:** {payload['sharing_notice']}"
         )
         pending = service.repo.get_escalation_offer(payload["offer_id"])
         if not pending:
@@ -329,6 +342,9 @@ def action_area(service: AishaService, conversation_id: str, message: dict) -> N
             f"Case reference: {payload['case_id']} · Status: {status} · "
             f"Route: {payload['route_owner']} · {payload['route_channel']}"
         )
+        if st.button("Open HR ticket thread", key=f"open-case-{payload['case_id']}-{message['id']}"):
+            st.session_state["active_case_id"] = payload["case_id"]
+            st.rerun()
 
 
 def ensure_conversation(service: AishaService) -> str:
@@ -403,6 +419,15 @@ def ask_aisha(service: AishaService) -> None:
         unsafe_allow_html=True,
     )
     conversation_id = ensure_conversation(service)
+    linked_cases = service.list_cases(parent_conversation_id=conversation_id)
+    active_links = [case for case in linked_cases if case["sharing_active"]]
+    if active_links:
+        st.markdown(
+            '<div class="aisha-sharing-banner"><strong>Shared parent conversation.</strong> '
+            f'{len(active_links)} open HR ticket thread(s) receive this chat history and new '
+            "messages until they close.</div>",
+            unsafe_allow_html=True,
+        )
     notice = st.session_state.pop("case_created_notice", None)
     if notice:
         st.success(
@@ -441,6 +466,61 @@ def ask_aisha(service: AishaService) -> None:
         evidence_area(response)
         persisted = service.list_messages(conversation_id)[-1]
         action_area(service, conversation_id, persisted)
+
+
+def hire_case_thread(service: AishaService, case_id: str) -> None:
+    from stai.cases import CaseActor
+
+    service.case_workflow.mark_notifications_read(case_id, CaseActor.hire())
+    thread = service.get_case_thread(case_id)
+    case = thread["case"]
+    parent = case.get("parent_conversation_id")
+    parent_title = "Original conversation"
+    if parent:
+        parent_title = next(
+            (
+                item["title"]
+                for item in service.repo.list_policy_conversations("emp-alyssa")
+                if item["conversation_id"] == parent
+            ),
+            parent_title,
+        )
+    st.markdown(
+        '<div class="aisha-chat-head"><p class="aisha-eyebrow">HR ticket thread</p>'
+        f'<h2>{escape(parent_title)} › {escape(case["route_owner"])}</h2>'
+        f'<div class="aisha-case-breadcrumb">Case {escape(case_id)} · '
+        f'{escape(case["workflow_state"].replace("_", " ").title())}</div></div>',
+        unsafe_allow_html=True,
+    )
+    if case["sharing_active"]:
+        st.markdown(
+            '<div class="aisha-sharing-banner"><strong>Parent sharing is active.</strong> '
+            "Messages from the linked AISHA conversation continue appearing here and are "
+            "visible to HR until this ticket closes.</div>",
+            unsafe_allow_html=True,
+        )
+    elif case["resolution_summary"]:
+        st.success(f"Resolved: {case['resolution_summary']}")
+    for item in thread["messages"]:
+        role = "user" if item["actor_role"] == "hire" else "assistant"
+        with st.chat_message(role):
+            speaker = {
+                "hire": "You",
+                "aisha": "AISHA · mirrored parent message",
+                "hr": "HR User · ticket reply",
+                "system": "Case workflow",
+            }[item["actor_role"]]
+            st.markdown(f'<div class="aisha-case-speaker">{escape(speaker)}</div>', unsafe_allow_html=True)
+            st.markdown(item["text"])
+    if case["status"] == "open":
+        reply = st.chat_input("Reply in this HR ticket thread", key=f"case-reply-{case_id}")
+        if reply:
+            service.post_case_message(
+                case_id,
+                reply,
+                expected_version=case["resource_version"],
+            )
+            st.rerun()
 
 
 def certificate_check(service: AishaService) -> None:
@@ -548,39 +628,117 @@ def history(service: AishaService, repo: Repo) -> None:
             st.rerun()
 
 
+def render_hire_navigation(service: AishaService) -> str:
+    st.markdown(
+        '<div class="aisha-profile-block"><p class="aisha-eyebrow">Today</p>'
+        "<strong>Onboarding support</strong>"
+        '<span class="aisha-muted aisha-small">Active Handbook v1.0</span></div>'
+        '<div class="aisha-sr-only">Ask AISHA · Certificate Check · History</div>',
+        unsafe_allow_html=True,
+    )
+    destination = st.radio(
+        "Support journeys",
+        ["Ask AISHA", "Certificate Check", "History"],
+        key="hire_destination",
+        label_visibility="collapsed",
+    )
+    if destination != "Ask AISHA":
+        return destination
+
+    active_conversation = ensure_conversation(service)
+    if st.button("＋ New conversation", key="new-policy-conversation", type="primary", width="stretch"):
+        created = service.create_conversation("emp-alyssa", DEMO_DATE)
+        st.session_state["conversation_id"] = created["id"]
+        st.session_state.pop("active_case_id", None)
+        st.rerun()
+    st.markdown('<div class="aisha-thread-heading">Your conversations</div>', unsafe_allow_html=True)
+    with st.container(key="conversation_list"):
+        for conversation in service.repo.list_policy_conversations("emp-alyssa"):
+            conversation_id = conversation["conversation_id"]
+            selected = conversation_id == active_conversation and not st.session_state.get("active_case_id")
+            title = conversation["title"] or "New conversation"
+            if st.button(
+                title[:42],
+                key=f"conversation-{conversation_id}",
+                type="primary" if selected else "secondary",
+                width="stretch",
+            ):
+                st.session_state["conversation_id"] = conversation_id
+                st.session_state.pop("active_case_id", None)
+                st.rerun()
+            cases = service.list_cases(parent_conversation_id=conversation_id)
+            if cases:
+                tree_key = f"ticket_tree_{conversation_id.replace('-', '_')}"
+                with st.container(key=tree_key):
+                    for case in cases:
+                        unread = f" · {case['unread_count']} new" if case["unread_count"] else ""
+                        label = (
+                            f"↳ {case['topic'].replace('_', ' ').title()} ticket · "
+                            f"{case['workflow_state'].replace('_', ' ').title()}{unread}"
+                        )
+                        if st.button(
+                            label,
+                            key=f"case-thread-{case['case_id']}",
+                            type=(
+                                "primary"
+                                if st.session_state.get("active_case_id") == case["case_id"]
+                                else "secondary"
+                            ),
+                            width="stretch",
+                        ):
+                            st.session_state["conversation_id"] = conversation_id
+                            st.session_state["active_case_id"] = case["case_id"]
+                            st.rerun()
+    return destination
+
+
+def render_case_context(service: AishaService, case_id: str) -> None:
+    case = service.get_case_thread(case_id)["case"]
+    st.markdown('<p class="aisha-eyebrow">Ticket context</p>', unsafe_allow_html=True)
+    st.markdown(
+        "<div class='aisha-context-list'>"
+        f"<div class='aisha-context-item'><span>Case</span><strong>{escape(case_id)}</strong></div>"
+        f"<div class='aisha-context-item'><span>Status</span><strong>{escape(case['workflow_state'].replace('_', ' ').title())}</strong></div>"
+        f"<div class='aisha-context-item'><span>Route</span><strong>{escape(case['route_owner'])}</strong></div>"
+        f"<div class='aisha-context-item'><span>Parent sharing</span><strong>{'Active' if case['sharing_active'] else 'Stopped'}</strong></div>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        '<div class="aisha-privacy-box">This ticket receives the consented parent '
+        "conversation. Other conversations and certificate contents remain excluded.</div>",
+        unsafe_allow_html=True,
+    )
+
+
 def new_hire_view(service: AishaService, repo: Repo) -> None:
     nav, dialogue, context = st.columns([1.05, 3, 1.15], gap="small")
     with nav:
         with st.container(border=True, key="dialogue_nav"):
-            st.markdown(
-                '<div class="aisha-profile-block"><p class="aisha-eyebrow">Today</p>'
-                "<strong>Onboarding support</strong>"
-                '<span class="aisha-muted aisha-small">Active Handbook v1.0</span></div>'
-                '<div class="aisha-sr-only">Ask AISHA · Certificate Check · History</div>',
-                unsafe_allow_html=True,
-            )
-            destination = st.radio(
-                "Support journeys",
-                ["Ask AISHA", "Certificate Check", "History"],
-                key="hire_destination",
-                label_visibility="collapsed",
-            )
+            destination = render_hire_navigation(service)
     with dialogue:
         with st.container(border=True, key="dialogue_chat"):
             if destination == "Certificate Check":
                 certificate_check(service)
             elif destination == "History":
                 history(service, repo)
+            elif st.session_state.get("active_case_id"):
+                hire_case_thread(service, st.session_state["active_case_id"])
             else:
                 ask_aisha(service)
     with context:
         with st.container(border=True, key="dialogue_context"):
-            render_context(repo)
+            if destination == "Ask AISHA" and st.session_state.get("active_case_id"):
+                render_case_context(service, st.session_state["active_case_id"])
+            else:
+                render_context(repo)
 
 
-def render_hr_cases(repo: Repo) -> None:
+def render_hr_cases(service: AishaService) -> None:
+    from stai.cases import CaseActor
+
     st.markdown("### Consented Escalation Cases")
-    cases = repo.list_escalation_cases()
+    cases = service.list_cases(hr=True)
     if not cases:
         st.info("No consented cases. An offer alone never creates an HR-visible record.")
         return
@@ -589,12 +747,71 @@ def render_hr_cases(repo: Repo) -> None:
             '<div class="aisha-record"><span class="aisha-outcome warn">'
             f'{escape(case["status"].title())}</span><div class="aisha-record-title">'
             f'{escape(case["approved_summary"])}</div><span class="aisha-muted aisha-small">'
-            f'{escape(case["topic"].replace("_", " ").title())} · {escape(case["route_owner"])}</span></div>',
+            f'{escape(case["topic"].replace("_", " ").title())} · {escape(case["route_owner"])} · '
+            f'{escape(case["workflow_state"].replace("_", " ").title())}</span></div>',
             unsafe_allow_html=True,
         )
-        if case["status"] == "open" and st.button("Mark resolved", key=f"close-case-{case['case_id']}", type="primary"):
-            repo.close_escalation_case(case["case_id"], expected_version=case["resource_version"], hr_user="hr-demo")
-            st.rerun()
+        with st.expander(f"Open ticket thread · {case['case_id']}"):
+            service.case_workflow.mark_notifications_read(case["case_id"], CaseActor.hr())
+            thread = service.get_case_thread(case["case_id"], hr=True)
+            for item in thread["messages"]:
+                internal = item["visibility"] == "hr_internal"
+                speaker = {
+                    "hire": "Hire",
+                    "aisha": "AISHA · mirrored parent message",
+                    "hr": "HR User",
+                    "system": "Case workflow",
+                }[item["actor_role"]]
+                css_class = "aisha-record aisha-case-internal" if internal else "aisha-record"
+                label = f"{speaker} · HR internal" if internal else speaker
+                st.markdown(
+                    f'<div class="{css_class}"><div class="aisha-case-speaker">'
+                    f'{escape(label)}</div>{escape(item["text"])}</div>',
+                    unsafe_allow_html=True,
+                )
+            if case["status"] == "open":
+                reply = st.text_area(
+                    "Hire-visible reply",
+                    key=f"hr-reply-{case['case_id']}",
+                    placeholder="This update will be visible in the Hire's ticket thread.",
+                )
+                if st.button(
+                    "Send reply", key=f"send-hr-reply-{case['case_id']}",
+                    type="primary", disabled=not reply.strip(),
+                ):
+                    service.post_case_message(
+                        case["case_id"], reply,
+                        expected_version=case["resource_version"], hr=True,
+                    )
+                    st.rerun()
+                internal_note = st.text_area(
+                    "HR-only note",
+                    key=f"hr-note-{case['case_id']}",
+                    placeholder="This note is never visible to the Hire.",
+                )
+                if st.button(
+                    "Save internal note", key=f"save-hr-note-{case['case_id']}",
+                    disabled=not internal_note.strip(),
+                ):
+                    service.post_case_message(
+                        case["case_id"], internal_note,
+                        expected_version=case["resource_version"], hr=True, internal=True,
+                    )
+                    st.rerun()
+                resolution = st.text_area(
+                    "Resolution summary",
+                    key=f"resolution-{case['case_id']}",
+                    placeholder="Explain what was resolved or what the Hire should do next.",
+                )
+                if st.button(
+                    "Resolve case", key=f"resolve-case-{case['case_id']}",
+                    disabled=not resolution.strip(),
+                ):
+                    service.resolve_case(
+                        case["case_id"], resolution,
+                        expected_version=case["resource_version"],
+                    )
+                    st.rerun()
 
 
 def render_hr_results(repo: Repo) -> None:
@@ -646,7 +863,7 @@ def render_hr_attribute_requests(service: AishaService, repo: Repo) -> None:
 
 def hr_view(service: AishaService, repo: Repo) -> None:
     nav, detail = st.columns([1.05, 3.9], gap="small")
-    cases = repo.list_escalation_cases()
+    cases = service.list_cases(hr=True)
     shared = repo.list_shared_validation_results()
     requests = [item for item in repo.list_attribute_change_requests() if item["status"] == "pending"]
     with nav:
@@ -654,7 +871,7 @@ def hr_view(service: AishaService, repo: Repo) -> None:
             st.markdown(
                 '<div class="aisha-profile-block"><p class="aisha-eyebrow">Dialogue · HR view</p>'
                 "<strong>Consented records</strong>"
-                '<span class="aisha-muted aisha-small">No transcripts or documents</span></div>',
+                '<span class="aisha-muted aisha-small">Shared ticket threads only</span></div>',
                 unsafe_allow_html=True,
             )
             queue = st.radio(
@@ -668,8 +885,8 @@ def hr_view(service: AishaService, repo: Repo) -> None:
             st.markdown(
                 '<div class="aisha-detail-head"><p class="aisha-eyebrow">HR support workspace</p>'
                 "<h1>Requests Alyssa chose to share</h1>"
-                '<div class="aisha-privacy-box">Visible: approved summaries and structured fields. '
-                "Hidden: private conversations, certificate contents, and inferred motives.</div></div>",
+                '<div class="aisha-privacy-box">Visible: consented Case Threads and structured fields. '
+                "Hidden: unrelated conversations, certificate contents, and inferred motives.</div></div>",
                 unsafe_allow_html=True,
             )
             st.markdown(
@@ -683,7 +900,7 @@ def hr_view(service: AishaService, repo: Repo) -> None:
                 elif queue.startswith("Attribute"):
                     render_hr_attribute_requests(service, repo)
                 else:
-                    render_hr_cases(repo)
+                    render_hr_cases(service)
 
 
 def demo_controls(repo: Repo) -> None:

@@ -159,6 +159,63 @@ def test_escalation_offer_to_consent_case(client):
     assert closed.status_code == 200 and closed.json()["data"]["status"] == "closed"
 
 
+def test_case_thread_api_mirrors_parent_and_separates_hr_internal_notes(client):
+    http, _repo = client
+    conversation = http.post(
+        "/api/v1/hires/emp-alyssa/conversations",
+        headers=headers("thread-conversation"),
+        json={"simulated_date": "2026-08-10"},
+    ).json()["data"]
+    offer = http.post(
+        f"/api/v1/hires/emp-alyssa/conversations/{conversation['id']}/messages",
+        headers=headers("thread-offer"),
+        json={"message": "Connect me with payroll support"},
+    ).json()["data"]
+    case = http.post(
+        f"/api/v1/hires/emp-alyssa/escalation-offers/{offer['offer_id']}/consent",
+        headers=headers("thread-consent"),
+        json={"expected_version": 1},
+    ).json()["data"]
+    case_id = case["case_id"]
+
+    parent_reply = http.post(
+        f"/api/v1/hires/emp-alyssa/conversations/{conversation['id']}/messages",
+        headers=headers("thread-parent-reply"),
+        json={"message": "Where is the official payroll route?"},
+    )
+    assert parent_reply.status_code == 200
+    hire_thread = http.get(
+        f"/api/v1/hires/emp-alyssa/escalation-cases/{case_id}/messages"
+    ).json()["data"]
+    assert hire_thread["messages"][-2]["text"].startswith("Where is")
+
+    version = hire_thread["case"]["resource_version"]
+    internal = http.post(
+        f"/api/v1/hr/escalation-cases/{case_id}/messages",
+        headers=headers("thread-internal"),
+        json={"expected_version": version, "message": "Internal triage", "internal": True},
+    )
+    assert internal.status_code == 201
+    hr_thread = internal.json()["data"]
+    assert hr_thread["messages"][-1]["visibility"] == "hr_internal"
+    hire_after = http.get(
+        f"/api/v1/hires/emp-alyssa/escalation-cases/{case_id}/messages"
+    ).json()["data"]
+    assert "Internal triage" not in {item["text"] for item in hire_after["messages"]}
+
+    visible = http.post(
+        f"/api/v1/hr/escalation-cases/{case_id}/messages",
+        headers=headers("thread-visible"),
+        json={
+            "expected_version": hr_thread["case"]["resource_version"],
+            "message": "Please confirm the affected pay period.",
+            "internal": False,
+        },
+    )
+    assert visible.status_code == 201
+    assert visible.json()["data"]["case"]["workflow_state"] == "waiting_for_hire"
+
+
 def test_production_payroll_transcript_has_identical_api_semantics(client):
     http, repo = client
     conversation = http.post(

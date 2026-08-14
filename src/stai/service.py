@@ -22,6 +22,7 @@ class AishaService:
         input_classifier=None,
     ) -> None:
         from stai.agent import LocalReactRunner
+        from stai.cases import CaseWorkflow
         from stai.guardrails import LocalInputClassifier
         from stai.medical import MedicalCheckService
         from stai.retriever import InMemoryHandbookIndex
@@ -31,6 +32,7 @@ class AishaService:
         self.records = records
         self.medical = medical_service or MedicalCheckService(repo)
         self.handbook_index = handbook_index or InMemoryHandbookIndex(records)
+        self.case_workflow = CaseWorkflow(repo)
         if agent_runner is None and agent_enabled:
             agent_runner = LocalReactRunner(repo, records, self.handbook_index)
         if input_classifier is None and agent_enabled:
@@ -41,6 +43,7 @@ class AishaService:
             index=self.handbook_index,
             agent_runner=agent_runner,
             input_classifier=input_classifier,
+            case_workflow=self.case_workflow,
         )
 
     def create_conversation(self, employee_id: str, simulated_date: date) -> dict:
@@ -71,6 +74,48 @@ class AishaService:
         if pending["resource_version"] != expected_version:
             raise ValueError("stale resource version")
         return self.send_message(conversation_id, "I consent")
+
+    def list_cases(self, *, parent_conversation_id: str | None = None, hr: bool = False) -> list[dict]:
+        from stai.cases import CaseActor
+
+        actor = CaseActor.hr() if hr else CaseActor.hire()
+        return self.case_workflow.list_cases(actor, parent_conversation_id=parent_conversation_id)
+
+    def get_case_thread(self, case_id: str, *, hr: bool = False) -> dict:
+        from stai.cases import CaseActor
+
+        actor = CaseActor.hr() if hr else CaseActor.hire()
+        return self.case_workflow.get_thread(case_id, actor)
+
+    def post_case_message(
+        self,
+        case_id: str,
+        text: str,
+        *,
+        expected_version: int,
+        hr: bool = False,
+        internal: bool = False,
+    ) -> dict:
+        from stai.cases import CaseActor
+
+        actor = CaseActor.hr() if hr else CaseActor.hire()
+        return self.case_workflow.post_message(
+            case_id,
+            actor,
+            text,
+            expected_version=expected_version,
+            internal=internal,
+        )
+
+    def resolve_case(self, case_id: str, summary: str, *, expected_version: int) -> dict:
+        from stai.cases import CaseActor
+
+        return self.case_workflow.resolve(
+            case_id,
+            CaseActor.hr(),
+            summary,
+            expected_version=expected_version,
+        )
 
     def request_attribute_change(self, employee_id: str, attribute_name: str, proposed_value: str, *, consent: bool) -> dict:
         return self.repo.create_attribute_change_request(employee_id, attribute_name, proposed_value, consent=consent)

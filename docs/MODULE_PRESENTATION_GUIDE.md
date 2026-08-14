@@ -94,7 +94,7 @@ Rehearse once at 320 CSS pixels and once on desktop:
 3. Confirm no horizontal page overflow.
 4. Read statuses without relying on color: Applies/Does Not Apply/Needs Clarification, result status, share state, and empty-state text.
 5. Trigger a dynamic status and confirm the live/status region is announced by a screen reader.
-6. Verify HR never receives chat text, certificate content, or OCR/extracted values.
+6. Verify HR receives chat text only through the explicitly consented Case Thread, and never receives unrelated conversations, certificate content, or OCR/extracted values.
 
 ## Named ownership and Q&A
 
@@ -108,7 +108,7 @@ Likely questions:
 
 **Why does classifier failure fail open?** It avoids making a small model outage a product outage. The consequential schema, applicability, evidence, citation, consent, version, and medical gates still fail closed.
 
-**Can HR read Alyssa’s chat or certificate?** No HR read path exists for Policy Conversations. HR receives only consented case summaries, currently shared safe Validation Result metadata, and Attribute Change Requests.
+**Can HR read Alyssa’s chat or certificate?** HR cannot browse Policy Conversations. After explicit consent, the linked history and future parent messages are copied into that case's shared thread until resolution. Unrelated chats and all certificate/OCR content remain inaccessible; only currently shared safe Validation Result metadata is visible.
 
 **Does Complete mean the certificate is valid?** No. It means required demo fields were deterministically present/consistent. AISHA does not authenticate, approve, diagnose, or submit.
 

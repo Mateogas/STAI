@@ -20,5 +20,12 @@ def test_consented_case_survives_conversation_delete(tmp_path):
     message = repo.add_policy_message(conversation["id"], "hire", "PAY-001 question")
     offer = repo.create_escalation_offer(conversation["id"], message["id"], "payroll", "Payroll Support", "Fictional HR Help Desk", "Clarify PAY-001 applicability.", ["PAY-001"])
     case = repo.consent_escalation_offer(offer["offer_id"], expected_version=1)
+    before_delete = repo.get_escalation_case(case["case_id"])
+    from stai.cases import CaseActor, CaseWorkflow
+    copied = CaseWorkflow(repo).get_thread(case["case_id"], CaseActor.hire())["messages"]
     repo.delete_policy_conversation(conversation["id"])
-    assert repo.get_escalation_case(case["case_id"])["status"] == "open"
+    after_delete = repo.get_escalation_case(case["case_id"])
+    assert before_delete["parent_conversation_id"] == conversation["id"]
+    assert after_delete["status"] == "open"
+    assert after_delete["parent_conversation_id"] is None
+    assert copied[0]["text"] == "PAY-001 question"
