@@ -42,13 +42,27 @@ _TOPIC_TERMS: dict[OnboardingTopic, set[str]] = {
         "holiday", "policy", "policies", "privacy",
     },
 }
-_HELP_TERMS = {"help", "human", "route", "support", "someone", "connect", "escalate", "escalation"}
+_HELP_TERMS = {"help", "human", "support", "someone", "connect", "escalate", "escalation"}
 _CONSENT_MESSAGES = {
     "yes", "yes please", "i consent", "yes route it", "route it",
     "route it please", "go ahead", "please proceed", "create the case", "send it",
 }
 _FOLLOW_UP_TERMS = {"it", "this", "that", "then", "one"}
 _GREETINGS = {"hi", "hello", "hey", "thanks", "thank", "salamat"}
+_ACTION_STATUS_PATTERNS = (
+    "have you created",
+    "did you create",
+    "was it created",
+    "has it been created",
+    "did that work",
+    "did it work",
+    "case status",
+    "status of my case",
+    "was it sent",
+    "did you send",
+    "have you sent",
+    "was it routed",
+)
 
 
 def _topic_for_policy_id(policy_id: str) -> OnboardingTopic:
@@ -111,8 +125,8 @@ class PolicyTurnEngine:
             )
             response = EscalationConfirmation(
                 text=(
-                    "Your consented case was created and routed to "
-                    f"{case['route_owner']} through {case['route_channel']}."
+                    f"Case {case['case_id']} was created successfully and is open. "
+                    f"It was routed to {case['route_owner']} through {case['route_channel']}."
                 ),
                 handbook_version=self.version,
                 applicability=ApplicabilityStatus.APPLIES,
@@ -131,6 +145,9 @@ class PolicyTurnEngine:
                 resolved,
                 pending_offer,
             )
+            mode = ExecutionMode.DETERMINISTIC
+        elif resolved.dialogue_act == DialogueAct.ACTION_STATUS:
+            response = self._case_status(conversation_id, pending_offer)
             mode = ExecutionMode.DETERMINISTIC
         elif resolved.dialogue_act == DialogueAct.CLARIFICATION:
             response = ClarificationRequest(
@@ -236,12 +253,22 @@ class PolicyTurnEngine:
                 referenced_message_id=referenced_message_id,
             )
 
-        help_requested = bool(tokens & _HELP_TERMS) or "talk to" in lowered
+        if any(pattern in lowered for pattern in _ACTION_STATUS_PATTERNS):
+            return ResolvedTurn(
+                dialogue_act=DialogueAct.ACTION_STATUS,
+                topic=topic,
+                policy_ids=policy_ids or previous_policy_ids,
+                standalone_query=message,
+                referenced_message_id=referenced_message_id,
+            )
+
+        route_command = "route" in tokens and bool(tokens & {"it", "this", "that", "me"})
+        help_requested = bool(tokens & _HELP_TERMS) or "talk to" in lowered or route_command
         if help_requested:
             return ResolvedTurn(
                 dialogue_act=DialogueAct.CLARIFICATION if not topic else (
                     DialogueAct.ESCALATION_REQUEST
-                    if tokens & {"route", "human", "connect", "escalate", "escalation"}
+                    if route_command or tokens & {"human", "connect", "escalate", "escalation"}
                     else DialogueAct.HELP_REQUEST
                 ),
                 topic=topic,
@@ -272,6 +299,7 @@ class PolicyTurnEngine:
                 & {
                     "details", "put", "update", "change", "onboard", "onboarding",
                     "payslip", "deduction", "cutoff", "date", "bank", "error",
+                    "route", "official",
                 }
             )
         ):
@@ -332,6 +360,49 @@ class PolicyTurnEngine:
             else ExecutionMode.DETERMINISTIC
         )
         return response, mode
+
+    def _case_status(self, conversation_id: str, pending_offer: dict | None):
+        latest = self.repo.get_latest_escalation_confirmation(conversation_id)
+        if latest:
+            case = self.repo.get_escalation_case(latest["case_id"])
+            if case:
+                return EscalationConfirmation(
+                    text=(
+                        f"Yes—case {case['case_id']} was created successfully and is "
+                        f"{case['status']}. It was routed to {case['route_owner']} "
+                        f"through {case['route_channel']}."
+                    ),
+                    handbook_version=self.version,
+                    applicability=ApplicabilityStatus.APPLIES,
+                    evidence_state=EvidenceState.READY,
+                    case_id=case["case_id"],
+                    route_owner=case["route_owner"],
+                    route_channel=case["route_channel"],
+                    topic=OnboardingTopic(case["topic"]),
+                    version=case["resource_version"],
+                )
+        if pending_offer:
+            payload = self.repo.get_escalation_offer(pending_offer["offer_id"])
+            if payload:
+                return EscalationOffer.model_validate(payload).model_copy(
+                    update={
+                        "text": (
+                            "Not yet—nothing has been shared. Review the summary and select "
+                            "Consent and create case if you want me to create it."
+                        )
+                    }
+                )
+        return ClarificationRequest(
+            text=(
+                "I can't find a case created in this conversation. Tell me which onboarding "
+                "area needs human support and I can prepare a consent-based request."
+            ),
+            handbook_version=self.version,
+            applicability=ApplicabilityStatus.APPLIES,
+            evidence_state=EvidenceState.INSUFFICIENT,
+            question="Which onboarding area needs human support?",
+            choices=["Payroll", "Resource Access", "HR Policies"],
+        )
 
     def _preflight(self, resolved: ResolvedTurn, profile):
         return self.index.search(

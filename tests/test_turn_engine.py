@@ -113,3 +113,39 @@ def test_pending_offer_requires_unambiguous_consent_language(tmp_path: Path) -> 
     response = service.send_message(conversation["id"], "How do I do it?")
     assert response.type != "escalation_confirmation"
     assert repo.list_escalation_cases() == []
+
+
+def test_informational_route_question_does_not_create_escalation(tmp_path: Path) -> None:
+    repo, records, conversation = setup(tmp_path)
+    service = AishaService(repo, records)
+    response = service.send_message(
+        conversation["id"],
+        "Where can I find the official payroll route?",
+    )
+    assert response.type == "grounded_answer"
+    assert response.citations[0].policy_id == "PAY-003"
+    assert repo.get_pending_escalation_offer_for_conversation(conversation["id"]) is None
+
+
+def test_consent_button_flow_persists_confirmation_and_answers_status(tmp_path: Path) -> None:
+    repo, records, conversation = setup(tmp_path)
+    service = AishaService(repo, records)
+    offer = service.send_message(conversation["id"], "Connect me with payroll support")
+
+    before_consent = service.send_message(conversation["id"], "Have you created it for me?")
+    assert before_consent.type == "escalation_offer"
+    assert before_consent.text.startswith("Not yet")
+
+    confirmation = service.consent_escalation_from_conversation(
+        conversation["id"],
+        offer.offer_id,
+        expected_version=offer.version,
+    )
+    assert confirmation.type == "escalation_confirmation"
+    assert confirmation.case_id in confirmation.text
+
+    status = service.send_message(conversation["id"], "Have you created if for me?")
+    assert status.type == "escalation_confirmation"
+    assert status.case_id == confirmation.case_id
+    assert "is open" in status.text
+    assert repo.get_latest_turn_context(conversation["id"])["dialogue_act"] == "action_status"

@@ -286,6 +286,51 @@ def evidence_area(response) -> None:
             )
 
 
+def action_area(service: AishaService, conversation_id: str, message: dict) -> None:
+    """Render persisted action state so controls survive Streamlit reruns."""
+    if message.get("role") != "aisha":
+        return
+    payload = service.repo.get_policy_response_payload(message["id"])
+    if not payload:
+        return
+    if payload["type"] == "escalation_offer":
+        st.markdown(
+            "**Nothing has been shared yet.** If you consent, HR will receive only "
+            f"this summary: “{payload['proposed_summary']}”\n\n"
+            f"Route: {payload['route_owner']} · {payload['route_channel']}"
+        )
+        pending = service.repo.get_escalation_offer(payload["offer_id"])
+        if not pending:
+            st.caption("This offer is no longer pending. See the case confirmation below.")
+            return
+        if st.button(
+            "Consent and create case",
+            key=f"consent-{payload['offer_id']}-{message['id']}",
+            type="primary",
+        ):
+            try:
+                confirmation = service.consent_escalation_from_conversation(
+                    conversation_id,
+                    payload["offer_id"],
+                    expected_version=payload["version"],
+                )
+            except (KeyError, ValueError):
+                st.warning("This offer changed or was already completed. Refreshing its status…")
+            else:
+                st.session_state["case_created_notice"] = {
+                    "case_id": confirmation.case_id,
+                    "route_owner": confirmation.route_owner,
+                }
+            st.rerun()
+    elif payload["type"] == "escalation_confirmation":
+        case = service.repo.get_escalation_case(payload["case_id"])
+        status = case["status"] if case else "created"
+        st.success(
+            f"Case reference: {payload['case_id']} · Status: {status} · "
+            f"Route: {payload['route_owner']} · {payload['route_channel']}"
+        )
+
+
 def ensure_conversation(service: AishaService) -> str:
     conversation_id = st.session_state.get("conversation_id")
     if conversation_id and service.repo.get_policy_conversation(conversation_id):
@@ -358,6 +403,13 @@ def ask_aisha(service: AishaService) -> None:
         unsafe_allow_html=True,
     )
     conversation_id = ensure_conversation(service)
+    notice = st.session_state.pop("case_created_notice", None)
+    if notice:
+        st.success(
+            f"Case {notice['case_id']} was created successfully and routed to "
+            f"{notice['route_owner']}."
+        )
+        st.toast("Your support case was created.", icon="✅")
     messages = service.list_messages(conversation_id)
     if not messages:
         st.markdown(
@@ -372,6 +424,8 @@ def ask_aisha(service: AishaService) -> None:
             if role == "assistant":
                 outcome_badge(message.get("response_type"))
             st.markdown(message["text"])
+            if role == "assistant":
+                action_area(service, conversation_id, message)
 
     prompt = st.chat_input("Ask about Payroll, Resource Access, or HR Policies")
     if not prompt:
@@ -385,19 +439,8 @@ def ask_aisha(service: AishaService) -> None:
         outcome_badge(response.type)
         st.markdown(response.text)
         evidence_area(response)
-        if response.type == "escalation_offer":
-            st.markdown(
-                "**Nothing has been shared yet.** If you consent, HR will receive only "
-                f"this summary: “{response.proposed_summary}”\n\n"
-                f"Route: {response.route_owner} · {response.route_channel}"
-            )
-            if st.button(
-                "Consent and create case",
-                key=f"consent-{response.offer_id}",
-                type="primary",
-            ):
-                service.consent_escalation(response.offer_id, expected_version=response.version)
-                announce("Your consented escalation case was created.")
+        persisted = service.list_messages(conversation_id)[-1]
+        action_area(service, conversation_id, persisted)
 
 
 def certificate_check(service: AishaService) -> None:

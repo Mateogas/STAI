@@ -57,6 +57,21 @@ class AishaService:
     def consent_escalation(self, offer_id: str, *, expected_version: int) -> dict:
         return self.repo.consent_escalation_offer(offer_id, expected_version=expected_version)
 
+    def consent_escalation_from_conversation(
+        self,
+        conversation_id: str,
+        offer_id: str,
+        *,
+        expected_version: int,
+    ):
+        """Consent through the turn seam so the result remains visible in chat."""
+        pending = self.repo.get_pending_escalation_offer_for_conversation(conversation_id)
+        if not pending or pending["offer_id"] != offer_id:
+            raise KeyError("pending offer not found in conversation")
+        if pending["resource_version"] != expected_version:
+            raise ValueError("stale resource version")
+        return self.send_message(conversation_id, "I consent")
+
     def request_attribute_change(self, employee_id: str, attribute_name: str, proposed_value: str, *, consent: bool) -> dict:
         return self.repo.create_attribute_change_request(employee_id, attribute_name, proposed_value, consent=consent)
 

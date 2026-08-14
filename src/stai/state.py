@@ -321,6 +321,18 @@ class Repo:
         result["payload"] = json.loads(result.pop("safe_payload_json"))
         return result
 
+    def get_latest_escalation_confirmation(self, conversation_id: str) -> dict | None:
+        """Return the newest safe case confirmation recorded in a conversation."""
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT r.safe_payload_json FROM policy_turn_results r "
+                "JOIN policy_messages m ON m.message_id=r.message_id "
+                "WHERE m.conversation_id=? AND r.result_type='escalation_confirmation' "
+                "ORDER BY m.ordinal DESC LIMIT 1",
+                (conversation_id,),
+            ).fetchone()
+        return json.loads(row["safe_payload_json"]) if row else None
+
     def get_pending_escalation_offer_for_conversation(self, conversation_id: str) -> dict | None:
         with self._connect() as conn:
             row = conn.execute(

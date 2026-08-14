@@ -41,3 +41,17 @@ def test_streamlit_ask_uses_topic_safe_turn_engine():
     text = " ".join(item.value for item in at.markdown)
     assert "PAY-001" in text
     assert "ACC-005" not in text
+
+
+def test_streamlit_consent_button_shows_persisted_case_confirmation():
+    at = AppTest.from_file(str(APP), default_timeout=90)
+    at.run()
+    at.chat_input[0].set_value("Connect me with payroll support")
+    at.run()
+    consent = next(button for button in at.button if button.label == "Consent and create case")
+    consent.click()
+    at.run()
+    assert not at.exception
+    text = " ".join(item.value for item in at.markdown)
+    assert "created successfully" in text
+    assert any("Case reference:" in item.value for item in at.success)
