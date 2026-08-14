@@ -204,6 +204,7 @@ Remaining follow-up:
 - Updated the existing 108-page handbook to v1.1 and bound publication identity to an authoritative public-source register.
 - Added schema epoch 6 for Case Information Requests and separately consented direct conversation.
 - Replaced default HR chat replies with AISHA mediation, HR-only notes, typed resolution, notifications, and resolution memory.
+- Made repeated ingestion of the same immutable handbook build safely idempotent while retaining collision checks.
 - Updated Streamlit, `/api/v1`, ADRs, domain vocabulary, and current handoff documentation.
 
 ## Future changelog rule

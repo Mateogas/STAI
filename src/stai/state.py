@@ -795,6 +795,34 @@ class Repo:
         now = _utc_text()
         state = "verified" if verified else "staging"
         with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            existing = conn.execute(
+                "SELECT * FROM retrieval_builds WHERE build_id=? OR collection_name=?",
+                (build_id, collection_name),
+            ).fetchone()
+            if existing:
+                expected_identity = (
+                    build_id,
+                    handbook_version,
+                    manifest_identity,
+                    collection_name,
+                    "production",
+                )
+                stored_identity = (
+                    existing["build_id"],
+                    existing["handbook_version"],
+                    existing["manifest_identity"],
+                    existing["collection_name"],
+                    existing["build_kind"],
+                )
+                if stored_identity != expected_identity:
+                    raise ValueError("retrieval build identity collision")
+                if verified and existing["lifecycle_state"] in {"staging", "failed"}:
+                    conn.execute(
+                        "UPDATE retrieval_builds SET lifecycle_state='verified', verified_at_utc=? WHERE build_id=?",
+                        (now, build_id),
+                    )
+                return
             conn.execute(
                 "INSERT INTO retrieval_builds VALUES (?,?,?,?,?,?,?,?,?)",
                 (build_id, handbook_version, manifest_identity, collection_name, "production", state, now, now if verified else None, None),
@@ -804,10 +832,21 @@ class Repo:
         now = _utc_text()
         with self._connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
+            pointer = conn.execute("SELECT * FROM active_retrieval_build WHERE singleton=1").fetchone()
+            if pointer["active_build_id"] == build_id:
+                build = conn.execute(
+                    "SELECT * FROM retrieval_builds WHERE build_id=? AND lifecycle_state='active' AND build_kind='production'",
+                    (build_id,),
+                ).fetchone()
+                if not build:
+                    raise ValueError("active retrieval pointer is inconsistent")
+                return dict(build) | {
+                    "generation": pointer["generation"],
+                    "previous_build_id": pointer["previous_build_id"],
+                }
             build = conn.execute("SELECT * FROM retrieval_builds WHERE build_id=? AND lifecycle_state IN ('verified','previous') AND build_kind='production'", (build_id,)).fetchone()
             if not build:
                 raise ValueError("only a verified production build can be activated")
-            pointer = conn.execute("SELECT * FROM active_retrieval_build WHERE singleton=1").fetchone()
             previous = pointer["active_build_id"]
             if previous:
                 conn.execute("UPDATE retrieval_builds SET lifecycle_state='previous' WHERE build_id=?", (previous,))

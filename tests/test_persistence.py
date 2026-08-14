@@ -85,6 +85,13 @@ def test_verified_retrieval_pointer_activation_and_rollback(tmp_path: Path) -> N
     assert repo.get_active_retrieval_build()["generation"] == 3
 
 
+def test_retrieval_build_registration_rejects_identity_collision(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path)
+    repo.register_retrieval_build("build-a", "1.1", "manifest-a", "collection-a", verified=True)
+    with pytest.raises(ValueError, match="identity collision"):
+        repo.register_retrieval_build("build-b", "1.1", "manifest-b", "collection-a", verified=True)
+
+
 def test_full_demo_reset_is_transactional_and_rotates_key(tmp_path: Path) -> None:
     repo = make_repo(tmp_path)
     before = repo.ensure_installation_key()
