@@ -34,6 +34,7 @@ class DialogueAct(StrEnum):
     ESCALATION_REQUEST = "escalation_request"
     CONSENT = "consent"
     ACTION_STATUS = "action_status"
+    CAPABILITY_DISCOVERY = "capability_discovery"
     GREETING = "greeting"
     UNSUPPORTED = "unsupported"
 

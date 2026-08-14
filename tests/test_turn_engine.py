@@ -149,3 +149,27 @@ def test_consent_button_flow_persists_confirmation_and_answers_status(tmp_path: 
     assert status.case_id == confirmation.case_id
     assert "is open" in status.text
     assert repo.get_latest_turn_context(conversation["id"])["dialogue_act"] == "action_status"
+
+
+def test_policy_discovery_lists_active_catalog_instead_of_one_hr_policy(tmp_path: Path) -> None:
+    repo, records, conversation = setup(tmp_path)
+
+    def agent_must_not_run(*_args):
+        raise AssertionError("catalog discovery must be deterministic")
+
+    service = AishaService(repo, records, agent_runner=agent_must_not_run)
+    response = service.send_message(conversation["id"], "What policies could I ask about?")
+
+    assert response.type == "grounded_answer"
+    assert "**Payroll**" in response.text
+    assert "**Resource Access**" in response.text
+    assert "**HR Policies**" in response.text
+    assert "PAY-001 — First-pay schedule" in response.text
+    assert "ACC-003 — Branch device setup" in response.text
+    assert "HRP-002 — Leave guidance" in response.text
+    assert {citation.policy_id for citation in response.citations} == {
+        *(f"PAY-{number:03d}" for number in range(1, 7)),
+        *(f"ACC-{number:03d}" for number in range(1, 7)),
+        *(f"HRP-{number:03d}" for number in range(1, 8)),
+    }
+    assert repo.get_latest_turn_context(conversation["id"])["dialogue_act"] == "capability_discovery"

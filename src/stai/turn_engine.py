@@ -17,6 +17,8 @@ from stai.models import (
     ExecutionMode,
     GroundedPolicyAnswer,
     OnboardingTopic,
+    PolicyCitation,
+    PolicyClaim,
     ResolvedTurn,
 )
 from stai.policy import PolicyEngine, validate_claim_support
@@ -62,6 +64,19 @@ _ACTION_STATUS_PATTERNS = (
     "did you send",
     "have you sent",
     "was it routed",
+)
+_DISCOVERY_PATTERNS = (
+    "what policies can i ask",
+    "what policies could i ask",
+    "what can i ask",
+    "what can you help",
+    "what do you cover",
+    "show me the policies",
+    "list the policies",
+    "available policies",
+    "supported policies",
+    "supported topics",
+    "what topics",
 )
 
 
@@ -149,6 +164,9 @@ class PolicyTurnEngine:
         elif resolved.dialogue_act == DialogueAct.ACTION_STATUS:
             response = self._case_status(conversation_id, pending_offer)
             mode = ExecutionMode.DETERMINISTIC
+        elif resolved.dialogue_act == DialogueAct.CAPABILITY_DISCOVERY:
+            response = self._policy_catalog()
+            mode = ExecutionMode.DETERMINISTIC
         elif resolved.dialogue_act == DialogueAct.CLARIFICATION:
             response = ClarificationRequest(
                 text="Which onboarding area do you need help with: Payroll, Resource Access, or HR Policies?",
@@ -225,6 +243,11 @@ class PolicyTurnEngine:
     def _resolve(self, message: str, previous: dict | None, pending_offer: dict | None) -> ResolvedTurn:
         lowered = message.lower().strip()
         tokens = set(_WORD.findall(lowered))
+        if any(pattern in lowered for pattern in _DISCOVERY_PATTERNS):
+            return ResolvedTurn(
+                dialogue_act=DialogueAct.CAPABILITY_DISCOVERY,
+                standalone_query=message,
+            )
         policy_ids = [match.group(0).upper() for match in _POLICY_ID.finditer(message)]
         explicit_topic = _topic_for_policy_id(policy_ids[0]) if policy_ids else None
         if not explicit_topic:
@@ -403,6 +426,74 @@ class PolicyTurnEngine:
             question="Which onboarding area needs human support?",
             choices=["Payroll", "Resource Access", "HR Policies"],
         )
+
+    def _policy_catalog(self) -> GroundedPolicyAnswer:
+        labels = {
+            OnboardingTopic.PAYROLL: "Payroll",
+            OnboardingTopic.RESOURCE_ACCESS: "Resource Access",
+            OnboardingTopic.HR_POLICIES: "HR Policies",
+        }
+        policy_pages = {
+            topic: sorted(
+                (
+                    record
+                    for record in self.records
+                    if record.status == "active"
+                    and record.page_kind == "policy"
+                    and record.topic == topic.value
+                    and record.policy_id
+                ),
+                key=lambda record: record.policy_id or "",
+            )
+            for topic in labels
+        }
+        citations = []
+        claims = []
+        sections = [
+            "You can ask about these active handbook policies. AISHA will check whether "
+            "a policy applies to your confirmed Hire Profile:"
+        ]
+        for topic, label in labels.items():
+            records = policy_pages[topic]
+            start = len(citations)
+            bullets = []
+            for record in records:
+                citation = PolicyCitation(
+                    policy_id=record.policy_id or "",
+                    handbook_version=record.handbook_version,
+                    page_start=record.page,
+                )
+                citations.append(citation)
+                title = re.sub(r"\s+-\s+1$", "", record.title)
+                bullets.append(f"- {record.policy_id} — {title} {citation.render()}")
+            sections.append(f"**{label}**\n" + "\n".join(bullets))
+            claims.append(
+                PolicyClaim(
+                    text=f"{label} includes " + ", ".join(record.policy_id or "" for record in records) + ".",
+                    citation_indexes=list(range(start, len(citations))),
+                )
+            )
+        sections.append(
+            "You can ask what a policy means, what steps it requires, whether it applies "
+            "to your confirmed profile, or how to request human support."
+        )
+        response = GroundedPolicyAnswer(
+            text="\n\n".join(sections),
+            handbook_version=self.version,
+            applicability=ApplicabilityStatus.APPLIES,
+            evidence_state=EvidenceState.READY,
+            citations=citations,
+            claims=claims,
+        )
+        validate_claim_support(
+            response,
+            {
+                (record.policy_id or "", record.handbook_version, record.page)
+                for records in policy_pages.values()
+                for record in records
+            },
+        )
+        return response
 
     def _preflight(self, resolved: ResolvedTurn, profile):
         return self.index.search(
