@@ -1,6 +1,6 @@
 # AISHA Architecture Diagrams
 
-These diagrams describe the implemented AISHA v1.0 educational capstone. AISHA covers only Payroll, Resource Access, and HR Policies for one fictional Hire, Alyssa Reyes. It is not affiliated with or endorsed by BDO Unibank and does not use real employee data.
+These diagrams describe the implemented AISHA v1.1 educational capstone. AISHA covers only Payroll, Resource Access, and HR Policies for one fictional Hire, Alyssa Reyes. It is not affiliated with or endorsed by BDO Unibank and does not use real employee data.
 
 ## System boundary
 
@@ -63,7 +63,7 @@ flowchart TD
     Classify --> Allowed{"Allowed?"}
     Allowed -- No --> Scoped["Typed scoped response"]
     Allowed -- Yes --> Context["Load bounded typed conversation context"]
-    Context --> Resolve["Resolve topic, reference, dialogue act, and standalone query"]
+    Context --> Resolve["Produce typed Agent Plan: intent, scope, subarea, and allowed actions"]
     Resolve --> Action{"Policy turn or workflow action?"}
     Action -- "Offer or consent" --> Workflow["Deterministic versioned escalation command"]
     Action -- "Policy" --> Version["Get active handbook identity"]
@@ -92,12 +92,18 @@ flowchart LR
     Offer --> Consent{"Hire consents?"}
     Consent -- No --> Private["No case and no HR visibility"]
     Consent -- Yes --> Backfill["Copy existing parent history"]
-    Backfill --> Thread["Child Case Thread"]
+    Backfill --> Thread["Child Mediated Case Thread"]
     Parent -- "Future Hire and AISHA messages while open" --> Thread
-    Thread --> HR["HR reply or internal note"]
-    HR -- "Hire-visible reply" --> Thread
+    Thread --> HR["HR case workspace"]
+    HR -- "Case Information Request" --> AISHA["AISHA case coordinator"]
+    AISHA -- "Ask one question" --> Thread
+    Thread -- "Linked Hire answer" --> HR
     HR -- "HR-only note" --> HR
-    Thread --> Resolve["Visible resolution summary"]
+    HR -- "Typed Case Resolution" --> AISHA
+    AISHA --> Resolve["Visible decision based on HR resolution"]
+    HR -- "Exceptional direct offer" --> Direct{"Hire separately consents?"}
+    Direct -- Yes --> Thread
+    Direct -- No --> AISHA
     Resolve --> Stop["Resolved; parent mirroring stops"]
 ```
 

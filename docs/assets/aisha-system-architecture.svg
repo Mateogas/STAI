@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1440" height="860" viewBox="0 0 1440 860" role="img" aria-labelledby="title desc">
-  <title id="title">AISHA v1.0 system architecture</title>
+  <title id="title">AISHA v1.1 system architecture</title>
   <desc id="desc">Authoritative sources feed a deterministic core shared by Streamlit and API surfaces, producing privacy-safe outcomes and metadata-only telemetry.</desc>
   <rect width="1440" height="860" fill="#f5f8fb"/>
-  <text x="720" y="58" text-anchor="middle" font-family="Arial" font-size="32" font-weight="700" fill="#17365d">AISHA v1.0 — Three-topic onboarding decision support</text>
+  <text x="720" y="58" text-anchor="middle" font-family="Arial" font-size="32" font-weight="700" fill="#17365d">AISHA v1.1 — Three-topic onboarding decision support</text>
   <text x="720" y="92" text-anchor="middle" font-family="Arial" font-size="17" fill="#4b5d70">Payroll · Resource Access · HR Policies · fictional educational data</text>
   <g font-family="Arial">
     <rect x="70" y="145" width="320" height="530" rx="22" fill="#e7f0f8" stroke="#3973a5" stroke-width="3"/>

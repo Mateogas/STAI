@@ -37,8 +37,8 @@ def test_react_search_then_validated_typed_response(repo, tmp_path):
     policy_page = next(row.page for row in records if row.policy_id == "PAY-001" and row.page_kind == "policy")
     final = {
         "type": "grounded_answer", "text": "Payroll policy is grounded.",
-        "handbook_version": "1.0", "applicability": "applies", "evidence_state": "ready",
-        "citations": [{"policy_id": "PAY-001", "handbook_version": "1.0", "page_start": policy_page}],
+        "handbook_version": "1.1", "applicability": "applies", "evidence_state": "ready",
+        "citations": [{"policy_id": "PAY-001", "handbook_version": "1.1", "page_start": policy_page}],
         "claims": [{"text": "Payroll policy is grounded.", "citation_indexes": [0]}],
     }
     fake = FakeToolCallingModel(responses=[

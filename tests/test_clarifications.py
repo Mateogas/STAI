@@ -24,15 +24,15 @@ def create_route_case(service: AishaService, conversation: dict) -> str:
     return confirmation.case_id
 
 
-def test_absent_subject_and_bare_human_request_do_not_offer_hr(tmp_path: Path) -> None:
+def test_device_social_media_is_grounded_and_bare_human_request_does_not_offer_hr(tmp_path: Path) -> None:
     repo, service, conversation = setup(tmp_path)
 
     absent = service.send_message(
         conversation["id"],
         "What is the policy for personal social media on work laptops?",
     )
-    assert absent.type == "abstention"
-    assert absent.reason == "handbook_omission"
+    assert absent.type == "grounded_answer"
+    assert absent.citations[0].policy_id == "ACC-004"
     assert repo.get_pending_escalation_offer_for_conversation(conversation["id"]) is None
 
     request = service.send_message(conversation["id"], "Connect me with HR")

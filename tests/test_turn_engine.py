@@ -24,10 +24,12 @@ def setup(tmp_path: Path):
 
 def candidate(records, policy_id: str) -> GroundedPolicyAnswer:
     record = next(item for item in records if item.policy_id == policy_id and item.page_kind == "policy")
-    citation = PolicyCitation(policy_id=policy_id, handbook_version="1.0", page_start=record.page)
+    citation = PolicyCitation(
+        policy_id=policy_id, handbook_version=record.handbook_version, page_start=record.page
+    )
     return GroundedPolicyAnswer(
         text=f"{record.content} {citation.render()}",
-        handbook_version="1.0",
+        handbook_version=record.handbook_version,
         applicability=ApplicabilityStatus.APPLIES,
         evidence_state=EvidenceState.READY,
         citations=[citation],

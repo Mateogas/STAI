@@ -113,12 +113,56 @@ class AishaService:
                 text,
                 expected_version=expected_version,
             )
+        if not hr:
+            thread = self.case_workflow.get_thread(case_id, actor)
+            if any(item["status"] == "pending" for item in thread["information_requests"]):
+                return self.case_workflow.answer_information_request(
+                    case_id,
+                    actor,
+                    text,
+                    expected_version=expected_version,
+                )
         return self.case_workflow.post_message(
             case_id,
             actor,
             text,
             expected_version=expected_version,
             internal=internal,
+        )
+
+    def request_case_information(
+        self,
+        case_id: str,
+        question: str,
+        *,
+        expected_version: int,
+        hr_user: str = "hr-demo",
+    ) -> dict:
+        from stai.cases import CaseActor
+
+        return self.case_workflow.request_information(
+            case_id,
+            CaseActor.hr(hr_user),
+            question,
+            expected_version=expected_version,
+        )
+
+    def offer_direct_case_conversation(
+        self, case_id: str, *, expected_version: int, hr_user: str = "hr-demo"
+    ) -> dict:
+        from stai.cases import CaseActor
+
+        return self.case_workflow.offer_direct_conversation(
+            case_id, CaseActor.hr(hr_user), expected_version=expected_version
+        )
+
+    def consent_direct_case_conversation(
+        self, case_id: str, *, expected_version: int
+    ) -> dict:
+        from stai.cases import CaseActor
+
+        return self.case_workflow.consent_direct_conversation(
+            case_id, CaseActor.hire(), expected_version=expected_version
         )
 
     def resolve_case(

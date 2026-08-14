@@ -1,6 +1,6 @@
 # AISHA Context Knowledge Base
 
-This folder is the current handoff source of truth for the AISHA v1.0 educational capstone. AISHA supports exactly three onboarding topics—Payroll, Resource Access, and HR Policies—for the fictional Hire Alyssa Reyes. It is not affiliated with or endorsed by BDO Unibank and uses no real employee data.
+This folder is the current handoff source of truth for the AISHA v1.1 educational capstone. AISHA supports exactly three onboarding topics—Payroll, Resource Access, and HR Policies—for the fictional Hire Alyssa Reyes. It is not affiliated with or endorsed by BDO Unibank and uses no real employee data.
 
 Start with `ContextCatalog.md`, then read only the route-specific files it names. The final issue decisions and closed child-ticket resolutions are reflected here; historical broad-assistant ideas are not current requirements.
 

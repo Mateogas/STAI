@@ -22,9 +22,29 @@ from stai.state import Repo, _utc_text
 
 _TOKEN = re.compile(r"[a-z0-9-]+")
 _STOPWORDS = {
-    "a", "about", "and", "are", "can", "could", "do", "does", "for",
-    "how", "i", "in", "is", "it", "me", "my", "of", "on", "please",
-    "that", "the", "then", "this", "to", "what", "where", "with", "you",
+    "a", "about", "against", "and", "are", "can", "could", "do", "does", "for",
+    "every", "get", "happens", "have", "how", "i", "if", "in", "is", "it",
+    "inside", "makes", "me", "my", "need", "of", "on", "one", "or", "please", "see",
+    "that", "the", "then", "there", "this", "to", "using", "well", "what",
+    "where", "which", "with", "you",
+}
+_SUBJECT_ALIASES = {
+    "day": {"date", "schedule", "timing"},
+    "days": {"date", "schedule", "timing", "semi-monthly"},
+    "paid": {"pay", "payroll", "schedule", "timing", "wages"},
+    "payday": {"date", "pay", "schedule", "timing"},
+    "wrong": {"correct", "correction", "change", "update"},
+    "fix": {"correct", "correction", "change", "update"},
+    "number": {"account", "details", "record"},
+    "onboard": {"onboarding", "enrollment"},
+    "medical": {"certificate", "diagnosis", "document"},
+    "off": {"absence", "leave"},
+    "photo": {"image", "jpg", "jpeg", "png"},
+    "submit": {"upload", "use", "route", "accepts"},
+    "late": {"delayed", "attendance"},
+    "privacy": {"private", "personal", "data"},
+    "accounts": {"account", "access", "device"},
+    "laptops": {"laptop", "device", "devices"},
 }
 _EXCEPTION_TERMS = {
     "exception", "exceptions", "exempt", "exemption", "override", "waive",
@@ -33,12 +53,12 @@ _EXCEPTION_TERMS = {
 _ROUTE_TERMS = {"route", "link", "url", "portal", "contact", "where"}
 _PROCEDURE_TERMS = {
     "change", "correct", "correction", "details", "onboard", "onboarding",
-    "put", "steps", "submit", "update",
+    "fix", "put", "steps", "submit", "update",
 }
 _FOLLOW_UP_TERMS = {"explain", "mean", "means", "that", "this", "why"}
 _GENERIC_DOMAIN_TERMS = {
     "answer", "handbook", "help", "hr", "laptop", "onboarding", "policy",
-    "policies", "rule", "rules", "work",
+    "policies", "rule", "rules", "work", "laptops",
 }
 
 
@@ -69,6 +89,9 @@ class EvidenceGapAssessor:
         if tokens & _EXCEPTION_TERMS or "what if" in query.lower():
             gap_kind = EvidenceGapKind.EXCEPTION_UNCLEAR
             reason = "the handbook provides the rule but does not authorize this exception"
+        elif {"certificate", "day", "off"} <= tokens:
+            gap_kind = EvidenceGapKind.MISSING_PROCEDURE
+            reason = "the handbook defines certificate handling but not whether one day off requires a certificate"
         elif (
             tokens & _ROUTE_TERMS
             and "route" in evidence_text
@@ -79,6 +102,7 @@ class EvidenceGapAssessor:
         elif (
             tokens & _PROCEDURE_TERMS
             and ("route" in evidence_text or "guidance" in evidence_text)
+            and not ("photo" in tokens and "photo" in evidence_text and "accepts" in evidence_text)
             and not any(item.page_kind == "procedure" and self._procedure_covers(tokens, item.content) for item in result.evidence)
         ):
             gap_kind = EvidenceGapKind.MISSING_PROCEDURE
@@ -110,7 +134,11 @@ class EvidenceGapAssessor:
         evidence_tokens = set(
             _TOKEN.findall(" ".join(item.content for item in result.evidence).lower())
         )
-        uncovered = [token not in evidence_tokens for token in query_tokens]
+        uncovered = [
+            token not in evidence_tokens
+            and not (_SUBJECT_ALIASES.get(token, set()) & evidence_tokens)
+            for token in query_tokens
+        ]
         return not any(left and right for left, right in zip(uncovered, uncovered[1:]))
 
     @staticmethod
@@ -185,8 +213,8 @@ class PolicyClarificationWorkflow:
             conn.execute(
                 "INSERT INTO case_messages VALUES (?,?,?,?,?,?,?,?,?)",
                 (
-                    str(uuid.uuid4()), case_id, ordinal, "hr", actor.actor_id,
-                    "shared", f"Resolution: {resolution.answer}", None, now,
+                    str(uuid.uuid4()), case_id, ordinal, "aisha", "aisha",
+                    "shared", f"Based on HR's decision for this case: {resolution.answer}", None, now,
                 ),
             )
             conn.execute(

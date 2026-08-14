@@ -249,6 +249,22 @@ Responses; it remains Hire-private unless the Hire explicitly links it to a
 Case Thread, while certificate contents always belong to a Medical Certificate Check.
 _Avoid_: Client-supplied history, certificate submission, implicit HR transcript
 
+**Agent Plan**:
+A bounded, typed sequence of permitted policy or workflow actions AISHA selects
+for one Hire message before acting; it has no authority to change policy, profile,
+consent, or an HR decision.
+_Avoid_: Hidden reasoning, unrestricted autonomy, answer text
+
+**Payroll Sub-Intent**:
+The Hire's concrete payroll goal within the Payroll topic, such as pay schedule,
+enrollment, payslip, correction, deduction, holiday effect, or account-specific status.
+_Avoid_: Payroll keyword, policy ID, free-form model label
+
+**Catalog Scope**:
+The requested breadth of an active-policy discovery question: all supported
+topics or exactly one Onboarding Topic.
+_Avoid_: Retrieval filter, Policy Applicability, search result
+
 **Abstention**:
 A Policy Response that withholds a conclusion because required support or a
 resolvable interpretation is unavailable, while stating the safe known boundary.
@@ -282,10 +298,11 @@ but never certificate or medical-document contents.
 _Avoid_: Escalation Route, automatic alert, chat export
 
 **Case Thread**:
-The shared conversation nested beneath the Policy Conversation that produced an
+The Hire-visible workflow nested beneath the Policy Conversation that produced an
 Escalation Case; after explicit consent it contains the parent history, future
-parent messages while the case is open, HR replies, and case status updates.
-_Avoid_: Private Policy Conversation, HR internal notes, separate support chat
+parent messages while the case is open, AISHA-mediated questions, Hire responses,
+resolution updates, and case status.
+_Avoid_: Group chat, private Policy Conversation, HR internal notes, email thread
 
 **Parent Conversation Sharing Consent**:
 The Hire's explicit agreement that creating an Escalation Case copies the parent
@@ -294,9 +311,25 @@ the case closes.
 _Avoid_: One-message summary consent, permanent HR transcript access, implicit sharing
 
 **Case Update**:
-A Hire-visible message in a Case Thread authored by the Hire, AISHA, or an HR User;
-HR-only working notes are not Case Updates.
-_Avoid_: Private HR note, telemetry event, Policy Response
+A Hire-visible workflow message in a Case Thread authored by the Hire or AISHA;
+HR decisions and questions are communicated through AISHA, while HR-only working
+notes are never Case Updates.
+_Avoid_: Direct HR reply, private HR note, telemetry event, Policy Response
+
+**Case Information Request**:
+A structured HR request for one missing fact that AISHA asks in the Case Thread
+and links to the Hire's response before returning the case to HR.
+_Avoid_: HR chat message, generic follow-up, profile update
+
+**Mediated Case**:
+The default Escalation Case interaction mode in which AISHA coordinates questions,
+responses, status, and the HR decision without placing an HR User in the Hire chat.
+_Avoid_: Shared inbox, group chat, direct human conversation
+
+**Direct Human Conversation**:
+An exceptional Escalation Case mode activated only after a separate explicit Hire
+consent; it is not the default meaning of human support.
+_Avoid_: Escalation Case, automatic handoff, ordinary Case Thread
 
 **Case Notification**:
 A durable unread signal that a Case Thread was created or received a Hire-visible

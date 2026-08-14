@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Callable, Iterator
 
 from stai.config import settings
+from stai.handbook import ACTIVE_HANDBOOK_VERSION
 from stai.models import HireProfile
 
 
@@ -24,6 +25,7 @@ MIGRATION_PATHS = (
     MIGRATION_DIR / "0003_policy_turn_results.sql",
     MIGRATION_DIR / "0004_case_threads.sql",
     MIGRATION_DIR / "0005_policy_clarifications.sql",
+    MIGRATION_DIR / "0006_agent_mediated_cases.sql",
 )
 
 
@@ -72,7 +74,11 @@ class Repo:
                 "INSERT OR IGNORE INTO schema_migrations VALUES (?,?,?)",
                 (5, "policy_clarifications", _utc_text()),
             )
-            conn.execute("PRAGMA user_version=5")
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_migrations VALUES (?,?,?)",
+                (6, "agent_mediated_cases", _utc_text()),
+            )
+            conn.execute("PRAGMA user_version=6")
             self._seed_policy_state(conn)
 
     @contextmanager
@@ -161,7 +167,12 @@ class Repo:
     @staticmethod
     def _reject_medical_chat(text: str) -> None:
         lowered = text.lower()
-        markers = ("medical certificate", "diagnosis", "patient name", "clinician", "prescription", "laboratory result")
+        markers = (
+            "my diagnosis", "diagnosis is", "diagnosed with", "patient name",
+            "clinician says", "my prescription", "laboratory result",
+            "here is my medical certificate", "my medical certificate diagnosis",
+            "medical certificate diagnosis", "my medical certificate says",
+        )
         if any(marker in lowered for marker in markers):
             raise MedicalContentRejected("medical content must use Certificate Check")
 
@@ -396,7 +407,7 @@ class Repo:
         payload = {
             "type": response_type,
             "text": message["text"],
-            "handbook_version": policy["handbook_version"] if policy else "1.0",
+            "handbook_version": policy["handbook_version"] if policy else ACTIVE_HANDBOOK_VERSION,
             "applicability": policy["applicability"] if policy else "applies",
             "evidence_state": policy["evidence_state"] if policy else "insufficient_evidence",
             "citations": citations,
@@ -501,7 +512,7 @@ class Repo:
         )
         return {
             "type": "escalation_offer", "text": text,
-            "handbook_version": "1.0", "applicability": "applies",
+            "handbook_version": ACTIVE_HANDBOOK_VERSION, "applicability": "applies",
             "evidence_state": "insufficient_evidence",
             "citations": [], "offer_id": row["offer_id"], "route_owner": row["route_owner"],
             "route_channel": row["route_channel"], "proposed_summary": row["proposed_summary"],
@@ -647,21 +658,21 @@ class Repo:
             if fingerprint:
                 existing = conn.execute(
                     "SELECT validation_id FROM validation_results WHERE hire_id='emp-alyssa' AND policy_id='HRP-004' "
-                    "AND handbook_version='1.0' AND profile_revision=? AND document_fingerprint=? ORDER BY created_at_utc DESC LIMIT 1",
-                    (profile_revision, fingerprint),
+                    "AND handbook_version=? AND profile_revision=? AND document_fingerprint=? ORDER BY created_at_utc DESC LIMIT 1",
+                    (ACTIVE_HANDBOOK_VERSION, profile_revision, fingerprint),
                 ).fetchone()
                 if existing:
                     return self.get_validation_result(existing[0])
             conn.execute(
                 "INSERT INTO validation_results VALUES (?,?,?,?,?,?,?,?,?,?,?, ?,1)",
-                (validation_id, "emp-alyssa", status, "HRP-004", "1.0", profile_revision, attempt_count, evaluation_date.isoformat(), now, fingerprint, "private", None),
+                (validation_id, "emp-alyssa", status, "HRP-004", ACTIVE_HANDBOOK_VERSION, profile_revision, attempt_count, evaluation_date.isoformat(), now, fingerprint, "private", None),
             )
             ordinal = 0
             for family, codes in (("missing", missing_codes), ("inconsistency", inconsistency_codes), ("warning", warning_codes), ("human_review", review_codes)):
                 for code in codes:
                     conn.execute("INSERT INTO validation_result_codes VALUES (?,?,?,?)", (validation_id, family, code, ordinal))
                     ordinal += 1
-            conn.execute("INSERT INTO validation_result_citations VALUES (?,?,?,?,?)", (validation_id, "HRP-004", "1.0", 78, None))
+            conn.execute("INSERT INTO validation_result_citations VALUES (?,?,?,?,?)", (validation_id, "HRP-004", ACTIVE_HANDBOOK_VERSION, 78, None))
         return self.get_validation_result(validation_id)
 
     def _set_validation_share(self, validation_id: str, *, share: bool, expected_version: int) -> dict:

@@ -18,11 +18,11 @@ def make_repo(tmp_path: Path) -> Repo:
 
 def test_schema_pragmas_and_single_alyssa_seed(tmp_path: Path) -> None:
     repo = make_repo(tmp_path)
-    assert repo.schema_version == 5
+    assert repo.schema_version == 6
     assert repo.get_hire_profile("emp-alyssa").role_key == "branch_banking_associate"
     assert repo.list_hire_ids() == ["emp-alyssa"]
     with sqlite3.connect(repo.db_path) as conn:
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 5
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == 6
         assert conn.execute("PRAGMA foreign_keys").fetchone()[0] == 0  # connection-local
         tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     assert {
@@ -30,6 +30,7 @@ def test_schema_pragmas_and_single_alyssa_seed(tmp_path: Path) -> None:
         "validation_results", "active_retrieval_build", "case_threads",
         "case_messages", "case_events", "case_notifications", "case_evidence_gaps",
         "case_resolutions", "escalation_offer_evidence_gaps",
+        "case_information_requests", "case_interaction_modes",
     } <= tables
 
 
@@ -62,6 +63,15 @@ def test_policy_conversation_rejects_medical_content_before_persistence(tmp_path
     assert [m["text"] for m in repo.list_policy_messages(conversation["id"])] == [
         "When is the payroll cutoff?"
     ]
+
+
+def test_generic_medical_certificate_policy_question_is_not_treated_as_document_content(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path)
+    conversation = repo.create_policy_conversation("emp-alyssa", date(2026, 8, 10))
+    message = repo.add_policy_message(
+        conversation["id"], "hire", "Do I need a medical certificate for one day off?"
+    )
+    assert message["text"].startswith("Do I need")
 
 
 def test_verified_retrieval_pointer_activation_and_rollback(tmp_path: Path) -> None:

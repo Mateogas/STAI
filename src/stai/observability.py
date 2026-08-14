@@ -50,7 +50,8 @@ ErrorCategory = Literal[
 
 ALLOWED_TOOLS = {
     "search_handbook", "get_active_handbook", "lookup_public_holidays",
-    "evaluate_applicability", "offer_escalation",
+    "evaluate_applicability", "discover_policies", "check_case_status",
+    "offer_escalation",
 }
 
 

@@ -19,7 +19,7 @@ def test_hybrid_exact_policy_and_semantic_union(tmp_path: Path) -> None:
         "What is PAY-006?",
         HireProfile.alyssa(),
         records,
-        dense_record_ids=["aisha-v1.0-pay-001-01"],
+        dense_record_ids=["aisha-v1.1-pay-001-01"],
     )
     assert result.outcome == RetrievalOutcome.READY
     assert result.evidence[0].policy_id == "PAY-006"
@@ -69,5 +69,4 @@ def test_adjacent_expansion_never_crosses_policy_boundary(tmp_path: Path) -> Non
     pay001 = [item for item in result.evidence if item.policy_id == "PAY-001"]
     assert pay001
     assert {item.policy_id for item in pay001} == {"PAY-001"}
-    assert all(item.handbook_version == "1.0" for item in pay001)
-
+    assert all(item.handbook_version == "1.1" for item in pay001)

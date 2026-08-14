@@ -23,6 +23,8 @@ from stai.config import PROJECT_ROOT
 
 
 SOURCE_PATH = PROJECT_ROOT / "handbook" / "source.yaml"
+SOURCE_REGISTER_PATH = PROJECT_ROOT / "handbook" / "source_register.yaml"
+ACTIVE_HANDBOOK_VERSION = "1.1"
 
 
 class ApplicabilityRule(BaseModel):
@@ -64,6 +66,23 @@ class HandbookSource(BaseModel):
     pages: list[HandbookPage]
 
 
+class SourceRegisterEntry(BaseModel):
+    source_id: str
+    authority: str
+    title: str
+    url: str
+    source_class: Literal["official_guidance", "legal_baseline"]
+    informs: list[str]
+
+
+class HandbookSourceRegister(BaseModel):
+    schema_version: Literal[1]
+    handbook_target_version: str
+    retrieved_on: str
+    sources: list[SourceRegisterEntry]
+    publication_rules: list[str]
+
+
 @dataclass(frozen=True)
 class HandbookArtifacts:
     pdf_path: Path
@@ -82,6 +101,10 @@ def _canonical(value: object) -> bytes:
 
 def load_source(path: Path = SOURCE_PATH) -> HandbookSource:
     return HandbookSource.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")))
+
+
+def load_source_register(path: Path = SOURCE_REGISTER_PATH) -> HandbookSourceRegister:
+    return HandbookSourceRegister.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")))
 
 
 def _render_pdf(source: HandbookSource, output: Path) -> None:
@@ -115,9 +138,15 @@ def _render_pdf(source: HandbookSource, output: Path) -> None:
 
 def build_handbook(output_dir: Path | None = None) -> HandbookArtifacts:
     source = load_source()
+    source_register = load_source_register()
+    if source.handbook_version != ACTIVE_HANDBOOK_VERSION:
+        raise ValueError("source handbook version does not match the active application version")
+    if source_register.handbook_target_version != source.handbook_version:
+        raise ValueError("source register targets a different handbook version")
+    source_register_hash = _sha(SOURCE_REGISTER_PATH.read_bytes())
     out = output_dir or PROJECT_ROOT / "handbook" / "dist"
     out.mkdir(parents=True, exist_ok=True)
-    pdf_path = out / "aisha-handbook-v1.0.pdf"
+    pdf_path = out / f"aisha-handbook-v{source.handbook_version}.pdf"
     manifest_path = out / "page-manifest.json"
     rag_pages_path = out / "rag-pages.jsonl"
     report_path = out / "build-report.json"
@@ -129,6 +158,8 @@ def build_handbook(output_dir: Path | None = None) -> HandbookArtifacts:
         "active": True,
         "page_count": len(source.pages),
         "handbook_artifact_sha256": pdf_hash,
+        "source_register_sha256": source_register_hash,
+        "source_ids": [entry.source_id for entry in source_register.sources],
         "pages": [
             {
                 "page": number,
@@ -152,6 +183,7 @@ def build_handbook(output_dir: Path | None = None) -> HandbookArtifacts:
             "handbook_version": source.handbook_version,
             "handbook_artifact_sha256": pdf_hash,
             "page_manifest_sha256": manifest_identity,
+            "source_register_sha256": source_register_hash,
             "page": page_number,
             "page_key": page.page_key,
             "page_content_sha256": _sha(page.body.encode()),
@@ -172,7 +204,7 @@ def build_handbook(output_dir: Path | None = None) -> HandbookArtifacts:
         }
         records.append(record)
     rag_pages_path.write_text("".join(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n" for row in records), encoding="utf-8")
-    report = {"valid": True, "page_count": len(records), "handbook_artifact_sha256": pdf_hash, "manifest_sha256": manifest_identity, "rag_pages_sha256": _sha(rag_pages_path.read_bytes())}
+    report = {"valid": True, "page_count": len(records), "handbook_artifact_sha256": pdf_hash, "manifest_sha256": manifest_identity, "rag_pages_sha256": _sha(rag_pages_path.read_bytes()), "source_register_sha256": source_register_hash, "source_ids": [entry.source_id for entry in source_register.sources]}
     report_path.write_bytes(_canonical(report) + b"\n")
     return HandbookArtifacts(pdf_path, manifest_path, rag_pages_path, report_path)
 
@@ -189,6 +221,7 @@ def verify_publication(artifacts: HandbookArtifacts) -> dict:
         and len({row["record_id"] for row in records}) == 108
         and all(row["handbook_artifact_sha256"] == manifest["handbook_artifact_sha256"] for row in records)
         and all(row["page_manifest_sha256"] == manifest["manifest_sha256"] for row in records)
+        and all(row["source_register_sha256"] == manifest["source_register_sha256"] for row in records)
     )
     return {"valid": valid, "page_count": len(records), "handbook_artifact_sha256": manifest["handbook_artifact_sha256"], "manifest_sha256": manifest["manifest_sha256"]}
 

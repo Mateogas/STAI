@@ -203,17 +203,87 @@ def test_case_thread_api_mirrors_parent_and_separates_hr_internal_notes(client):
     ).json()["data"]
     assert "Internal triage" not in {item["text"] for item in hire_after["messages"]}
 
-    visible = http.post(
+    rejected_direct = http.post(
         f"/api/v1/hr/escalation-cases/{case_id}/messages",
-        headers=headers("thread-visible"),
+        headers=headers("thread-direct-rejected"),
         json={
             "expected_version": hr_thread["case"]["resource_version"],
-            "message": "Please confirm the affected pay period.",
+            "message": "Direct HR reply before separate consent.",
             "internal": False,
         },
     )
-    assert visible.status_code == 201
-    assert visible.json()["data"]["case"]["workflow_state"] == "waiting_for_hire"
+    assert rejected_direct.status_code == 409
+
+    requested = http.post(
+        f"/api/v1/hr/escalation-cases/{case_id}/information-requests",
+        headers=headers("thread-information-request"),
+        json={
+            "expected_version": hr_thread["case"]["resource_version"],
+            "question": "Which pay period is affected?",
+            "hr_user": "hr-demo",
+        },
+    )
+    assert requested.status_code == 201
+    requested_thread = requested.json()["data"]
+    assert requested_thread["case"]["workflow_state"] == "waiting_for_hire"
+    assert requested_thread["messages"][-1]["actor_role"] == "aisha"
+    assert requested_thread["information_requests"][-1]["status"] == "pending"
+
+    answered = http.post(
+        f"/api/v1/hires/emp-alyssa/escalation-cases/{case_id}/messages",
+        headers=headers("thread-information-answer"),
+        json={
+            "expected_version": requested_thread["case"]["resource_version"],
+            "message": "The 1–15 August pay period.",
+        },
+    )
+    assert answered.status_code == 201
+    assert answered.json()["data"]["information_requests"][-1]["status"] == "answered"
+
+
+def test_direct_case_conversation_requires_hr_offer_and_hire_consent(client):
+    http, _repo = client
+    conversation = http.post(
+        "/api/v1/hires/emp-alyssa/conversations", headers=headers("direct-c"),
+        json={"simulated_date": "2026-08-10"},
+    ).json()["data"]
+    offer = http.post(
+        f"/api/v1/hires/emp-alyssa/conversations/{conversation['id']}/messages",
+        headers=headers("direct-policy-offer"),
+        json={"message": "Where is the official payroll route?"},
+    ).json()["data"]
+    case = http.post(
+        f"/api/v1/hires/emp-alyssa/escalation-offers/{offer['offer_id']}/consent",
+        headers=headers("direct-case-consent"), json={"expected_version": offer["version"]},
+    ).json()["data"]
+    case_id = case["case_id"]
+    offered = http.post(
+        f"/api/v1/hr/escalation-cases/{case_id}/direct-conversation/offer",
+        headers=headers("direct-offer"),
+        json={"expected_version": case["resource_version"], "hr_user": "hr-demo"},
+    )
+    assert offered.status_code == 200
+    offered_thread = offered.json()["data"]
+    assert offered_thread["interaction_mode"]["mode"] == "direct_offered"
+    consented = http.post(
+        f"/api/v1/hires/emp-alyssa/escalation-cases/{case_id}/direct-conversation/consent",
+        headers=headers("direct-hire-consent"),
+        json={"expected_version": offered_thread["case"]["resource_version"]},
+    )
+    assert consented.status_code == 200
+    consented_thread = consented.json()["data"]
+    assert consented_thread["interaction_mode"]["mode"] == "direct_consented"
+    direct = http.post(
+        f"/api/v1/hr/escalation-cases/{case_id}/messages",
+        headers=headers("direct-message"),
+        json={
+            "expected_version": consented_thread["case"]["resource_version"],
+            "message": "I can now speak with you directly.",
+            "internal": False,
+        },
+    )
+    assert direct.status_code == 201
+    assert direct.json()["data"]["messages"][-1]["actor_role"] == "hr"
 
 
 def test_structured_resolution_thread_memory_and_reviewed_reuse_api(client):

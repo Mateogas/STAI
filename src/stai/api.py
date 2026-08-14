@@ -17,7 +17,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from stai.config import settings
-from stai.handbook import build_handbook
+from stai.handbook import ACTIVE_HANDBOOK_VERSION, build_handbook
 from stai.medical import preflight_upload
 from stai.models import ApplicabilityStatus, ResolutionScope, ResolutionType
 from stai.retriever import load_page_records
@@ -198,6 +198,15 @@ class HrCaseMessageCreate(CaseMessageCreate):
     internal: bool = False
 
 
+class HrInformationRequest(VersionAction):
+    question: str = Field(min_length=1, max_length=1000)
+    hr_user: str = Field(default="hr-demo", min_length=1, max_length=80)
+
+
+class HrDirectConversationOffer(VersionAction):
+    hr_user: str = Field(default="hr-demo", min_length=1, max_length=80)
+
+
 class AttributeCreate(BaseModel):
     attribute_name: str
     proposed_value: str
@@ -232,7 +241,7 @@ def health(
         status, code = "ready", 200
     return success(request, {
         "status": status, "sqlite": sqlite_state, "knowledge_index": index_state,
-        "active_handbook_version": active["handbook_version"] if active else "1.0",
+        "active_handbook_version": active["handbook_version"] if active else ACTIVE_HANDBOOK_VERSION,
         "agent_model": agent_state, "guardrail_model": guardrail_state, "nager": "unknown",
         "disclaimer": DISCLAIMER,
     }, status=code)
@@ -405,6 +414,57 @@ def create_hr_case_message(case_id: str, body: HrCaseMessageCreate, request: Req
     version = thread["case"]["resource_version"]
     _save_replay(service.repo, scope, key, canonical, "escalation_case", case_id, version, 201, "case_message_added")
     return success(request, thread, status=201)
+
+
+@app.post("/api/v1/hr/escalation-cases/{case_id}/information-requests")
+def create_hr_information_request(case_id: str, body: HrInformationRequest, request: Request, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), service: AishaService = Depends(get_service)):
+    key = _key(idempotency_key); scope, canonical = f"case:information-request:{case_id}", _canonical(body)
+    replay = _check_replay(service.repo, scope, key, canonical, request)
+    if isinstance(replay, JSONResponse): return replay
+    if replay: return success(request, service.get_case_thread(case_id, hr=True), status=201)
+    try:
+        thread = service.request_case_information(
+            case_id, body.question, expected_version=body.expected_version, hr_user=body.hr_user,
+        )
+    except KeyError: return safe_error(request, 404, "case_not_found", "The escalation case was not found.")
+    except (ValueError, PermissionError): return safe_error(request, 409, "information_request_rejected", "The case changed or already has a pending information request.")
+    version = thread["case"]["resource_version"]
+    _save_replay(service.repo, scope, key, canonical, "escalation_case", case_id, version, 201, "information_requested")
+    return success(request, thread, status=201)
+
+
+@app.post("/api/v1/hr/escalation-cases/{case_id}/direct-conversation/offer")
+def offer_hr_direct_conversation(case_id: str, body: HrDirectConversationOffer, request: Request, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), service: AishaService = Depends(get_service)):
+    key = _key(idempotency_key); scope, canonical = f"case:direct-offer:{case_id}", _canonical(body)
+    replay = _check_replay(service.repo, scope, key, canonical, request)
+    if isinstance(replay, JSONResponse): return replay
+    if replay: return success(request, service.get_case_thread(case_id, hr=True))
+    try:
+        service.offer_direct_case_conversation(
+            case_id, expected_version=body.expected_version, hr_user=body.hr_user,
+        )
+    except KeyError: return safe_error(request, 404, "case_not_found", "The escalation case was not found.")
+    except (ValueError, PermissionError): return safe_error(request, 409, "direct_conversation_rejected", "The case changed or direct conversation cannot be offered.")
+    thread = service.get_case_thread(case_id, hr=True)
+    version = thread["case"]["resource_version"]
+    _save_replay(service.repo, scope, key, canonical, "escalation_case", case_id, version, 200, "direct_conversation_offered")
+    return success(request, thread)
+
+
+@app.post("/api/v1/hires/{employee_id}/escalation-cases/{case_id}/direct-conversation/consent")
+def consent_hire_direct_conversation(employee_id: str, case_id: str, body: VersionAction, request: Request, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), service: AishaService = Depends(get_service)):
+    _hire(employee_id); key = _key(idempotency_key); scope, canonical = f"case:direct-consent:{case_id}", _canonical(body)
+    replay = _check_replay(service.repo, scope, key, canonical, request)
+    if isinstance(replay, JSONResponse): return replay
+    if replay: return success(request, service.get_case_thread(case_id))
+    try:
+        service.consent_direct_case_conversation(case_id, expected_version=body.expected_version)
+    except KeyError: return safe_error(request, 404, "case_not_found", "The escalation case was not found.")
+    except (ValueError, PermissionError): return safe_error(request, 409, "direct_conversation_rejected", "The case changed or direct conversation was not offered.")
+    thread = service.get_case_thread(case_id)
+    version = thread["case"]["resource_version"]
+    _save_replay(service.repo, scope, key, canonical, "escalation_case", case_id, version, 200, "direct_conversation_consented")
+    return success(request, thread)
 
 
 @app.post("/api/v1/hr/escalation-cases/{case_id}/close")

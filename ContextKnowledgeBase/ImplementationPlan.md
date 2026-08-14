@@ -42,3 +42,15 @@ No later work should reintroduce ramp plans, task/pulse/risk surveillance, filen
 | 4. Thread memory | Complete | Related resolved-thread follow-ups use the HR resolution without reopening the case |
 | 5. Reviewed reuse | Complete | Only approved non-case-only Policy Clarifications supplement later handbook-grounded answers |
 | 6. Surfaces and acceptance | Complete when the full suite and responsive walkthrough pass | Streamlit, `/api/v1`, regression, persistence, and privacy evidence agree |
+
+## v1.3 agentic policy and mediated-case remediation
+
+| Slice | Result | Exit evidence |
+|---|---|---|
+| 1. Realistic Hire corpus | Complete | 65 researched-style payroll, HR, privacy, security, safety, and dialogue questions have closed Agent Plan expectations |
+| 2. Semantic discovery | Complete | All-topic and scoped policy catalogs are built deterministically from active policy records |
+| 3. Payroll and HR sub-intents | Complete | Pay schedule, payslip, changes, deductions, payment method, attendance, leave, privacy, certificate, conduct, and dress routes have executable regressions |
+| 4. Handbook v1.1 | Complete | Existing 108-page publication updated in place and tied to a hashed authoritative-public-source register |
+| 5. Bounded agent loop | Complete | Typed observe-plan actions plus closed read-only tools; deterministic validation and mutations remain outside model authority |
+| 6. Mediated HR cases | Complete | Schema epoch 6 information requests, AISHA-coordinated Hire answers, HR notes/resolutions, notifications, and separate direct-conversation consent |
+| 7. Surfaces and acceptance | Pending final gate | Streamlit, `/api/v1`, documentation, full tests, acceptance, and responsive walkthrough agree |

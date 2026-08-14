@@ -1,4 +1,4 @@
-# AISHA v1.0 UI/UX Brief
+# AISHA v1.1 UI/UX Brief
 
 ## Experience promise
 
@@ -29,10 +29,11 @@ Role and destination are separate controls. The Hire destinations are **Ask AISH
 ## History and HR
 
 - Hire History lists ordered Policy Conversations and safe Validation Results. It supports conversation deletion and result share, revoke, and delete.
-- HR sees only the copied content in consented Case Threads, never a direct browser for unrelated Policy Conversations or any certificate content. Cases show HR-visible replies and status; HR-only notes remain hidden from the Hire. Attribute requests show one proposed field; Validation Results show only currently shared safe metadata.
+- HR sees only the copied content in consented Case Threads, never a direct browser for unrelated Policy Conversations or any certificate content. HR asks one missing detail through a structured action; AISHA presents it to the Hire and returns the linked answer. HR-only notes remain hidden. Attribute requests show one proposed field; Validation Results show only currently shared safe metadata.
 - A Hire can reply directly in the Case Thread or continue the parent conversation. While the case is open, both the Hire's and AISHA's new parent messages appear in the Case Thread. Resolution posts a visible summary, marks the nested thread Resolved, and stops mirroring.
 - HR resolution requires a Resolution Type and Resolution Scope. Only a non-case-only Policy Clarification can be proposed for reuse, and a separate review action must approve it.
 - A resolved Case Thread keeps a dedicated “Ask AISHA about this HR resolution” input. Answers must identify Case Resolution Memory and reject unrelated questions back to the parent policy conversation.
+- Direct HR conversation is not the default. HR may offer it only for an exceptional case; the Hire sees a separate consent action before an HR-authored shared message can appear.
 - Version conflicts should produce actionable refresh guidance without raw technical errors.
 
 ## Accessibility and responsiveness

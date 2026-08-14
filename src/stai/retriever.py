@@ -34,6 +34,7 @@ class HandbookPageRecord(BaseModel):
     handbook_version: str
     handbook_artifact_sha256: str
     page_manifest_sha256: str
+    source_register_sha256: str | None = None
     page: int = Field(ge=1)
     page_key: str
     page_content_sha256: str
@@ -92,6 +93,8 @@ def load_page_records(
                 raise KnowledgeIndexIntegrityError("handbook artifact mismatch")
             if record.page_manifest_sha256 != expected_manifest["manifest_sha256"]:
                 raise KnowledgeIndexIntegrityError("page manifest mismatch")
+            if record.source_register_sha256 != expected_manifest.get("source_register_sha256"):
+                raise KnowledgeIndexIntegrityError("source register mismatch")
     return records
 
 

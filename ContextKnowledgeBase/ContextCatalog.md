@@ -28,9 +28,10 @@ Then select one route:
 - Structured policy citations use policy/version/page/artifact identity.
 - Escalation is offer-before-case and requires explicit consent.
 - Escalation requires a deterministic Evidence Gap backed by eligible partial policy evidence; omissions, outages, unsupported topics, and bare human requests do not qualify.
+- Each policy turn has a closed typed Agent Plan. The agent may observe, discover, clarify, retrieve, read status, or prepare an offer; deterministic Interfaces retain all mutation and validation authority.
 - Case Resolution Memory is thread-scoped. Only a reviewed Published Policy Clarification may supplement later answers, and policy changes require a new handbook revision.
 - Certificate Check is local completeness only with result-only history.
-- HR has no direct policy-conversation read path. Explicit case consent copies the linked parent history and mirrors future parent messages into the HR-visible Case Thread until resolution; unrelated conversations and certificate content remain inaccessible.
+- HR has no direct policy-conversation read path. Explicit case consent copies the linked parent history and mirrors future parent messages into the HR-visible Case Thread until resolution. HR requests missing facts through AISHA; direct human conversation is exceptional and separately consented. Unrelated conversations and certificate content remain inaccessible.
 - Public integration is typed `/api/v1` only.
 - Telemetry is closed metadata through JSONL → shipper → authenticated relay → separate MLflow.
 - Chroma RAG is claimed; SQL Agent is explicitly unclaimed.

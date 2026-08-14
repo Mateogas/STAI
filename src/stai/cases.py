@@ -121,6 +121,10 @@ class CaseWorkflow:
                     now,
                 ),
             )
+            conn.execute(
+                "INSERT INTO case_interaction_modes(case_id,mode) VALUES (?,'mediated')",
+                (case_id,),
+            )
             parent_messages = conn.execute(
                 "SELECT * FROM policy_messages WHERE conversation_id=? ORDER BY ordinal",
                 (conversation_id,),
@@ -188,6 +192,15 @@ class CaseWorkflow:
                 raise ValueError("the case is closed")
             if case["resource_version"] != expected_version:
                 raise ValueError("stale resource version")
+            if actor.role == CaseActorRole.HR and not internal:
+                mode = conn.execute(
+                    "SELECT mode FROM case_interaction_modes WHERE case_id=?",
+                    (case_id,),
+                ).fetchone()
+                if not mode or mode["mode"] != "direct_consented":
+                    raise PermissionError(
+                        "HR communicates through a Case Information Request or Case Resolution"
+                    )
             ordinal = int(
                 conn.execute(
                     "SELECT COALESCE(MAX(ordinal),0)+1 FROM case_messages WHERE case_id=?",
@@ -251,6 +264,180 @@ class CaseWorkflow:
                 )
         return self.get_thread(case_id, actor)
 
+    def request_information(
+        self,
+        case_id: str,
+        actor: CaseActor,
+        question: str,
+        *,
+        expected_version: int,
+    ) -> dict:
+        """Create one HR-authored request that AISHA asks in the Hire thread."""
+        if actor.role != CaseActorRole.HR:
+            raise PermissionError("only HR can request case information")
+        clean = " ".join(question.split())
+        if not clean or len(clean) > 1000:
+            raise ValueError("information request must contain 1 to 1000 characters")
+        self.repo.validate_policy_message(clean)
+        now = _utc_text()
+        request_id = str(uuid.uuid4())
+        with self.repo.connection() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            case = self._case_row(conn, case_id)
+            if case["status"] != "open":
+                raise ValueError("the case is closed")
+            if case["resource_version"] != expected_version:
+                raise ValueError("stale resource version")
+            if conn.execute(
+                "SELECT 1 FROM case_information_requests WHERE case_id=? AND status='pending'",
+                (case_id,),
+            ).fetchone():
+                raise ValueError("the case already has a pending information request")
+            conn.execute(
+                "INSERT INTO case_information_requests VALUES (?,?,?,?,?,NULL,?,NULL,1)",
+                (request_id, case_id, clean, actor.actor_id, "pending", now),
+            )
+            ordinal = int(conn.execute(
+                "SELECT COALESCE(MAX(ordinal),0)+1 FROM case_messages WHERE case_id=?",
+                (case_id,),
+            ).fetchone()[0])
+            visible = f"AISHA needs one detail for HR: {clean}"
+            conn.execute(
+                "INSERT INTO case_messages VALUES (?,?,?,?,?,?,?,?,?)",
+                (str(uuid.uuid4()), case_id, ordinal, "aisha", "aisha", "shared", visible, None, now),
+            )
+            conn.execute(
+                "UPDATE case_threads SET workflow_state='waiting_for_hire',assigned_hr_user=? WHERE case_id=?",
+                (actor.actor_id, case_id),
+            )
+            conn.execute(
+                "UPDATE escalation_cases SET resource_version=resource_version+1 WHERE case_id=?",
+                (case_id,),
+            )
+            self._event(conn, case_id, "information_requested", actor, {"request_id": request_id}, now)
+            self._notification(
+                conn, case_id, "hire", case["hire_id"], "case_reply",
+                "AISHA needs one detail for your HR case", now,
+            )
+        return self.get_thread(case_id, actor)
+
+    def answer_information_request(
+        self,
+        case_id: str,
+        actor: CaseActor,
+        answer: str,
+        *,
+        expected_version: int,
+    ) -> dict:
+        """Link a Hire answer to the one pending request and return the case to HR."""
+        if actor.role != CaseActorRole.HIRE:
+            raise PermissionError("only the Hire can answer a case information request")
+        clean = " ".join(answer.split())
+        if not clean or len(clean) > 2000:
+            raise ValueError("information response must contain 1 to 2000 characters")
+        self.repo.validate_policy_message(clean)
+        now = _utc_text()
+        with self.repo.connection() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            case = self._case_row(conn, case_id)
+            self._authorize(case, actor)
+            if case["status"] != "open":
+                raise ValueError("the case is closed")
+            if case["resource_version"] != expected_version:
+                raise ValueError("stale resource version")
+            request = conn.execute(
+                "SELECT * FROM case_information_requests WHERE case_id=? AND status='pending'",
+                (case_id,),
+            ).fetchone()
+            if not request:
+                raise ValueError("the case has no pending information request")
+            conn.execute(
+                "UPDATE case_information_requests SET status='answered',hire_response=?,answered_at_utc=?,"
+                "resource_version=resource_version+1 WHERE request_id=?",
+                (clean, now, request["request_id"]),
+            )
+            ordinal = int(conn.execute(
+                "SELECT COALESCE(MAX(ordinal),0)+1 FROM case_messages WHERE case_id=?",
+                (case_id,),
+            ).fetchone()[0])
+            conn.execute(
+                "INSERT INTO case_messages VALUES (?,?,?,?,?,?,?,?,?)",
+                (str(uuid.uuid4()), case_id, ordinal, "hire", actor.actor_id, "shared", clean, None, now),
+            )
+            conn.execute(
+                "UPDATE case_threads SET workflow_state='waiting_for_hr' WHERE case_id=?",
+                (case_id,),
+            )
+            conn.execute(
+                "UPDATE escalation_cases SET resource_version=resource_version+1 WHERE case_id=?",
+                (case_id,),
+            )
+            self._event(
+                conn, case_id, "information_answered", actor,
+                {"request_id": request["request_id"]}, now,
+            )
+            self._notification(
+                conn, case_id, "hr", case["route_owner"], "case_reply",
+                "The Hire answered AISHA's information request", now,
+            )
+        return self.get_thread(case_id, actor)
+
+    def offer_direct_conversation(
+        self, case_id: str, actor: CaseActor, *, expected_version: int
+    ) -> dict:
+        if actor.role != CaseActorRole.HR:
+            raise PermissionError("only HR can offer direct conversation")
+        now = _utc_text()
+        with self.repo.connection() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            case = self._case_row(conn, case_id)
+            if case["status"] != "open" or case["resource_version"] != expected_version:
+                raise ValueError("closed case or stale resource version")
+            conn.execute(
+                "UPDATE case_interaction_modes SET mode='direct_offered',offered_by_hr_user=?,"
+                "offered_at_utc=?,resource_version=resource_version+1 WHERE case_id=?",
+                (actor.actor_id, now, case_id),
+            )
+            conn.execute(
+                "UPDATE escalation_cases SET resource_version=resource_version+1 WHERE case_id=?",
+                (case_id,),
+            )
+            self._event(conn, case_id, "direct_conversation_offered", actor, {}, now)
+            self._notification(
+                conn, case_id, "hire", case["hire_id"], "case_reply",
+                "HR offered an optional direct conversation", now,
+            )
+        return self.get_case(case_id, actor)
+
+    def consent_direct_conversation(
+        self, case_id: str, actor: CaseActor, *, expected_version: int
+    ) -> dict:
+        if actor.role != CaseActorRole.HIRE:
+            raise PermissionError("only the Hire can consent to direct conversation")
+        now = _utc_text()
+        with self.repo.connection() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            case = self._case_row(conn, case_id)
+            self._authorize(case, actor)
+            if case["status"] != "open" or case["resource_version"] != expected_version:
+                raise ValueError("closed case or stale resource version")
+            mode = conn.execute(
+                "SELECT mode FROM case_interaction_modes WHERE case_id=?", (case_id,)
+            ).fetchone()
+            if not mode or mode["mode"] != "direct_offered":
+                raise ValueError("direct conversation has not been offered")
+            conn.execute(
+                "UPDATE case_interaction_modes SET mode='direct_consented',consented_at_utc=?,"
+                "resource_version=resource_version+1 WHERE case_id=?",
+                (now, case_id),
+            )
+            conn.execute(
+                "UPDATE escalation_cases SET resource_version=resource_version+1 WHERE case_id=?",
+                (case_id,),
+            )
+            self._event(conn, case_id, "direct_conversation_consented", actor, {}, now)
+        return self.get_case(case_id, actor)
+
     def resolve(
         self,
         case_id: str,
@@ -298,7 +485,19 @@ class CaseWorkflow:
             if actor.role == CaseActorRole.HIRE:
                 sql += " AND visibility='shared'"
             rows = conn.execute(sql + " ORDER BY ordinal", params).fetchall()
-        return {"case": case, "messages": [dict(row) for row in rows]}
+            requests = conn.execute(
+                "SELECT * FROM case_information_requests WHERE case_id=? ORDER BY asked_at_utc,request_id",
+                (case_id,),
+            ).fetchall()
+            mode = conn.execute(
+                "SELECT * FROM case_interaction_modes WHERE case_id=?", (case_id,)
+            ).fetchone()
+        return {
+            "case": case,
+            "messages": [dict(row) for row in rows],
+            "information_requests": [dict(row) for row in requests],
+            "interaction_mode": dict(mode) if mode else {"mode": "mediated"},
+        }
 
     def list_cases(
         self,

@@ -39,6 +39,27 @@ class DialogueAct(StrEnum):
     UNSUPPORTED = "unsupported"
 
 
+class PayrollSubIntent(StrEnum):
+    PAY_SCHEDULE = "pay_schedule"
+    ENROLLMENT = "enrollment"
+    PAYSLIP = "payslip"
+    PAYROLL_CHANGES = "payroll_changes"
+    DEDUCTIONS = "deductions"
+    HOLIDAY_CALENDAR = "holiday_calendar"
+    CUTOFF = "cutoff"
+    PAYMENT_METHOD = "payment_method"
+    ACCOUNT_STATUS = "account_status"
+    AMBIGUOUS = "ambiguous"
+
+
+class AgentAction(StrEnum):
+    DISCOVER_POLICIES = "discover_policies"
+    ASK_CLARIFICATION = "ask_clarification"
+    RETRIEVE_POLICY = "retrieve_policy"
+    CHECK_CASE_STATUS = "check_case_status"
+    PREPARE_HR_OFFER = "prepare_hr_offer"
+
+
 class ExecutionMode(StrEnum):
     AGENT = "agent"
     DETERMINISTIC = "deterministic"
@@ -254,6 +275,12 @@ class ResolvedTurn(BaseModel):
     policy_ids: list[str] = Field(default_factory=list)
     standalone_query: str = Field(min_length=1, max_length=4000)
     referenced_message_id: str | None = None
+    catalog_scope: OnboardingTopic | None = None
+    policy_subarea: str | None = Field(default=None, max_length=100)
+    payroll_intent: PayrollSubIntent | None = None
+    clarification_question: str | None = Field(default=None, max_length=500)
+    clarification_choices: list[str] = Field(default_factory=list, max_length=4)
+    agent_actions: list[AgentAction] = Field(default_factory=list)
 
 
 PolicyResponse = Annotated[

@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from stai.handbook import ACTIVE_HANDBOOK_VERSION
 from stai.models import (
     Abstention,
     ApplicabilityStatus,
@@ -79,7 +80,7 @@ class PolicyEngine:
     def __init__(self, records: list[HandbookPageRecord], *, index: HandbookIndex | None = None) -> None:
         self.records = records
         self.index = index or InMemoryHandbookIndex(records)
-        self.version = records[0].handbook_version if records else "1.0"
+        self.version = records[0].handbook_version if records else ACTIVE_HANDBOOK_VERSION
 
     def answer(
         self,

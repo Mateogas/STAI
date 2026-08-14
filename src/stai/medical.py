@@ -15,6 +15,7 @@ from PIL import Image
 from pydantic import BaseModel, Field
 
 from stai.config import settings
+from stai.handbook import ACTIVE_HANDBOOK_VERSION
 from stai.models import ApplicabilityStatus, ValidationStatus
 from stai.state import Repo
 
@@ -70,7 +71,7 @@ class MedicalCheckOutcome(BaseModel):
     warning_codes: list[str] = Field(default_factory=list)
     review_codes: list[str] = Field(default_factory=list)
     validation_id: str | None = None
-    handbook_version: str = "1.0"
+    handbook_version: str = ACTIVE_HANDBOOK_VERSION
     profile_revision: int | None = None
     attempt_count: int | None = None
     share_state: Literal["private", "shared"] | None = None

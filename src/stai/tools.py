@@ -29,7 +29,7 @@ def build_policy_tools(
     handbook_index=None,
     resolved_topic: str | None = None,
 ):
-    from stai.policy import evaluate_applicability
+    from stai.policy import evaluate_applicability as evaluate_policy_applicability
     from stai.public_holidays import NagerHolidayService
     from stai.retriever import InMemoryHandbookIndex
 
@@ -71,6 +71,28 @@ def build_policy_tools(
         return json.dumps({"outcome": result.outcome.value, "required_attribute": result.required_attribute, "evidence": evidence})
 
     @tool
+    def discover_policies(scope: str = "all") -> str:
+        """List active policy IDs and titles for all topics or one closed topic scope."""
+        capture.tool_calls.append("discover_policies")
+        allowed = {"all", "payroll", "resource_access", "hr_policies"}
+        if scope not in allowed:
+            return json.dumps({"outcome": "invalid_scope", "allowed_scopes": sorted(allowed)})
+        policies = []
+        for record in records:
+            if record.status != "active" or record.page_kind != "policy" or not record.policy_id:
+                continue
+            if scope != "all" and record.topic != scope:
+                continue
+            decision = evaluate_policy_applicability(record, profile)
+            policies.append({
+                "policy_id": record.policy_id,
+                "title": record.title.removesuffix(" - 1"),
+                "topic": record.topic,
+                "applicability": decision.status.value,
+            })
+        return json.dumps({"outcome": "ready", "scope": scope, "policies": policies})
+
+    @tool
     def evaluate_applicability(policy_id: str) -> str:
         """Evaluate one policy ID against the confirmed Hire Profile."""
         capture.tool_calls.append("evaluate_applicability")
@@ -80,7 +102,7 @@ def build_policy_tools(
         )
         if record is None:
             return json.dumps({"outcome": "not_found"})
-        decision = evaluate_applicability(record, profile)
+        decision = evaluate_policy_applicability(record, profile)
         return json.dumps({"outcome": decision.status.value, "required_attribute": decision.required_attribute})
 
     @tool
@@ -88,6 +110,22 @@ def build_policy_tools(
         """Read Philippines public holidays for the simulated current/following year."""
         capture.tool_calls.append("lookup_public_holidays")
         return calendar.lookup(year).model_dump_json()
+
+    @tool
+    def check_case_status() -> str:
+        """Read the latest support-case status for this Hire without exposing case messages."""
+        capture.tool_calls.append("check_case_status")
+        cases = [item for item in repo.list_escalation_cases() if item["hire_id"] == profile.employee_id]
+        if not cases:
+            return json.dumps({"outcome": "not_found"})
+        case = cases[0]
+        return json.dumps({
+            "outcome": "ready",
+            "case_id": case["case_id"],
+            "status": case["status"],
+            "workflow_state": case["workflow_state"],
+            "topic": case["topic"],
+        })
 
     @tool
     def offer_escalation(policy_id: str = "", topic: str = "hr_policies") -> str:
@@ -103,8 +141,10 @@ def build_policy_tools(
 
     return [
         get_active_handbook,
+        discover_policies,
         search_handbook,
         evaluate_applicability,
         lookup_public_holidays,
+        check_case_status,
         offer_escalation,
     ], capture

@@ -8,6 +8,7 @@ import re
 from pydantic import TypeAdapter, ValidationError
 
 from stai.config import settings
+from stai.handbook import ACTIVE_HANDBOOK_VERSION
 from stai.models import (
     Abstention,
     ApplicabilityStatus,
@@ -174,7 +175,7 @@ def validate_policy_output(raw: str | dict, retrieved_identities: set[tuple[str,
     except (json.JSONDecodeError, ValidationError, ClaimSupportError, TypeError, ValueError):
         return Abstention(
             text="AISHA could not validate a policy conclusion, so it will not guess.",
-            handbook_version="1.0",
+            handbook_version=ACTIVE_HANDBOOK_VERSION,
             applicability=ApplicabilityStatus.APPLIES,
             evidence_state=EvidenceState.INSUFFICIENT,
             reason="insufficient_evidence",

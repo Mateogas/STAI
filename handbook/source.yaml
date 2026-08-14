@@ -1,5 +1,5 @@
 schema_version: 1
-handbook_version: '1.0'
+handbook_version: '1.1'
 active: true
 pages:
 - page_key: front-01
@@ -47,8 +47,8 @@ pages:
   subareas: &id001
   - pay_schedule
   title: First-pay schedule - 1
-  body: Payroll enrolls an eligible new Hire after the required onboarding payroll
-    details are recorded through the fictional HR route.
+  body: Fictional AISHA demo payroll is semi-monthly on the 15th and the final banking
+    day of each month after the required onboarding payroll details are recorded.
   applicability: &id002
     role_keys: &id003
     - all
@@ -73,8 +73,9 @@ pages:
   topic: payroll
   subareas: *id001
   title: First-pay schedule - 2
-  body: The first-pay timing follows the published semi-monthly schedule and may move
-    when a public holiday affects the processing calendar.
+  body: If a fictional payday falls on a weekend or Philippine public holiday, the
+    demo schedule moves payment to the preceding banking day; AISHA never infers a
+    different date from an external calendar alone.
   applicability: *id002
   route: payroll_support
   status: active
@@ -89,8 +90,9 @@ pages:
   topic: payroll
   subareas: *id001
   title: First-pay schedule - 3
-  body: Alyssa should review the displayed pay-period boundary and ask Payroll Support
-    when a start date falls near a cutoff.
+  body: A Hire who starts near a payroll cutoff may receive the first eligible payment
+    on the following scheduled payday; Payroll Support must confirm any account-specific
+    first-pay status.
   applicability: *id002
   route: payroll_support
   status: active
@@ -138,8 +140,8 @@ pages:
   subareas: &id006
   - payslip
   title: Payslip access and explanation - 1
-  body: Payslips are available through the fictional employee self-service portal
-    after payroll publishes the period.
+  body: Payslips can be viewed and downloaded through the fictional Employee Self-Service
+    Portal after payroll publishes the period.
   applicability: &id007
     role_keys: *id003
     department_keys: *id004
@@ -208,8 +210,8 @@ pages:
   subareas: &id008
   - payroll_changes
   title: Payroll details and corrections - 1
-  body: Payroll detail changes must use the fictional official payroll route and are
-    never performed inside AISHA.
+  body: Payroll enrollment and bank-detail changes use the fictional Official Payroll
+    Route and are never entered, stored, or changed inside AISHA.
   applicability: *id007
   route: payroll_support
   status: active
@@ -224,8 +226,9 @@ pages:
   topic: payroll
   subareas: *id008
   title: Payroll details and corrections - 2
-  body: A Hire should report a suspected error using only the minimum safe summary
-    needed to identify the pay period and issue category.
+  body: The demo pays only to an account in the Hire's own name; third-party accounts
+    and e-wallets are not supported by this fictional procedure. Payroll Support handles
+    exceptions without asking AISHA to collect financial identifiers.
   applicability: *id007
   route: payroll_support
   status: active
@@ -273,8 +276,8 @@ pages:
   subareas: &id009
   - deductions
   title: Deductions and statutory items - 1
-  body: AISHA may explain the fictional handbook labels for common deduction categories
-    at a high level.
+  body: AISHA may explain gross pay, net pay, and common deduction labels—including
+    tax, SSS, PhilHealth, and Pag-IBIG—at a high level without calculating a Hire's figures.
   applicability: *id007
   route: payroll_support
   status: active
@@ -289,8 +292,9 @@ pages:
   topic: payroll
   subareas: *id009
   title: Deductions and statutory items - 2
-  body: It must not calculate tax, legal entitlement, or a personalized statutory
-    obligation.
+  body: SSS salary deductions begin from the first month of employment under the public
+    statutory baseline; AISHA must not calculate tax, legal entitlement, contribution
+    amounts, or a personalized statutory obligation.
   applicability: *id007
   route: payroll_support
   status: active
@@ -744,8 +748,8 @@ pages:
   subareas: &id019
   - information_security
   title: Information security access - 1
-  body: Access is least-privilege and tied to the confirmed role, department, classification,
-    and work site.
+  body: Company devices and access are least-privilege, work-purpose resources tied to
+    the confirmed role, department, classification, and work site.
   applicability: *id007
   route: access_support
   status: active
@@ -760,8 +764,9 @@ pages:
   topic: resource_access
   subareas: *id019
   title: Information security access - 2
-  body: AISHA does not infer entitlement from semantic similarity or from another
-    Hire's access.
+  body: Personal social media, personal email, unapproved cloud storage, and personal
+    USB devices must not be used on a fictional company device unless an active policy
+    or the system owner explicitly authorizes that use.
   applicability: *id007
   route: access_support
   status: active
@@ -776,8 +781,8 @@ pages:
   topic: resource_access
   subareas: *id019
   title: Information security access - 3
-  body: Requests for credentials, bypasses, or confidential data are refused and routed
-    safely.
+  body: Passwords and credentials are never shared, including with a manager; requests
+    for credentials, security bypasses, or confidential data are refused and routed safely.
   applicability: *id007
   route: access_support
   status: active
@@ -792,7 +797,9 @@ pages:
   topic: resource_access
   subareas: *id019
   title: Information security access - 4
-  body: Procedure pages explain subordinate steps and never establish a new entitlement.
+  body: AISHA explains the safe rule but cannot inspect personal messages, monitor a
+    device, or determine what a real employer can access; privacy-specific questions use
+    the fictional Privacy Route.
   applicability: *id007
   route: access_support
   status: active
@@ -1038,8 +1045,9 @@ pages:
   topic: hr_policies
   subareas: *id023
   title: Branch attendance and office hours - 4
-  body: AISHA explains reporting steps but cannot approve leave, attendance corrections,
-    or schedule changes.
+  body: A Hire delayed by flooding, a typhoon, transport disruption, or another safety
+    event should notify the fictional attendance owner as soon as safely practicable;
+    AISHA cannot approve leave, attendance corrections, or schedule changes.
   applicability: *id024
   route: hr_general
   status: active
@@ -1071,7 +1079,9 @@ pages:
   subareas: &id025
   - leave
   title: Leave guidance - 1
-  body: AISHA provides guide-plus-validate support and does not approve or deny leave.
+  body: AISHA explains the fictional leave route and public statutory categories but
+    does not approve or deny leave; probationary classification alone does not prevent
+    a Hire from asking about or filing an available leave request.
   applicability: *id007
   route: hr_leave
   status: active
@@ -1086,8 +1096,9 @@ pages:
   topic: hr_policies
   subareas: *id025
   title: Leave guidance - 2
-  body: Leave types and required steps must be supported by active policy evidence
-    before a conclusion.
+  body: Public statutory categories include service incentive, maternity, paternity,
+    solo-parent, VAWC, and special leave for women, while eligibility and company-specific
+    benefits require the applicable active rule and confirmed circumstances.
   applicability: *id007
   route: hr_leave
   status: active
@@ -1151,7 +1162,7 @@ pages:
   - conduct
   title: Workplace conduct and support - 1
   body: The fictional conduct policy promotes respectful, safe, and inclusive workplace
-    behavior.
+    behavior and prohibits harassment, retaliation, and misuse of confidential information.
   applicability: *id007
   route: hr_general
   status: active
@@ -1166,7 +1177,8 @@ pages:
   topic: hr_policies
   subareas: *id026
   title: Workplace conduct and support - 2
-  body: AISHA can identify support routes but is not an emergency service, investigator,
+  body: A Hire may use the fictional Conduct Support Route without first reporting through
+    the manager; AISHA can identify that route but is not an emergency service, investigator,
     or disciplinary system.
   applicability: *id007
   route: hr_general
@@ -1295,8 +1307,9 @@ pages:
   topic: hr_policies
   subareas: *id027
   title: Medical certificate completeness requirements - 5
-  body: Every OCR-derived required field must be unambiguous at or above the configured
-    threshold, with exactly one clearer-copy retry.
+  body: The local Certificate Check accepts one PDF, JPG, or PNG photo up to the
+    configured limit. Every OCR-derived required field must be unambiguous, with exactly
+    one clearer-copy retry.
   applicability: *id007
   route: hr_leave
   status: active
@@ -1360,8 +1373,9 @@ pages:
   subareas: &id028
   - privacy
   title: Privacy and consent - 1
-  body: AISHA gives HR enough structured signal to offer support, not private conversation
-    content for surveillance.
+  body: AISHA processes only the minimum personal data needed for a declared support
+    purpose and gives HR consented structured case information, not unrelated private
+    conversation content for surveillance.
   applicability: *id007
   route: hr_privacy
   status: active
@@ -1408,8 +1422,9 @@ pages:
   topic: hr_policies
   subareas: *id028
   title: Privacy and consent - 4
-  body: Alyssa may delete a conversation or Validation Result through the supported
-    resource operation.
+  body: Alyssa may delete an unlinked conversation or Validation Result through the
+    supported resource operation; a consented Case retains its own auditable copy under
+    the fictional case-retention rule.
   applicability: *id007
   route: hr_privacy
   status: active
@@ -1441,7 +1456,8 @@ pages:
   - escalation
   - profile
   title: HR escalation and attribute confirmation - 1
-  body: Routes resolve by policy, then subarea, then topic, then the HR fallback.
+  body: Human clarification uses a consented Mediated Case in which AISHA coordinates the Hire
+    and HR while routes resolve by policy, then subarea, then topic, then the HR fallback.
   applicability: *id007
   route: hr_general
   status: active
@@ -1456,8 +1472,8 @@ pages:
   topic: hr_policies
   subareas: *id029
   title: HR escalation and attribute confirmation - 2
-  body: An Escalation Offer creates no case until the Hire approves the displayed
-    route and summary.
+  body: An Escalation Offer creates no case until the Hire approves the displayed route,
+    summary, and parent-conversation sharing notice.
   applicability: *id007
   route: hr_general
   status: active
@@ -1472,8 +1488,8 @@ pages:
   topic: hr_policies
   subareas: *id029
   title: HR escalation and attribute confirmation - 3
-  body: Attribute Change Requests contain one closed attribute and no chat transcript
-    or free-form private reason.
+  body: HR requests one missing fact through a structured Case Information Request;
+    AISHA asks the Hire, links the response, and returns the Mediated Case to HR.
   applicability: *id007
   route: hr_general
   status: active
@@ -1488,8 +1504,8 @@ pages:
   topic: hr_policies
   subareas: *id029
   title: HR escalation and attribute confirmation - 4
-  body: Only the fictional HR User view may approve or reject a pending attribute
-    request.
+  body: Only the fictional HR User view may decide a pending attribute request or Case
+    Resolution; AISHA communicates and verifies the result but never invents the decision.
   applicability: *id007
   route: hr_general
   status: active
@@ -1504,7 +1520,8 @@ pages:
   topic: hr_policies
   subareas: *id029
   title: HR escalation and attribute confirmation - 5
-  body: A Manager is a human contact and never an AISHA app role.
+  body: Direct Human Conversation is an exceptional mode requiring separate Hire consent;
+    a Manager is a human contact and never an AISHA app role.
   applicability: *id007
   route: hr_general
   status: active

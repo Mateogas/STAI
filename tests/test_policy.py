@@ -39,9 +39,9 @@ def test_grounded_answer_uses_active_policy_page_citation(tmp_path: Path) -> Non
     response = PolicyEngine(records(tmp_path)).answer("What does PAY-001 say?", HireProfile.alyssa())
     assert response.type == "grounded_answer"
     assert response.citations[0].policy_id == "PAY-001"
-    assert response.citations[0].handbook_version == "1.0"
+    assert response.citations[0].handbook_version == "1.1"
     assert response.citations[0].render() in response.text
-    assert "Based on AISHA Handbook v1.0." in response.text
+    assert "Based on AISHA Handbook v1.1." in response.text
 
 
 def test_unsupported_question_abstains_without_related_citation(tmp_path: Path) -> None:
@@ -49,4 +49,3 @@ def test_unsupported_question_abstains_without_related_citation(tmp_path: Path) 
     assert response.type == "abstention"
     assert response.citations == []
     assert response.reason == "insufficient_evidence"
-

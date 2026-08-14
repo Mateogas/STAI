@@ -522,15 +522,28 @@ def hire_case_thread(service: AishaService, case_id: str) -> None:
                 "aisha": (
                     "AISHA · mirrored parent message"
                     if item.get("source_policy_message_id")
-                    else "AISHA · case resolution memory"
+                    else "AISHA · case coordinator"
                 ),
-                "hr": "HR User · ticket reply",
+                "hr": "HR User · direct conversation",
                 "system": "Case workflow",
             }[item["actor_role"]]
             st.markdown(f'<div class="aisha-case-speaker">{escape(speaker)}</div>', unsafe_allow_html=True)
             st.markdown(item["text"])
     if case["status"] == "open":
-        reply = st.chat_input("Reply in this HR ticket thread", key=f"case-reply-{case_id}")
+        if case["workflow_state"] == "waiting_for_hire":
+            input_label = "Answer AISHA's question for HR"
+        elif thread["interaction_mode"]["mode"] == "direct_consented":
+            input_label = "Reply in the consented direct HR conversation"
+        else:
+            input_label = "Add information to this HR case"
+        if thread["interaction_mode"]["mode"] == "direct_offered":
+            st.info("HR offered an optional direct conversation. AISHA mediation remains active unless you consent.")
+            if st.button("Consent to direct HR conversation", key=f"direct-consent-{case_id}"):
+                service.consent_direct_case_conversation(
+                    case_id, expected_version=case["resource_version"]
+                )
+                st.rerun()
+        reply = st.chat_input(input_label, key=f"case-reply-{case_id}")
         if reply:
             service.post_case_message(
                 case_id,
@@ -553,10 +566,11 @@ def hire_case_thread(service: AishaService, case_id: str) -> None:
 
 
 def certificate_check(service: AishaService) -> None:
+    version = service.records[0].handbook_version if service.records else "1.1"
     st.markdown(
         '<div class="aisha-chat-head"><p class="aisha-eyebrow">Certificate check</p>'
         "<h2>Run a private local completeness check</h2>"
-        '<div class="aisha-topic-line">HRP-004 · AISHA Handbook v1.0 · pp. 78–85</div></div>',
+        f'<div class="aisha-topic-line">HRP-004 · AISHA Handbook v{escape(version)} · pp. 78–85</div></div>',
         unsafe_allow_html=True,
     )
     st.markdown(
@@ -661,7 +675,7 @@ def render_hire_navigation(service: AishaService) -> str:
     st.markdown(
         '<div class="aisha-profile-block"><p class="aisha-eyebrow">Today</p>'
         "<strong>Onboarding support</strong>"
-        '<span class="aisha-muted aisha-small">Active Handbook v1.0</span></div>'
+        '<span class="aisha-muted aisha-small">Active Handbook v1.1</span></div>'
         '<div class="aisha-sr-only">Ask AISHA · Certificate Check · History</div>',
         unsafe_allow_html=True,
     )
@@ -790,7 +804,11 @@ def render_hr_cases(service: AishaService) -> None:
                     "aisha": (
                         "AISHA · mirrored parent message"
                         if item.get("source_policy_message_id")
-                        else "AISHA · case resolution memory"
+                        else (
+                            "AISHA · case resolution memory"
+                            if item["text"].startswith("Based on HR's decision for this case:")
+                            else "AISHA · case coordinator"
+                        )
                     ),
                     "hr": "HR User",
                     "system": "Case workflow",
@@ -803,18 +821,19 @@ def render_hr_cases(service: AishaService) -> None:
                     unsafe_allow_html=True,
                 )
             if case["status"] == "open":
-                reply = st.text_area(
-                    "Hire-visible reply",
-                    key=f"hr-reply-{case['case_id']}",
-                    placeholder="This update will be visible in the Hire's ticket thread.",
+                request = st.text_area(
+                    "Request one missing detail",
+                    key=f"hr-request-{case['case_id']}",
+                    placeholder="AISHA will ask this question in the Hire's case thread.",
                 )
                 if st.button(
-                    "Send reply", key=f"send-hr-reply-{case['case_id']}",
-                    type="primary", disabled=not reply.strip(),
+                    "Ask through AISHA", key=f"send-hr-request-{case['case_id']}",
+                    type="primary", disabled=not request.strip()
+                    or case["workflow_state"] == "waiting_for_hire",
                 ):
-                    service.post_case_message(
-                        case["case_id"], reply,
-                        expected_version=case["resource_version"], hr=True,
+                    service.request_case_information(
+                        case["case_id"], request,
+                        expected_version=case["resource_version"],
                     )
                     st.rerun()
                 internal_note = st.text_area(
@@ -831,6 +850,16 @@ def render_hr_cases(service: AishaService) -> None:
                         expected_version=case["resource_version"], hr=True, internal=True,
                     )
                     st.rerun()
+                if thread["interaction_mode"]["mode"] == "mediated":
+                    st.caption("Direct HR conversation is exceptional and requires separate Hire consent.")
+                    if st.button(
+                        "Offer direct human conversation",
+                        key=f"offer-direct-{case['case_id']}",
+                    ):
+                        service.offer_direct_case_conversation(
+                            case["case_id"], expected_version=case["resource_version"]
+                        )
+                        st.rerun()
                 resolution = st.text_area(
                     "Resolution summary",
                     key=f"resolution-{case['case_id']}",

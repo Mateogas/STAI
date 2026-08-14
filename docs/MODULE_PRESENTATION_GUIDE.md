@@ -94,7 +94,7 @@ Rehearse once at 320 CSS pixels and once on desktop:
 3. Confirm no horizontal page overflow.
 4. Read statuses without relying on color: Applies/Does Not Apply/Needs Clarification, result status, share state, and empty-state text.
 5. Trigger a dynamic status and confirm the live/status region is announced by a screen reader.
-6. Verify HR receives chat text only through the explicitly consented Case Thread, and never receives unrelated conversations, certificate content, or OCR/extracted values.
+6. Verify HR receives chat text only through the explicitly consented Mediated Case, requests missing details through AISHA, cannot speak directly without separate Hire consent, and never receives unrelated conversations, certificate content, or OCR/extracted values.
 
 ## Named ownership and Q&A
 

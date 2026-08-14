@@ -1,0 +1,39 @@
+schema_version: 1
+handbook_target_version: '1.1'
+retrieved_on: '2026-08-15'
+sources:
+  - source_id: DOLE-BWC-2024
+    authority: Philippine Department of Labor and Employment, Bureau of Working Conditions
+    title: Handbook on Workers' Statutory Monetary Benefits, 2024 Edition
+    url: https://nwpc.dole.gov.ph/bwc-handbook-workers-statutory-monetary-benefits/
+    source_class: official_guidance
+    informs: [pay_schedule, deductions, holiday_calendar, leave]
+  - source_id: LABOR-CODE-ART-103
+    authority: Lawphil, Republic of the Philippines
+    title: Labor Code of the Philippines, Articles 102-105
+    url: https://lawphil.net/statutes/presdecs/pd1974/pd_442a_1974.html
+    source_class: legal_baseline
+    informs: [pay_schedule, payment_method]
+  - source_id: SSS-CONTRIBUTIONS-2025
+    authority: Republic of the Philippines Social Security System
+    title: Pay Contributions
+    url: https://www.sss.gov.ph/pay-contribution/
+    source_class: official_guidance
+    informs: [deductions]
+  - source_id: NPC-DPA-IRR
+    authority: Philippine National Privacy Commission
+    title: Implementing Rules and Regulations of the Data Privacy Act of 2012
+    url: https://privacy.gov.ph/implementing-rules-regulations-data-privacy-act-2012/
+    source_class: legal_baseline
+    informs: [privacy, information_security, conduct]
+  - source_id: DOLE-STATUTORY-LEAVE-2025
+    authority: Philippine Department of Labor and Employment, Bureau of Working Conditions
+    title: Understanding the Statutory Leave Benefits
+    url: https://bwc.dole.gov.ph/dole-bwc-conducts-informative-discussion-on-statutory-leave-benefits/
+    source_class: official_guidance
+    informs: [leave]
+publication_rules:
+  - Public sources provide legal or statutory context, never a real BDO policy.
+  - Portal names, routes, cutoffs, paydays, and internal procedures remain synthetic demo rules.
+  - AISHA does not calculate personalized tax, benefits, contributions, or legal entitlement.
+  - Every adopted claim is rewritten for the fictional educational handbook and cited internally to this register.

@@ -39,25 +39,36 @@ def test_case_thread_backfills_parent_and_mirrors_future_messages(tmp_path: Path
     assert mirrored["case"]["workflow_state"] == "waiting_for_hr"
 
 
-def test_hr_reply_internal_note_resolution_and_notifications(tmp_path: Path) -> None:
+def test_agent_mediates_information_request_internal_note_and_resolution(tmp_path: Path) -> None:
     _repo, service, conversation, case_id = setup_case(tmp_path)
     workflow = service.case_workflow
     hr = CaseActor.hr()
     hire = CaseActor.hire()
 
     case = workflow.get_case(case_id, hr)
-    workflow.post_message(
+    workflow.request_information(
         case_id, hr, "Which payroll record needs correction?",
         expected_version=case["resource_version"],
     )
     assert workflow.list_notifications(hire, unread_only=True)[0]["kind"] == "case_reply"
     hire_thread = workflow.get_thread(case_id, hire)
     assert hire_thread["case"]["workflow_state"] == "waiting_for_hire"
-    assert hire_thread["messages"][-1]["text"].startswith("Which payroll")
+    assert hire_thread["messages"][-1]["actor_role"] == "aisha"
+    assert "AISHA needs one detail" in hire_thread["messages"][-1]["text"]
+    assert hire_thread["information_requests"][-1]["status"] == "pending"
+
+    workflow.answer_information_request(
+        case_id, hire, "The first pay period after my start date.",
+        expected_version=hire_thread["case"]["resource_version"],
+    )
+    answered = workflow.get_thread(case_id, hr)
+    assert answered["case"]["workflow_state"] == "waiting_for_hr"
+    assert answered["information_requests"][-1]["status"] == "answered"
+    assert answered["information_requests"][-1]["hire_response"].startswith("The first")
 
     workflow.post_message(
         case_id, hr, "Internal triage note",
-        expected_version=hire_thread["case"]["resource_version"], internal=True,
+        expected_version=answered["case"]["resource_version"], internal=True,
     )
     assert "Internal triage note" not in {
         item["text"] for item in workflow.get_thread(case_id, hire)["messages"]
@@ -90,3 +101,33 @@ def test_case_permissions_and_versions_fail_closed(tmp_path: Path) -> None:
             case_id, CaseActor.hr(), "A reply",
             expected_version=current["resource_version"] + 1,
         )
+    with pytest.raises(PermissionError, match="Case Information Request"):
+        workflow.post_message(
+            case_id, CaseActor.hr(), "A direct reply",
+            expected_version=current["resource_version"],
+        )
+
+
+def test_direct_human_conversation_requires_a_separate_hire_consent(tmp_path: Path) -> None:
+    _repo, service, _conversation, case_id = setup_case(tmp_path)
+    workflow = service.case_workflow
+    hr = CaseActor.hr()
+    hire = CaseActor.hire()
+    case = workflow.get_case(case_id, hr)
+    workflow.offer_direct_conversation(case_id, hr, expected_version=case["resource_version"])
+    offered = workflow.get_thread(case_id, hire)
+    assert offered["interaction_mode"]["mode"] == "direct_offered"
+    with pytest.raises(PermissionError):
+        workflow.post_message(
+            case_id, hr, "Hello directly",
+            expected_version=offered["case"]["resource_version"],
+        )
+    workflow.consent_direct_conversation(
+        case_id, hire, expected_version=offered["case"]["resource_version"]
+    )
+    consented = workflow.get_thread(case_id, hr)
+    assert consented["interaction_mode"]["mode"] == "direct_consented"
+    workflow.post_message(
+        case_id, hr, "Hello directly",
+        expected_version=consented["case"]["resource_version"],
+    )

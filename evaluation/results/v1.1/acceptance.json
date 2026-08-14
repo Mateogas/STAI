@@ -17,7 +17,7 @@
     "tie_break_rule": "weakest_locked_component",
     "version": "1.0"
   },
-  "completed_at_utc": "2026-08-14T20:04:36.937824Z",
+  "completed_at_utc": "2026-08-14T20:54:02.705155Z",
   "dialogue_regression": {
     "escalation_progression": "offered_then_consented",
     "execution_mode": "offline_deterministic_contract",
@@ -36,26 +36,21 @@
       "Johann Casio": 4,
       "Jose Miguel Espinosa": 4
     },
-    "technical_writeup_words": 3288
+    "technical_writeup_words": 3338
   },
   "handbook": {
     "page_count": 108,
-    "pdf_sha256": "500110cb9455a789290de71a72d27bfcc20ed0d040b69593def0829c65f23140",
-    "version": "1.0"
+    "pdf_sha256": "c0872f3b0bb90502115d26e3d47a85d4ef2d4ad63f3f557a42268d5bdcba8b9e",
+    "version": "1.1"
   },
   "live_nager": {
-    "attribution": "Based on Nager.",
-    "checked_at_utc": "2026-08-14T20:04:36.937232Z",
-    "outcome": "live",
-    "privacy": "No Hire, conversation, policy, document, OCR, or medical content sent.",
-    "result_count": 18,
-    "year": 2026
+    "status": "skipped"
   },
   "privacy_and_replacement": {
     "legacy_regressions": 0,
-    "openapi_paths": 28,
-    "sqlite_tables": 30
+    "openapi_paths": 31,
+    "sqlite_tables": 32
   },
-  "started_at_utc": "2026-08-14T20:04:34.927513Z",
+  "started_at_utc": "2026-08-14T20:54:02.041023Z",
   "status": "partial"
 }

@@ -10,6 +10,7 @@ except ImportError:  # pragma: no cover
     _V1 = False
 
 from stai.config import settings
+from stai.handbook import ACTIVE_HANDBOOK_VERSION
 from stai.models import HireProfile
 from stai.prompts import render_policy_prompt
 from stai.state import Repo
@@ -45,7 +46,7 @@ def build_policy_agent(
         handbook_index=handbook_index,
         resolved_topic=resolved_topic,
     )
-    version = records[0].handbook_version if records else "1.0"
+    version = records[0].handbook_version if records else ACTIVE_HANDBOOK_VERSION
     prompt = render_policy_prompt(prompt_variant, "Alyssa Reyes", version)
     model = llm or build_llm()
     if _V1:

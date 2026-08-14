@@ -6,7 +6,9 @@ import re
 from collections.abc import Callable
 from datetime import date
 
+from stai.agentic_turn import AgenticPolicyTurn, topic_for_policy_id
 from stai.guardrails import REFUSALS, redact_pii, validate_response_relevance
+from stai.handbook import ACTIVE_HANDBOOK_VERSION
 from stai.models import (
     Abstention,
     ApplicabilityStatus,
@@ -29,64 +31,9 @@ from stai.state import Repo
 
 AgentRunner = Callable[[ResolvedTurn, object, list[dict]], object | None]
 
-_POLICY_ID = re.compile(r"\b(?:PAY|ACC|HRP)-\d{3}\b", re.IGNORECASE)
-_WORD = re.compile(r"[a-z0-9-]+")
-_TOPIC_TERMS: dict[OnboardingTopic, set[str]] = {
-    OnboardingTopic.PAYROLL: {
-        "pay", "payroll", "payslip", "salary", "wage", "deduction", "bank",
-        "cutoff", "payday", "pay-period", "enrollment",
-    },
-    OnboardingTopic.RESOURCE_ACCESS: {
-        "access", "account", "device", "laptop", "login", "password", "badge",
-        "facility", "portal", "credential", "sandbox",
-    },
-    OnboardingTopic.HR_POLICIES: {
-        "hr", "leave", "attendance", "dress", "conduct", "office", "hours",
-        "holiday", "policy", "policies", "privacy",
-    },
-}
-_HELP_TERMS = {"help", "human", "support", "someone", "connect", "escalate", "escalation"}
-_CONSENT_MESSAGES = {
-    "yes", "yes please", "i consent", "yes route it", "route it",
-    "route it please", "go ahead", "please proceed", "create the case", "send it",
-}
-_FOLLOW_UP_TERMS = {"it", "this", "that", "then", "one"}
-_GREETINGS = {"hi", "hello", "hey", "thanks", "thank", "salamat"}
-_ACTION_STATUS_PATTERNS = (
-    "have you created",
-    "did you create",
-    "was it created",
-    "has it been created",
-    "did that work",
-    "did it work",
-    "case status",
-    "status of my case",
-    "was it sent",
-    "did you send",
-    "have you sent",
-    "was it routed",
-)
-_DISCOVERY_PATTERNS = (
-    "what policies can i ask",
-    "what policies could i ask",
-    "what can i ask",
-    "what can you help",
-    "what do you cover",
-    "show me the policies",
-    "list the policies",
-    "available policies",
-    "supported policies",
-    "supported topics",
-    "what topics",
-)
-
 
 def _topic_for_policy_id(policy_id: str) -> OnboardingTopic:
-    if policy_id.startswith("PAY-"):
-        return OnboardingTopic.PAYROLL
-    if policy_id.startswith("ACC-"):
-        return OnboardingTopic.RESOURCE_ACCESS
-    return OnboardingTopic.HR_POLICIES
+    return topic_for_policy_id(policy_id)
 
 
 class PolicyTurnEngine:
@@ -103,6 +50,7 @@ class PolicyTurnEngine:
         case_workflow=None,
         clarification_workflow=None,
         evidence_gap_assessor=None,
+        turn_planner=None,
         history_limit: int = 8,
     ) -> None:
         self.repo = repo
@@ -122,8 +70,9 @@ class PolicyTurnEngine:
         self.case_workflow = case_workflow
         self.clarification_workflow = clarification_workflow
         self.evidence_gap_assessor = evidence_gap_assessor
+        self.turn_planner = turn_planner or AgenticPolicyTurn()
         self.history_limit = history_limit
-        self.version = records[0].handbook_version if records else "1.0"
+        self.version = records[0].handbook_version if records else ACTIVE_HANDBOOK_VERSION
 
     def handle_turn(self, conversation_id: str, message: str):
         """The sole policy-turn interface used by transport callers and tests."""
@@ -184,16 +133,18 @@ class PolicyTurnEngine:
             response = self._case_status(conversation_id, pending_offer)
             mode = ExecutionMode.DETERMINISTIC
         elif resolved.dialogue_act == DialogueAct.CAPABILITY_DISCOVERY:
-            response = self._policy_catalog()
+            response = self._policy_catalog(resolved.catalog_scope)
             mode = ExecutionMode.DETERMINISTIC
         elif resolved.dialogue_act == DialogueAct.CLARIFICATION:
+            question = resolved.clarification_question or "Which onboarding area do you need help with?"
+            choices = resolved.clarification_choices or ["Payroll", "Resource Access", "HR Policies"]
             response = ClarificationRequest(
-                text="Which onboarding area do you need help with: Payroll, Resource Access, or HR Policies?",
+                text=question + (f" Choose one: {', '.join(choices)}." if choices else ""),
                 handbook_version=self.version,
                 applicability=ApplicabilityStatus.APPLIES,
                 evidence_state=EvidenceState.INSUFFICIENT,
-                question="Which onboarding area do you need help with?",
-                choices=["Payroll", "Resource Access", "HR Policies"],
+                question=question,
+                choices=choices,
             )
             mode = ExecutionMode.DETERMINISTIC
         elif resolved.dialogue_act in {DialogueAct.UNSUPPORTED, DialogueAct.GREETING}:
@@ -237,6 +188,7 @@ class PolicyTurnEngine:
         injection_markers = (
             "ignore all previous", "ignore previous instructions", "reveal your system",
             "show your system prompt", "you are now dan", "override your rules",
+            "ignore the handbook",
         )
         if any(marker in lowered for marker in injection_markers):
             return "injection"
@@ -268,101 +220,7 @@ class PolicyTurnEngine:
         return None
 
     def _resolve(self, message: str, previous: dict | None, pending_offer: dict | None) -> ResolvedTurn:
-        lowered = message.lower().strip()
-        tokens = set(_WORD.findall(lowered))
-        if any(pattern in lowered for pattern in _DISCOVERY_PATTERNS):
-            return ResolvedTurn(
-                dialogue_act=DialogueAct.CAPABILITY_DISCOVERY,
-                standalone_query=message,
-            )
-        policy_ids = [match.group(0).upper() for match in _POLICY_ID.finditer(message)]
-        explicit_topic = _topic_for_policy_id(policy_ids[0]) if policy_ids else None
-        if not explicit_topic:
-            matches = [topic for topic, terms in _TOPIC_TERMS.items() if tokens & terms]
-            explicit_topic = matches[0] if len(matches) == 1 else None
-
-        previous_topic = None
-        previous_policy_ids: list[str] = []
-        referenced_message_id = None
-        if previous:
-            if previous.get("resolved_topic"):
-                previous_topic = OnboardingTopic(previous["resolved_topic"])
-            payload = previous.get("payload") or {}
-            previous_policy_ids = [item["policy_id"] for item in payload.get("citations", [])]
-            referenced_message_id = previous.get("message_id")
-
-        topic = explicit_topic or previous_topic
-        normalized_consent = re.sub(r"[^a-z0-9 ]+", "", lowered)
-        normalized_consent = " ".join(normalized_consent.split())
-        if pending_offer and normalized_consent in _CONSENT_MESSAGES:
-            return ResolvedTurn(
-                dialogue_act=DialogueAct.CONSENT,
-                topic=OnboardingTopic(pending_offer["topic"]),
-                policy_ids=pending_offer.get("policy_ids", []),
-                standalone_query=message,
-                referenced_message_id=referenced_message_id,
-            )
-
-        if any(pattern in lowered for pattern in _ACTION_STATUS_PATTERNS):
-            return ResolvedTurn(
-                dialogue_act=DialogueAct.ACTION_STATUS,
-                topic=topic,
-                policy_ids=policy_ids or previous_policy_ids,
-                standalone_query=message,
-                referenced_message_id=referenced_message_id,
-            )
-
-        route_command = "route" in tokens and bool(tokens & {"it", "this", "that", "me"})
-        help_requested = bool(tokens & _HELP_TERMS) or "talk to" in lowered or route_command
-        if help_requested:
-            return ResolvedTurn(
-                dialogue_act=DialogueAct.CLARIFICATION if not topic else (
-                    DialogueAct.ESCALATION_REQUEST
-                    if route_command or tokens & {"human", "connect", "escalate", "escalation"}
-                    else DialogueAct.HELP_REQUEST
-                ),
-                topic=topic,
-                policy_ids=policy_ids or previous_policy_ids,
-                standalone_query=message,
-                referenced_message_id=referenced_message_id,
-            )
-
-        if tokens and tokens <= _GREETINGS:
-            act = DialogueAct.GREETING
-        elif not topic and tokens & {"onboard", "onboarding", "setup", "orientation"}:
-            act = DialogueAct.CLARIFICATION
-        elif not topic:
-            act = DialogueAct.UNSUPPORTED
-        elif explicit_topic or policy_ids:
-            act = DialogueAct.QUESTION
-        else:
-            act = DialogueAct.FOLLOW_UP if tokens & _FOLLOW_UP_TERMS or previous else DialogueAct.QUESTION
-
-        query = message.strip()
-        if topic and not explicit_topic:
-            query = f"{topic.value.replace('_', ' ')} {query}"
-        if (
-            topic == OnboardingTopic.PAYROLL
-            and not policy_ids
-            and not (
-                tokens
-                & {
-                    "details", "put", "update", "change", "onboard", "onboarding",
-                    "payslip", "deduction", "cutoff", "date", "bank", "error",
-                    "route", "official",
-                }
-            )
-        ):
-            query = "PAY-001 payroll enrollment first pay schedule"
-        # A contextual policy ID is a weak ranking hint, not authority and not a
-        # hard filter. Explicit IDs remain exact retrieval constraints.
-        return ResolvedTurn(
-            dialogue_act=act,
-            topic=topic,
-            policy_ids=policy_ids,
-            standalone_query=query,
-            referenced_message_id=referenced_message_id if not explicit_topic else None,
-        )
+        return self.turn_planner.plan(message, previous, pending_offer)
 
     def _answer_policy(
         self,
@@ -376,6 +234,24 @@ class PolicyTurnEngine:
         as_of: date,
     ):
         preflight = self._preflight(resolved, profile)
+        if (
+            preflight.outcome.value == "ready"
+            and not self.evidence_gap_assessor.covers_subject(resolved.standalone_query, preflight)
+        ):
+            return (
+                Abstention(
+                    text=(
+                        "The active handbook does not cover the specific subject in this "
+                        "question. No HR ticket was offered because there is no eligible "
+                        "partial policy evidence to clarify."
+                    ),
+                    handbook_version=self.version,
+                    applicability=ApplicabilityStatus.APPLIES,
+                    evidence_state=EvidenceState.HANDBOOK_OMISSION,
+                    reason="handbook_omission",
+                ),
+                ExecutionMode.DETERMINISTIC,
+            )
         gap = self.evidence_gap_assessor.assess(resolved.standalone_query, preflight)
         approved = None
         if gap.eligible:
@@ -397,9 +273,7 @@ class PolicyTurnEngine:
                     ),
                     ExecutionMode.DETERMINISTIC,
                 )
-        elif not self.evidence_gap_assessor.covers_subject(
-            resolved.standalone_query, preflight
-        ):
+        elif not self.evidence_gap_assessor.covers_subject(resolved.standalone_query, preflight):
             return (
                 Abstention(
                     text=(
@@ -509,11 +383,14 @@ class PolicyTurnEngine:
             choices=["Payroll", "Resource Access", "HR Policies"],
         )
 
-    def _policy_catalog(self) -> GroundedPolicyAnswer:
+    def _policy_catalog(self, scope: OnboardingTopic | None = None) -> GroundedPolicyAnswer:
         labels = {
             OnboardingTopic.PAYROLL: "Payroll",
             OnboardingTopic.RESOURCE_ACCESS: "Resource Access",
             OnboardingTopic.HR_POLICIES: "HR Policies",
+        }
+        selected_labels = {
+            topic: label for topic, label in labels.items() if scope is None or topic == scope
         }
         policy_pages = {
             topic: sorted(
@@ -527,7 +404,7 @@ class PolicyTurnEngine:
                 ),
                 key=lambda record: record.policy_id or "",
             )
-            for topic in labels
+            for topic in selected_labels
         }
         citations = []
         claims = []
@@ -535,7 +412,7 @@ class PolicyTurnEngine:
             "You can ask about these active handbook policies. AISHA will check whether "
             "a policy applies to your confirmed Hire Profile:"
         ]
-        for topic, label in labels.items():
+        for topic, label in selected_labels.items():
             records = policy_pages[topic]
             start = len(citations)
             bullets = []

@@ -197,6 +197,15 @@ Remaining follow-up:
 
 - Slice 3 UI/UX redesign.
 
+## 2026-08-15 - Agent Plans, handbook v1.1, and AISHA-mediated HR cases
+
+- Added a 65-question new-Hire corpus and executable semantic-routing regressions.
+- Added typed Agent Plans, scoped policy discovery, payroll/HR sub-intents, and bounded discovery/status tools.
+- Updated the existing 108-page handbook to v1.1 and bound publication identity to an authoritative public-source register.
+- Added schema epoch 6 for Case Information Requests and separately consented direct conversation.
+- Replaced default HR chat replies with AISHA mediation, HR-only notes, typed resolution, notifications, and resolution memory.
+- Updated Streamlit, `/api/v1`, ADRs, domain vocabulary, and current handoff documentation.
+
 ## Future changelog rule
 
 When a future chat finishes a task, append a short entry here:
