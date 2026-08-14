@@ -31,3 +31,13 @@ def test_hr_view_has_consent_only_records_and_privacy_empty_states():
     assert "Pending Attribute Change Requests" in text
     assert "private chat" in text.lower()
 
+
+def test_streamlit_ask_uses_topic_safe_turn_engine():
+    at = AppTest.from_file(str(APP), default_timeout=90)
+    at.run()
+    at.chat_input[0].set_value("how does payroll work")
+    at.run()
+    assert not at.exception
+    text = " ".join(item.value for item in at.markdown)
+    assert "PAY-001" in text
+    assert "ACC-005" not in text

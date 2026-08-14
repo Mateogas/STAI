@@ -37,6 +37,18 @@ That folder is now the current handoff source of truth:
 `ContextTransfer.md` is legacy and should be removed after the knowledge base
 is reviewed. Do not use it as current context unless auditing the migration.
 
+## Agent skills
+
+### Issue tracker
+
+Issues and Wayfinder decision maps are tracked in GitHub Issues. See
+`docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+This is a single-context repository with a root `CONTEXT.md` glossary and
+architectural decisions under `docs/adr/`. See `docs/agents/domain.md`.
+
 Current narrative direction:
 
 - Fully rebrand the user-facing demo from Meridian/Maya/Meri to
@@ -100,6 +112,10 @@ Key cross-file contracts:
 - State goes through `state.Repo` (SQLite, connection-per-op for Streamlit
   threads). Seeded once from `data/*.json`; delete `data/stai.db` to reset the
   demo (or sidebar -> Demo controls).
+- LLMOps uses a protected four-stage path: `observability.py` writes local
+  JSONL, `log_shipper.py` batches it, `mlflow-relay/` authenticates and maps it,
+  and a separate MLflow server stores runs. Preserve this topology and make
+  only additive field changes; never log message text or medical content.
 
 All config is `pydantic-settings` (`src/stai/config.py`), env-overridable with
 prefix `STAI_` (see `.env.example`), especially model names because demo

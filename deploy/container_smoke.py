@@ -50,11 +50,26 @@ def main() -> None:
             "http://127.0.0.1:8000/api/v1/hires/emp-alyssa/conversations",
             headers=headers, json={"simulated_date": "2026-08-10"}, timeout=10,
         ).json()["data"]
-        turn = httpx.post(
-            f"http://127.0.0.1:8000/api/v1/hires/emp-alyssa/conversations/{conversation['id']}/messages",
-            headers={"Idempotency-Key": "linux-smoke-turn"}, json={"message": "What does PAY-001 say?"}, timeout=10,
-        )
-        assert turn.status_code == 200 and turn.json()["data"]["type"] == "grounded_answer"
+        prompts = [
+            "Whats my payroll", "Well then how do i do the onboard",
+            "How to i put my payroll details", "I need help in this",
+            "route it please", "how does payroll work",
+        ]
+        expected = [
+            "grounded_answer", "grounded_answer", "grounded_answer",
+            "escalation_offer", "escalation_confirmation", "grounded_answer",
+        ]
+        for index, (prompt, outcome) in enumerate(zip(prompts, expected, strict=True)):
+            turn = httpx.post(
+                f"http://127.0.0.1:8000/api/v1/hires/emp-alyssa/conversations/{conversation['id']}/messages",
+                headers={"Idempotency-Key": f"linux-smoke-turn-{index}"},
+                json={"message": prompt}, timeout=10,
+            )
+            assert turn.status_code == 200 and turn.json()["data"]["type"] == outcome
+            assert all(
+                citation["policy_id"].startswith("PAY-")
+                for citation in turn.json()["data"].get("citations", [])
+            )
         checked = httpx.post(
             "http://127.0.0.1:8000/api/v1/hires/emp-alyssa/certificate-checks",
             headers={"Idempotency-Key": "linux-smoke-certificate"},
@@ -66,7 +81,7 @@ def main() -> None:
         assert checked.json()["data"]["status"] == "complete"
         key_mode = stat.S_IMODE(os.stat("/app/data/smoke.key").st_mode)
         assert key_mode == 0o600
-        print("LINUX_CONTAINER_SMOKE=PASS")
+        print("LINUX_CONTAINER_SMOKE=PASS DIALOGUE_REGRESSION=PASS")
     finally:
         api.terminate(); ui.terminate()
         api.wait(timeout=10); ui.wait(timeout=10)

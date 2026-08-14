@@ -20,8 +20,8 @@ Canonical artifacts:
 - Frozen cases: `evaluation/benchmark_cases.jsonl` (SHA-256 `b1dd68d6…91e9`)
 - Prompt comparison: `evaluation/results/v1.0/prompt-comparison.json`
 - Calibration / Locked / combined: `evaluation/results/v1.0/{calibration,locked,combined}.json`
-- Live Nager evidence: `evaluation/results/v1.0/live-nager.json`
-- Integrated gate report: `evaluation/results/v1.0/acceptance.json`
+- Live Nager evidence: `evaluation/results/v1.1/live-nager.json`
+- Integrated gate report: `evaluation/results/v1.1/acceptance.json`
 - Canonical module matrix: `ContextKnowledgeBase/ModuleChecklist.md`
 
 ## Frozen Composite Safety Benchmark
@@ -102,7 +102,13 @@ AppTest covers both product roles and all destinations without Ollama. The in-ap
 
 TestClient covers the single health endpoint, configured CORS, Alyssa-only namespace, safe envelopes, fixed simulated date, conversation/message replay, server-owned history, medical-chat rejection before persistence, consent and HR close, one-attribute profile revision, certificate retry/lifecycle, shared-only HR visibility, result deletion, and bounded cursor pagination. OpenAPI denylist tests prove legacy and internal fields are absent.
 
-SQLite tests prove required PRAGMAs, one Alyssa seed, normalized allowlist tables, transaction rollback, atomic clean cutover, result-safe key loss, mode-0600 installation key, reset/key rotation, cache clearing, active/previous retrieval pointers, and absence of prohibited medical columns. The supported deployment is one Linux instance with local persistent storage—not NFS/SMB and not multiple replicas.
+SQLite tests prove required PRAGMAs, one Alyssa seed, schema-epoch-3 typed turn persistence, normalized allowlist tables, transaction rollback, atomic clean cutover, result-safe key loss, mode-0600 installation key, reset/key rotation, cache clearing, active/previous retrieval pointers, and absence of prohibited medical columns. The supported deployment is one Linux instance with local persistent storage—not NFS/SMB and not multiple replicas.
+
+## Dialogue regression v1.1
+
+`tests/test_production_transcript.py`, `tests/test_turn_engine.py`, and the API suite replay the six-turn payroll incident that previously lost context and cited ACC-005. The gate requires three grounded payroll results, a Payroll Support offer, explicit chat consent with one case, and a final PAY-001 answer. Any non-PAY citation is a hard failure. The same contract runs in the non-root container smoke. `deploy/predeploy_dialogue.py` repeats it against an explicitly disposable staging database and additionally requires health `ready`, which proves both the configured agent model and active Chroma collection are reachable.
+
+This regression is deterministic contract evidence. The predeployment run exercises the live configured model, but a single passing staging run is not a statistical model-quality study.
 
 ## Known limitations
 

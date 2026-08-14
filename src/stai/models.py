@@ -26,6 +26,23 @@ class OnboardingTopic(StrEnum):
     HR_POLICIES = "hr_policies"
 
 
+class DialogueAct(StrEnum):
+    QUESTION = "question"
+    FOLLOW_UP = "follow_up"
+    CLARIFICATION = "clarification"
+    HELP_REQUEST = "help_request"
+    ESCALATION_REQUEST = "escalation_request"
+    CONSENT = "consent"
+    GREETING = "greeting"
+    UNSUPPORTED = "unsupported"
+
+
+class ExecutionMode(StrEnum):
+    AGENT = "agent"
+    DETERMINISTIC = "deterministic"
+    DEGRADED = "degraded"
+
+
 class ApplicabilityStatus(StrEnum):
     APPLIES = "applies"
     DOES_NOT_APPLY = "does_not_apply"
@@ -135,8 +152,41 @@ class EscalationOffer(PolicyResponseBase):
     version: int = Field(default=1, ge=1)
 
 
+class EscalationConfirmation(PolicyResponseBase):
+    """A workflow result produced only after consent to an existing offer."""
+
+    type: Literal["escalation_confirmation"] = "escalation_confirmation"
+    case_id: str
+    route_owner: str
+    route_channel: str
+    topic: OnboardingTopic
+    version: int = Field(default=1, ge=1)
+
+
+class ResolvedTurn(BaseModel):
+    """Private, bounded context resolution used before retrieval or action."""
+
+    dialogue_act: DialogueAct
+    topic: OnboardingTopic | None = None
+    policy_ids: list[str] = Field(default_factory=list)
+    standalone_query: str = Field(min_length=1, max_length=4000)
+    referenced_message_id: str | None = None
+
+
 PolicyResponse = Annotated[
     Union[GroundedPolicyAnswer, ClarificationRequest, Abstention, EscalationOffer],
+    Field(discriminator="type"),
+]
+
+
+TurnResult = Annotated[
+    Union[
+        GroundedPolicyAnswer,
+        ClarificationRequest,
+        Abstention,
+        EscalationOffer,
+        EscalationConfirmation,
+    ],
     Field(discriminator="type"),
 ]
 

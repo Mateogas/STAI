@@ -15,7 +15,7 @@ from stai.models import (
     PolicyCitation,
     PolicyClaim,
 )
-from stai.retriever import HandbookPageRecord, RetrievalOutcome, hybrid_retrieve
+from stai.retriever import HandbookIndex, HandbookPageRecord, InMemoryHandbookIndex, RetrievalOutcome
 
 
 @dataclass(frozen=True)
@@ -70,21 +70,33 @@ def validate_claim_support(
 _SUPPORTED_TERMS = {
     "pay", "payroll", "payslip", "deduction", "holiday", "access", "device",
     "remote", "account", "branch", "attendance", "leave", "medical",
-    "certificate", "dress", "privacy", "hr", "conduct", "office",
+    "certificate", "dress", "privacy", "hr", "conduct", "office", "onboard",
+    "onboarding", "details", "route", "support", "help", "enrollment",
 }
 
 
 class PolicyEngine:
-    def __init__(self, records: list[HandbookPageRecord]) -> None:
+    def __init__(self, records: list[HandbookPageRecord], *, index: HandbookIndex | None = None) -> None:
         self.records = records
+        self.index = index or InMemoryHandbookIndex(records)
         self.version = records[0].handbook_version if records else "1.0"
 
-    def answer(self, query: str, profile: HireProfile):
+    def answer(
+        self,
+        query: str,
+        profile: HireProfile,
+        *,
+        topic: str | None = None,
+        policy_ids: set[str] | None = None,
+        retrieval_result=None,
+    ):
         tokens = set(re.findall(r"[a-z0-9-]+", query.lower()))
         exact_ids = {token.upper() for token in tokens if re.fullmatch(r"(?:pay|acc|hrp)-\d{3}", token)}
-        if not exact_ids and not (tokens & _SUPPORTED_TERMS):
+        if not topic and not exact_ids and not (tokens & _SUPPORTED_TERMS):
             return self._abstain("insufficient_evidence")
-        result = hybrid_retrieve(query, profile, self.records)
+        result = retrieval_result or self.index.search(
+            query, profile, topic=topic, policy_ids=policy_ids,
+        )
         if result.outcome == RetrievalOutcome.ATTRIBUTE_REQUIRED:
             label = (result.required_attribute or "required attribute").replace("_", " ")
             choices = {
@@ -106,7 +118,7 @@ class PolicyEngine:
             evidence = [item for item in evidence if item.policy_id in exact_ids]
         if not evidence:
             return self._abstain("insufficient_evidence")
-        primary = next((item for item in evidence if item.page_kind == "policy"), evidence[0])
+        primary = evidence[0]
         citation = PolicyCitation(
             policy_id=primary.policy_id,
             handbook_version=primary.handbook_version,

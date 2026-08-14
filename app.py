@@ -4,12 +4,15 @@ from __future__ import annotations
 
 from datetime import date
 from html import escape
+import json
 
 import streamlit as st
 
 from stai.handbook import build_handbook
 from stai.models import ApplicabilityStatus
 from stai.retriever import load_page_records
+from stai.retriever import ChromaHandbookIndex
+from stai.config import settings
 from stai.service import AishaService
 from stai.state import Repo
 
@@ -234,7 +237,15 @@ def get_repo() -> Repo:
 @st.cache_resource
 def get_service() -> AishaService:
     artifacts = build_handbook()
-    return AishaService(get_repo(), load_page_records(artifacts.rag_pages_path))
+    manifest = json.loads(artifacts.manifest_path.read_text(encoding="utf-8"))
+    records = load_page_records(artifacts.rag_pages_path, expected_manifest=manifest)
+    index = ChromaHandbookIndex(get_repo(), records)
+    return AishaService(
+        get_repo(),
+        records,
+        handbook_index=index,
+        agent_enabled=settings.agent_enabled,
+    )
 
 
 def announce(message: str) -> None:
@@ -250,6 +261,7 @@ def outcome_badge(response_type: str | None) -> None:
         "clarification_request": ("Needs your answer", "warn"),
         "abstention": ("Unable to answer safely", "neutral"),
         "escalation_offer": ("Human support available", "warn"),
+        "escalation_confirmation": ("Case created", "good"),
     }
     label, tone = labels.get(response_type or "", ("AISHA", ""))
     st.markdown(

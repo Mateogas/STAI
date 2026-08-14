@@ -10,12 +10,38 @@ from stai.state import Repo
 class AishaService:
     """Transport-independent orchestration for Streamlit and `/api/v1`."""
 
-    def __init__(self, repo: Repo, records, *, medical_service=None) -> None:
+    def __init__(
+        self,
+        repo: Repo,
+        records,
+        *,
+        medical_service=None,
+        handbook_index=None,
+        agent_enabled: bool = False,
+        agent_runner=None,
+        input_classifier=None,
+    ) -> None:
+        from stai.agent import LocalReactRunner
+        from stai.guardrails import LocalInputClassifier
         from stai.medical import MedicalCheckService
+        from stai.retriever import InMemoryHandbookIndex
+        from stai.turn_engine import PolicyTurnEngine
 
         self.repo = repo
         self.records = records
         self.medical = medical_service or MedicalCheckService(repo)
+        self.handbook_index = handbook_index or InMemoryHandbookIndex(records)
+        if agent_runner is None and agent_enabled:
+            agent_runner = LocalReactRunner(repo, records, self.handbook_index)
+        if input_classifier is None and agent_enabled:
+            input_classifier = LocalInputClassifier()
+        self.turn_engine = PolicyTurnEngine(
+            repo,
+            records,
+            index=self.handbook_index,
+            agent_runner=agent_runner,
+            input_classifier=input_classifier,
+        )
 
     def create_conversation(self, employee_id: str, simulated_date: date) -> dict:
         if employee_id != "emp-alyssa":
@@ -26,41 +52,7 @@ class AishaService:
         return self.repo.list_policy_messages(conversation_id)
 
     def send_message(self, conversation_id: str, message: str):
-        import re
-
-        from stai.models import ApplicabilityStatus, EscalationOffer, EvidenceState, OnboardingTopic
-        from stai.policy import PolicyEngine
-
-        conversation = self.repo.get_policy_conversation(conversation_id)
-        if not conversation:
-            raise KeyError("conversation not found")
-        user_message = self.repo.add_policy_message(conversation_id, "hire", message)
-        profile = self.repo.get_hire_profile(conversation["hire_id"])
-        if "human" in message.lower() or "escalat" in message.lower():
-            match = re.search(r"\b(PAY|ACC|HRP)-\d{3}\b", message.upper())
-            policy_id = match.group(0) if match else None
-            record = next((r for r in self.records if r.policy_id == policy_id and r.route), None)
-            topic_value = record.topic if record else "hr_policies"
-            topic = OnboardingTopic(topic_value)
-            route_owner = (record.route if record else "hr_general").replace("_", " ").title()
-            summary = f"Clarify {policy_id or 'an onboarding policy'} with the appropriate human owner."
-            offer_row = self.repo.create_escalation_offer(
-                conversation_id, user_message["id"], topic.value, route_owner,
-                "Fictional HR Help Desk", summary, [policy_id] if policy_id else [],
-            )
-            response = EscalationOffer(
-                text="I can create this privacy-safe case after you consent.",
-                handbook_version=self.records[0].handbook_version,
-                applicability=ApplicabilityStatus.APPLIES,
-                evidence_state=EvidenceState.READY,
-                offer_id=offer_row["offer_id"], route_owner=route_owner,
-                route_channel="Fictional HR Help Desk", proposed_summary=summary,
-                topic=topic,
-            )
-        else:
-            response = PolicyEngine(self.records).answer(message, profile)
-        self.repo.save_policy_response(conversation_id, response)
-        return response
+        return self.turn_engine.handle_turn(conversation_id, message)
 
     def consent_escalation(self, offer_id: str, *, expected_version: int) -> dict:
         return self.repo.consent_escalation_offer(offer_id, expected_version=expected_version)

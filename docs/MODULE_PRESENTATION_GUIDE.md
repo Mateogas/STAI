@@ -81,7 +81,7 @@ Explain safe `{data,meta}` and `{error,meta}` envelopes, configured CORS, Alyssa
 
 Show one schema-v2 JSONL event: random event ID, closed event/route/operation/outcome, counts and timings, with no Hire ID or content. Explain JSONL → bounded shipper → authenticated relay → separate MLflow and event-ID retry idempotency.
 
-Show `evaluation/results/v1.0/acceptance.json` and the Docker smoke. The Linux image runs as UID 10001, installs Tesseract English, uses `/app/data`, and proves Streamlit health, `/api/v1/health`, PAY-001, and a synthetic Complete certificate result.
+Show `evaluation/results/v1.1/acceptance.json` and the Docker smoke. The Linux image runs as UID 10001, installs Tesseract English, uses `/app/data`, and proves Streamlit health, `/api/v1/health`, the six-turn payroll/context/escalation regression with zero wrong-topic citations, and a synthetic Complete certificate result.
 
 Finish with P3 Locked CSS and zero hard failures, followed immediately by the limitation: synthetic deterministic contract evidence, not production or real BDO validation.
 

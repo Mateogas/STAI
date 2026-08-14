@@ -31,7 +31,14 @@ private reasoning, retrieved snippets, medical content, or unvalidated text.
 Examples: when Work Site is disputed, ask whether the assignment changed or is
 temporary; when evidence is absent, abstain without a related citation; when a
 route is needed, show its privacy-safe summary before consent. Use a private
-decision checklist, but do not expose that checklist or any hidden reasoning.""",
+decision checklist, but do not expose that checklist or any hidden reasoning.
+
+For a policy question, call search_handbook before answering. Return the final
+response as one raw JSON object without Markdown fences. A grounded answer must
+include type, text, handbook_version, applicability, evidence_state, citations,
+and claims; every claim uses citation_indexes into citations. Never invent an
+offer_id or claim that a case was created. The deterministic application owns
+offers, consent, and all mutations.""",
 }
 
 

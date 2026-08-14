@@ -20,13 +20,22 @@ class RunCapture:
     evidence_metadata: list[dict] = field(default_factory=list)
 
 
-def build_policy_tools(profile: HireProfile, repo: Repo, records, *, holiday_service=None):
+def build_policy_tools(
+    profile: HireProfile,
+    repo: Repo,
+    records,
+    *,
+    holiday_service=None,
+    handbook_index=None,
+    resolved_topic: str | None = None,
+):
     from stai.policy import evaluate_applicability
     from stai.public_holidays import NagerHolidayService
-    from stai.retriever import hybrid_retrieve
+    from stai.retriever import InMemoryHandbookIndex
 
     capture = RunCapture()
     calendar = holiday_service or NagerHolidayService(repo)
+    index = handbook_index or InMemoryHandbookIndex(records)
 
     @tool
     def get_active_handbook() -> str:
@@ -41,7 +50,7 @@ def build_policy_tools(profile: HireProfile, repo: Repo, records, *, holiday_ser
     def search_handbook(query: str) -> str:
         """Retrieve eligible Payroll, Resource Access, or HR Policy evidence."""
         capture.tool_calls.append("search_handbook")
-        result = hybrid_retrieve(query, profile, records)
+        result = index.search(query, profile, topic=resolved_topic)
         evidence = []
         for item in result.evidence:
             identity = (item.policy_id, item.handbook_version, item.page)
@@ -51,6 +60,7 @@ def build_policy_tools(profile: HireProfile, repo: Repo, records, *, holiday_ser
                 "handbook_version": item.handbook_version,
                 "page": item.page,
                 "authority": item.page_kind,
+                "topic": next((row.topic for row in records if row.record_id == item.record_id), None),
                 "applicability": item.applicability.value,
             }
             if metadata not in capture.evidence_metadata:

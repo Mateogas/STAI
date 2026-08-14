@@ -48,6 +48,8 @@ def test_only_versioned_health_endpoint_remains(client):
     assert response.status_code == 200
     payload = response.json()
     assert payload["data"]["status"] == "degraded"
+    assert payload["data"]["knowledge_index"] == "degraded"
+    assert payload["data"]["agent_model"] == "degraded"
     assert payload["data"]["nager"] == "unknown"
     assert payload["meta"]["api_version"] == "v1"
 
@@ -155,6 +157,44 @@ def test_escalation_offer_to_consent_case(client):
         json={"expected_version": 1, "hr_user": "hr-demo"},
     )
     assert closed.status_code == 200 and closed.json()["data"]["status"] == "closed"
+
+
+def test_production_payroll_transcript_has_identical_api_semantics(client):
+    http, repo = client
+    conversation = http.post(
+        "/api/v1/hires/emp-alyssa/conversations",
+        headers=headers("incident-conversation"),
+        json={"simulated_date": "2026-08-10"},
+    ).json()["data"]
+    prompts = [
+        "Whats my payroll",
+        "Well then how do i do the onboard",
+        "How to i put my payroll details",
+        "I need help in this",
+        "route it please",
+        "how does payroll work",
+    ]
+    results = []
+    for index, prompt in enumerate(prompts):
+        response = http.post(
+            f"/api/v1/hires/emp-alyssa/conversations/{conversation['id']}/messages",
+            headers=headers(f"incident-{index}"),
+            json={"message": prompt},
+        )
+        assert response.status_code == 200
+        results.append(response.json()["data"])
+
+    assert [item["type"] for item in results] == [
+        "grounded_answer", "grounded_answer", "grounded_answer",
+        "escalation_offer", "escalation_confirmation", "grounded_answer",
+    ]
+    assert all(
+        citation["policy_id"].startswith("PAY-")
+        for item in results
+        for citation in item.get("citations", [])
+    )
+    assert results[-1]["citations"][0]["policy_id"] == "PAY-001"
+    assert repo.list_escalation_cases()[0]["topic"] == "payroll"
 
 
 def test_attribute_request_hr_approval_uses_versions(client):

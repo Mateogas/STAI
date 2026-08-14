@@ -6,11 +6,11 @@ The shipped demo supports one fictional Hire, Alyssa Reyes, across exactly three
 
 ## What is implemented
 
-- Four typed outcomes: Grounded Answer, Clarification Request, Abstention, and consent-first Escalation Offer.
+- Four typed policy outcomes plus a separate consented Escalation Confirmation workflow result.
 - A deterministic 108-page AISHA Handbook v1.0 with immutable page records and policy/version/page citations.
 - Hybrid Chroma retrieval with active-edition, authority, applicability, integrity, activation, and rollback gates.
 - A confirmed four-attribute Hire Profile; chat never changes applicability.
-- Ordered server-owned Policy Conversations and result-only certificate History in normalized SQLite.
+- A shared `PolicyTurnEngine` with bounded restart-safe context, ordered server-owned Policy Conversations, and result-only certificate History in normalized SQLite.
 - Local PDF/image medical-certificate completeness checking with policy-before-file access, Tesseract OCR, deterministic rules, one retry, and private-by-default results.
 - A bounded Philippines-only Nager.Holidays tool with exact `Based on Nager.` attribution, seven-day cache, retry, validation, circuit breaking, and safe fallbacks.
 - Streamlit New Hire destinations—Ask AISHA, Certificate Check, History—and a separate HR User structured-record view.
@@ -39,6 +39,12 @@ uv run python -m stai.ingestion
 ```
 
 Ingestion builds a version/hash-named staging collection from `handbook/dist/rag-pages.jsonl`, verifies it, and atomically changes the SQLite active pointer. It never resets an active collection in place. A failed or partial build leaves the current pointer untouched.
+
+Both Streamlit and `/api/v1` call the same turn engine. It resolves follow-ups
+before retrieval, hard-gates candidates to the resolved topic, uses the ReAct
+loop when Ollama is reachable, and falls back to the verified deterministic
+composer when the model is unavailable. `/api/v1/health` reports the actual
+agent and active-index state; `degraded` is not presented as fully ready.
 
 ## Streamlit journeys
 
@@ -112,7 +118,7 @@ uv run python -m stai.evaluation
 uv run python -m stai.acceptance
 ```
 
-The offline deterministic contract run compares P1 minimal, P2 structured, and P3 structured-plus-edge-cases three times under frozen settings. It validates contracts and does not claim model, statistical, production, or real BDO performance. Reports are in `evaluation/results/v1.0/`.
+The frozen prompt benchmark remains in `evaluation/results/v1.0/`. The integrated v1.1 acceptance report adds the deployed six-turn payroll regression, restart-safe context, wrong-topic citation gate, and offer-to-consent progression at `evaluation/results/v1.1/acceptance.json`. These offline checks do not claim live-model, statistical, production, or real BDO performance.
 
 ## Docker and Linux/Proxmox
 
@@ -124,6 +130,17 @@ docker run --rm -p 8000:8000 -v aisha-data:/app/data \
 docker run --rm -v aisha-smoke:/app/data \
   aisha-demo uv run python deploy/container_smoke.py
 ```
+
+Before deployment, run the dialogue gate against a disposable staging database
+whose health status is `ready`:
+
+```bash
+uv run python deploy/predeploy_dialogue.py \
+  --base-url https://STAGING_HOST --allow-state-mutation
+```
+
+The staging gate intentionally creates one fictional consented case and must
+not be run against a persistent production database.
 
 The image runs as `aisha` UID 10001, includes Tesseract English, PyMuPDF, Pillow, multipart support, and persists SQLite/Chroma/key state under `/app/data`. Ollama is intentionally external; on Linux point `STAI_OLLAMA_BASE_URL` at the Ollama host/container and do not place SQLite or Chroma on NFS/SMB or behind multiple replicas. A single VM/LXC instance with a local persistent volume is the supported demo topology.
 

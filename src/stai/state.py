@@ -18,7 +18,11 @@ from stai.config import settings
 from stai.models import HireProfile
 
 
-MIGRATION_PATH = Path(__file__).with_name("migrations") / "0002_policy_domain.sql"
+MIGRATION_DIR = Path(__file__).with_name("migrations")
+MIGRATION_PATHS = (
+    MIGRATION_DIR / "0002_policy_domain.sql",
+    MIGRATION_DIR / "0003_policy_turn_results.sql",
+)
 
 
 class MedicalContentRejected(ValueError):
@@ -48,12 +52,17 @@ class Repo:
         self.lock_path = self.db_path.with_suffix(".lock")
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         with self._connect() as conn:
-            conn.executescript(MIGRATION_PATH.read_text(encoding="utf-8"))
+            for migration_path in MIGRATION_PATHS:
+                conn.executescript(migration_path.read_text(encoding="utf-8"))
             conn.execute(
                 "INSERT OR IGNORE INTO schema_migrations VALUES (?,?,?)",
                 (2, "policy_domain", _utc_text()),
             )
-            conn.execute("PRAGMA user_version=2")
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_migrations VALUES (?,?,?)",
+                (3, "policy_turn_results", _utc_text()),
+            )
+            conn.execute("PRAGMA user_version=3")
             self._seed_policy_state(conn)
 
     @contextmanager
@@ -146,6 +155,10 @@ class Repo:
         if any(marker in lowered for marker in markers):
             raise MedicalContentRejected("medical content must use Certificate Check")
 
+    def validate_policy_message(self, text: str) -> None:
+        """Apply pre-persistence chat privacy rules at the turn seam."""
+        self._reject_medical_chat(text)
+
     def add_policy_message(self, conversation_id: str, role: str, text: str, response_type: str | None = None) -> dict:
         if role == "hire":
             self._reject_medical_chat(text)
@@ -186,23 +199,78 @@ class Repo:
             cur = conn.execute("DELETE FROM policy_conversations WHERE conversation_id=?", (conversation_id,))
             return cur.rowcount == 1
 
-    def save_policy_response(self, conversation_id: str, response) -> dict:
-        message = self.add_policy_message(conversation_id, "aisha", response.text, response.type)
+    def save_policy_response(
+        self,
+        conversation_id: str,
+        response,
+        *,
+        dialogue_act: str = "question",
+        resolved_topic: str | None = None,
+        referenced_message_id: str | None = None,
+        execution_mode: str = "deterministic",
+    ) -> dict:
+        """Atomically persist one typed assistant result and its safe context."""
+        message_id = str(uuid.uuid4())
+        now = _utc_text()
+        payload = response.model_dump(mode="json")
         with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute(
+                "SELECT COALESCE(MAX(ordinal),0)+1 FROM policy_messages WHERE conversation_id=?",
+                (conversation_id,),
+            ).fetchone()
+            message_ordinal = int(row[0])
+            conn.execute(
+                "INSERT INTO policy_messages VALUES (?,?,?,?,?,?,?)",
+                (message_id, conversation_id, message_ordinal, "aisha", response.text, response.type, now),
+            )
+            conn.execute(
+                "UPDATE policy_conversations SET updated_at_utc=?, resource_version=resource_version+1 WHERE conversation_id=?",
+                (now, conversation_id),
+            )
+            profile_revision = int(
+                conn.execute(
+                    "SELECT profile_revision FROM hire_profiles WHERE hire_id='emp-alyssa'"
+                ).fetchone()[0]
+            )
             for citation in response.citations:
                 conn.execute(
                     "INSERT OR IGNORE INTO policy_response_policies VALUES (?,?,?,?,?,?,?)",
-                    (message["id"], citation.policy_id, citation.handbook_version, "1", self.get_hire_profile("emp-alyssa").revision, response.applicability.value, response.evidence_state.value),
+                    (message_id, citation.policy_id, citation.handbook_version, "1", profile_revision, response.applicability.value, response.evidence_state.value),
                 )
-            for ordinal, citation in enumerate(response.citations):
+            for claim_ordinal, citation in enumerate(response.citations):
                 conn.execute(
                     "INSERT INTO policy_response_citations VALUES (?,?,?,?,?,?)",
-                    (message["id"], ordinal, citation.policy_id, citation.handbook_version, citation.page_start, citation.page_end),
+                    (message_id, claim_ordinal, citation.policy_id, citation.handbook_version, citation.page_start, citation.page_end),
                 )
-        return message
+            conn.execute(
+                "INSERT INTO policy_turn_results VALUES (?,?,?,?,?,?,?)",
+                (
+                    message_id,
+                    response.type,
+                    dialogue_act,
+                    resolved_topic,
+                    referenced_message_id,
+                    execution_mode,
+                    json.dumps(payload, sort_keys=True),
+                ),
+            )
+        return {
+            "id": message_id,
+            "ordinal": message_ordinal,
+            "role": "aisha",
+            "text": response.text,
+            "response_type": response.type,
+        }
 
     def get_policy_response_payload(self, message_id: str) -> dict | None:
         with self._connect() as conn:
+            persisted = conn.execute(
+                "SELECT safe_payload_json FROM policy_turn_results WHERE message_id=?",
+                (message_id,),
+            ).fetchone()
+            if persisted:
+                return json.loads(persisted["safe_payload_json"])
             message = conn.execute(
                 "SELECT * FROM policy_messages WHERE message_id=? AND role='aisha'", (message_id,)
             ).fetchone()
@@ -237,6 +305,39 @@ class Repo:
                 topic=offer["topic"], version=offer["resource_version"],
             )
         return payload
+
+    def get_latest_turn_context(self, conversation_id: str) -> dict | None:
+        """Return only the latest safe structured turn context."""
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT r.*,m.ordinal,m.text FROM policy_turn_results r "
+                "JOIN policy_messages m ON m.message_id=r.message_id "
+                "WHERE m.conversation_id=? ORDER BY m.ordinal DESC LIMIT 1",
+                (conversation_id,),
+            ).fetchone()
+        if not row:
+            return None
+        result = dict(row)
+        result["payload"] = json.loads(result.pop("safe_payload_json"))
+        return result
+
+    def get_pending_escalation_offer_for_conversation(self, conversation_id: str) -> dict | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT * FROM escalation_offers WHERE conversation_id=? AND status='pending' "
+                "ORDER BY created_at_utc DESC LIMIT 1",
+                (conversation_id,),
+            ).fetchone()
+            if not row:
+                return None
+            policies = [
+                item[0]
+                for item in conn.execute(
+                    "SELECT policy_id FROM escalation_offer_policies WHERE offer_id=? ORDER BY policy_id",
+                    (row["offer_id"],),
+                )
+            ]
+        return {**dict(row), "policy_ids": policies}
 
     def create_escalation_offer(
         self, conversation_id: str, message_id: str, topic: str,
@@ -621,7 +722,7 @@ class Repo:
             with self._connect() as conn:
                 conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
 def cutover_legacy_database(db_path: Path | str, *, verifier: Callable[[Repo], bool]) -> None:
-    """Build and verify a sibling epoch-2 database before atomic replacement."""
+    """Build and verify a sibling current-epoch database before atomic replacement."""
     target = Path(db_path)
     sibling = target.with_suffix(target.suffix + ".next")
     if sibling.exists():

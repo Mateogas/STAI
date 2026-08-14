@@ -37,6 +37,8 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
     agent_temperature: float = 0.0
     agent_seed: int = 20260810
+    agent_enabled: bool = True
+    agent_probe_timeout_seconds: float = 0.25
 
     # --- paths ---
     chroma_dir: Path = _DATA / "chroma"

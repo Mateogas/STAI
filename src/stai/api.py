@@ -87,7 +87,16 @@ def get_repo() -> Repo:
 @lru_cache(maxsize=1)
 def get_service() -> AishaService:
     artifacts = build_handbook()
-    return AishaService(get_repo(), load_page_records(artifacts.rag_pages_path))
+    manifest = json.loads(artifacts.manifest_path.read_text(encoding="utf-8"))
+    records = load_page_records(artifacts.rag_pages_path, expected_manifest=manifest)
+    from stai.retriever import ChromaHandbookIndex
+
+    return AishaService(
+        get_repo(),
+        records,
+        handbook_index=ChromaHandbookIndex(get_repo(), records),
+        agent_enabled=settings.agent_enabled,
+    )
 
 
 def _hire(employee_id: str) -> None:
@@ -182,23 +191,31 @@ class AttributeResolve(HrVersionAction):
 
 
 @app.get("/api/v1/health")
-def health(request: Request, repo: Repo = Depends(get_repo)):
+def health(
+    request: Request,
+    repo: Repo = Depends(get_repo),
+    service: AishaService = Depends(get_service),
+):
     try:
         active = repo.get_active_retrieval_build()
         sqlite_state = "ready"
     except Exception:
         active, sqlite_state = None, "unavailable"
-    index_state = "ready" if active else "degraded"
+    index_state = service.handbook_index.runtime_status()
+    runner = service.turn_engine.agent_runner
+    agent_state = "ready" if runner and getattr(runner, "available", lambda: False)() else "degraded"
+    classifier = service.turn_engine.input_classifier
+    guardrail_state = "ready" if classifier and getattr(classifier, "available", lambda: False)() else "degraded"
     if sqlite_state == "unavailable":
         status, code = "unavailable", 503
-    elif index_state == "degraded":
+    elif index_state != "ready" or agent_state != "ready" or guardrail_state != "ready":
         status, code = "degraded", 200
     else:
         status, code = "ready", 200
     return success(request, {
         "status": status, "sqlite": sqlite_state, "knowledge_index": index_state,
         "active_handbook_version": active["handbook_version"] if active else "1.0",
-        "agent_model": "configured", "guardrail_model": "configured", "nager": "unknown",
+        "agent_model": agent_state, "guardrail_model": guardrail_state, "nager": "unknown",
         "disclaimer": DISCLAIMER,
     }, status=code)
 
@@ -252,6 +269,8 @@ def create_message(employee_id: str, conversation_id: str, body: MessageCreate, 
         else:
             offer = repo.get_escalation_offer(replay["target_resource_id"])
             payload = offer
+        if payload:
+            payload.pop("claims", None)
         conversation = repo.get_policy_conversation(conversation_id)
         return success(request, payload, simulated_date=conversation["simulated_date"])
     try:
@@ -262,8 +281,6 @@ def create_message(employee_id: str, conversation_id: str, body: MessageCreate, 
         return safe_error(request, 404, "conversation_not_found", "The conversation was not found.")
     assistant = repo.list_policy_messages(conversation_id)[-1]
     target_type, target_id = "policy_message", assistant["id"]
-    if response.type == "escalation_offer":
-        target_type, target_id = "escalation_offer", response.offer_id
     _save_replay(repo, scope, key, canonical, target_type, target_id, 1, 200, response.type)
     conversation = repo.get_policy_conversation(conversation_id)
     return success(request, _public_policy_response(response), simulated_date=conversation["simulated_date"])

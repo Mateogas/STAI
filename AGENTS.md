@@ -92,6 +92,10 @@ Key cross-file contracts:
 - State goes through `state.Repo` (SQLite, connection-per-op for Streamlit
   threads). Seeded once from `data/*.json`; delete `data/stai.db` to reset the
   demo (or sidebar -> Demo controls).
+- LLMOps uses a protected four-stage path: `observability.py` writes local
+  JSONL, `log_shipper.py` batches it, `mlflow-relay/` authenticates and maps it,
+  and a separate MLflow server stores runs. Preserve this topology and make
+  only additive field changes; never log message text or medical content.
 
 All config is `pydantic-settings` (`src/stai/config.py`), env-overridable with
 prefix `STAI_` (see `.env.example`), especially model names because demo

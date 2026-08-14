@@ -18,3 +18,16 @@ The 12 authoritative slices from GitHub issue #1 were implemented test-first in 
 | 12. Legacy removal, packaging, final evidence | Complete when acceptance report is `passed` | final slice commit | Full offline suite, locked benchmark, privacy scan, live Nager, Docker/Linux smoke, docs and ownership matrix |
 
 No later work should reintroduce ramp plans, task/pulse/risk surveillance, filename citations, snippet-bearing evidence, arbitrary client history, automatic escalation, raw medical input retention, employee-linked telemetry, or compatibility aliases for `/chat`.
+
+## v1.1 production dialogue remediation
+
+| Slice | Result | Exit evidence |
+|---|---|---|
+| 0. Incident contract | Complete | Exact six-turn deployed transcript is a module/API regression fixture |
+| 1. Deep turn seam | Complete | Streamlit and API delegate to `PolicyTurnEngine.handle_turn` |
+| 2. Context and actions | Complete | Restart-safe topic/reference state and offer-before-chat-consent progression |
+| 3. Retrieval repair | Complete | Stopword-safe weighted lexical plus active Chroma candidates and topic hard gate |
+| 4. Production ReAct | Complete | Reachability-probed ReAct primary path with validated deterministic degradation |
+| 5. Relevance validation | Complete | Structurally valid wrong-topic agent answers fail before display |
+| 6. Persistence/replay | Complete | Schema epoch 3 safe typed result replay without snippets or hidden reasoning |
+| 7. Acceptance/deployment | Implemented; external staging run required per release | Full suite, container transcript smoke, and explicit disposable-staging gate |

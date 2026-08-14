@@ -114,6 +114,37 @@ def classify_input(message: str, llm=None) -> GuardrailVerdict:
         return GuardrailVerdict(category="on_topic", reason=f"fail-open: {exc}")
 
 
+class LocalInputClassifier:
+    """Ollama-backed classifier adapter with a fast, explicit fail-open probe."""
+
+    def __init__(self, *, probe_timeout: float = 0.25) -> None:
+        self.probe_timeout = probe_timeout
+
+    def __call__(self, message: str) -> GuardrailVerdict:
+        if not self.available():
+            return GuardrailVerdict(category="on_topic", reason="fail-open probe unavailable")
+        return classify_input(message)
+
+    def available(self) -> bool:
+        import httpx
+
+        try:
+            response = httpx.get(
+                f"{settings.ollama_base_url.rstrip('/')}/api/tags",
+                timeout=self.probe_timeout,
+                follow_redirects=False,
+            )
+            response.raise_for_status()
+            names = {
+                str(item.get("name", "")).split(":latest")[0]
+                for item in response.json().get("models", [])
+            }
+            configured = settings.guardrail_model.split(":latest")[0]
+            return configured in names
+        except Exception:
+            return False
+
+
 _PII_PATTERNS = [
     re.compile(r"\b\d{3}-\d{2}-\d{4}\b"),
     re.compile(r"\b(?:\d{4}[ -]){3}\d{4}\b"),
@@ -148,3 +179,16 @@ def validate_policy_output(raw: str | dict, retrieved_identities: set[tuple[str,
             evidence_state=EvidenceState.INSUFFICIENT,
             reason="insufficient_evidence",
         )
+
+
+def validate_response_relevance(response, resolved_topic: str | None, records) -> None:
+    """Reject structurally grounded answers whose citations answer another topic."""
+    if not isinstance(response, GroundedPolicyAnswer) or not resolved_topic:
+        return
+    topics_by_policy: dict[str, set[str]] = {}
+    for record in records:
+        if record.policy_id and record.topic:
+            topics_by_policy.setdefault(record.policy_id, set()).add(record.topic)
+    for citation in response.citations:
+        if resolved_topic not in topics_by_policy.get(citation.policy_id, set()):
+            raise ValueError("citation does not match the resolved onboarding topic")

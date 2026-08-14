@@ -17,7 +17,8 @@ from stai.public_holidays import NagerHolidayService
 from stai.state import Repo
 
 ROOT = Path(__file__).parents[2]
-RESULTS = ROOT / "evaluation/results/v1.0"
+BENCHMARK_RESULTS = ROOT / "evaluation/results/v1.0"
+RESULTS = ROOT / "evaluation/results/v1.1"
 
 
 def command(args: list[str], *, cwd: Path = ROOT) -> str:
@@ -39,7 +40,7 @@ def verify_handbook() -> dict:
 
 
 def verify_benchmark() -> dict:
-    reports = BenchmarkRunner(ROOT / "evaluation/benchmark_cases.jsonl").run_all_variants(output_dir=RESULTS)
+    reports = BenchmarkRunner(ROOT / "evaluation/benchmark_cases.jsonl").run_all_variants(output_dir=BENCHMARK_RESULTS)
     selected, trace = select_prompt_variant(reports)
     locked = reports[selected]["locked"]
     if selected != "P3" or not reports[selected]["passed"]:
@@ -103,10 +104,59 @@ def verify_documentation() -> dict:
     words = len((ROOT / "docs/TECHNICAL_WRITEUP.md").read_text(encoding="utf-8").split())
     matrix = (ROOT / "ContextKnowledgeBase/ModuleChecklist.md").read_text(encoding="utf-8")
     met_rows = [line for line in matrix.splitlines() if line.startswith("|") and re.search(r"\|\s*Met\s*\|\s*$", line)]
+    pending_rows = [
+        line for line in matrix.splitlines()
+        if line.startswith("|") and re.search(r"\|\s*Implemented / Live gate pending\s*\|\s*$", line)
+    ]
     owners = {name: matrix.count(f"| {name} |") for name in ("Johann Casio", "Jose Miguel Espinosa", "Bon Aquino")}
-    if words < 2000 or len(met_rows) != 12 or min(owners.values()) < 2:
+    if words < 2000 or len(met_rows) + len(pending_rows) != 12 or min(owners.values()) < 2:
         raise RuntimeError("documentation or named module ownership gate failed")
-    return {"technical_writeup_words": words, "met_modules": len(met_rows), "owner_rows": owners}
+    return {
+        "technical_writeup_words": words,
+        "met_modules": len(met_rows),
+        "live_gate_pending_modules": len(pending_rows),
+        "owner_rows": owners,
+    }
+
+
+def verify_dialogue_regression() -> dict:
+    from datetime import date
+
+    from stai.retriever import load_page_records
+    from stai.service import AishaService
+
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        repo = Repo(root / "dialogue.db", secret_path=root / "install.key")
+        artifacts = build_handbook(root / "handbook")
+        service = AishaService(repo, load_page_records(artifacts.rag_pages_path))
+        conversation = service.create_conversation("emp-alyssa", date(2026, 8, 10))
+        prompts = [
+            "Whats my payroll", "Well then how do i do the onboard",
+            "How to i put my payroll details", "I need help in this",
+            "route it please", "how does payroll work",
+        ]
+        expected = [
+            "grounded_answer", "grounded_answer", "grounded_answer",
+            "escalation_offer", "escalation_confirmation", "grounded_answer",
+        ]
+        results = [service.send_message(conversation["id"], prompt) for prompt in prompts]
+        if [result.type for result in results] != expected:
+            raise RuntimeError("production dialogue outcome regression")
+        wrong_topic = sum(
+            not citation.policy_id.startswith("PAY-")
+            for result in results
+            for citation in result.citations
+        )
+        if wrong_topic or len(repo.list_escalation_cases()) != 1:
+            raise RuntimeError("dialogue context, relevance, or consent regression")
+    return {
+        "version": "1.1",
+        "turn_count": len(expected),
+        "wrong_topic_citations": wrong_topic,
+        "escalation_progression": "offered_then_consented",
+        "execution_mode": "offline_deterministic_contract",
+    }
 
 
 def live_nager() -> dict:
@@ -145,8 +195,9 @@ def main() -> None:
     args = parser.parse_args()
     RESULTS.mkdir(parents=True, exist_ok=True)
     report = {
-        "acceptance_version": "1.0", "started_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+        "acceptance_version": "1.1", "started_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         "handbook": verify_handbook(), "benchmark": verify_benchmark(),
+        "dialogue_regression": verify_dialogue_regression(),
         "privacy_and_replacement": verify_privacy_and_replacement(), "documentation": verify_documentation(),
     }
     if not args.skip_tests:
@@ -155,10 +206,12 @@ def main() -> None:
         report["offline_tests"] = {"passed": int(match.group(1)) if match else "pass"}
     report["live_nager"] = {"status": "skipped"} if args.skip_live_nager else live_nager()
     report["docker"] = {"status": "skipped"} if args.skip_docker else docker_smoke()
-    report["status"] = "passed"
+    external_skips = args.skip_tests or args.skip_docker or args.skip_live_nager
+    pending_modules = report["documentation"]["live_gate_pending_modules"]
+    report["status"] = "partial" if external_skips or pending_modules else "passed"
     report["completed_at_utc"] = datetime.now(UTC).isoformat().replace("+00:00", "Z")
     (RESULTS / "acceptance.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    print(json.dumps({"status": "passed", "report": str(RESULTS / "acceptance.json")}, sort_keys=True))
+    print(json.dumps({"status": report["status"], "report": str(RESULTS / "acceptance.json")}, sort_keys=True))
 
 
 if __name__ == "__main__":

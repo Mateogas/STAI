@@ -10,9 +10,9 @@ def test_cutover_replaces_legacy_only_after_verified_builder(tmp_path: Path) -> 
     db = tmp_path / "stai.db"
     with sqlite3.connect(db) as conn:
         conn.execute("CREATE TABLE legacy_pulse(raw_reply TEXT)")
-    cutover_legacy_database(db, verifier=lambda repo: repo.schema_version == 2)
+    cutover_legacy_database(db, verifier=lambda repo: repo.schema_version == 3)
     repo = Repo(db, secret_path=tmp_path / "install.key")
-    assert repo.schema_version == 2
+    assert repo.schema_version == 3
     with sqlite3.connect(db) as conn:
         tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     assert "legacy_pulse" not in tables

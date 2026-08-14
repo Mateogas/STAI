@@ -7,6 +7,7 @@ import json
 import re
 from enum import StrEnum
 from pathlib import Path
+from typing import Protocol
 
 from pydantic import BaseModel, Field
 
@@ -95,6 +96,22 @@ def load_page_records(
 
 
 _TOKEN = re.compile(r"[a-z0-9-]+")
+_STOPWORDS = {
+    "a", "about", "am", "an", "and", "are", "can", "could", "do", "does",
+    "for", "how", "i", "in", "is", "it", "me", "my", "of", "on", "please",
+    "the", "then", "this", "to", "want", "well", "what", "whats", "with",
+    "work", "would", "you",
+}
+_EXPANSIONS = {
+    "onboard": {"onboarding", "enrollment", "details", "records", "route"},
+    "onboarding": {"enrollment", "details", "records", "route"},
+    "put": {"change", "details", "corrections", "route"},
+    "update": {"change", "details", "corrections", "route"},
+    "help": {"support", "route"},
+    "salary": {"payroll", "pay"},
+    "wage": {"payroll", "pay"},
+    "login": {"sign-in", "account", "access"},
+}
 _PROFILE_FIELDS = {
     "role_keys": "role_key",
     "department_keys": "department_key",
@@ -126,31 +143,50 @@ def hybrid_retrieve(
     dense_record_ids: list[str] | None = None,
     k: int = 8,
     adjacent: bool = False,
+    topic: str | None = None,
+    policy_ids: set[str] | None = None,
 ) -> PolicyRetrievalResult:
-    """Union deterministic lexical candidates with a supplied Chroma dense ranking."""
-    query_tokens = set(_TOKEN.findall(query.lower()))
-    exact_ids = {token.upper() for token in query_tokens if re.fullmatch(r"(?:pay|acc|hrp)-\d{3}", token)}
+    """Fuse weighted lexical and supplied dense candidates, then apply hard gates."""
+    raw_tokens = set(_TOKEN.findall(query.lower()))
+    exact_ids = {token.upper() for token in raw_tokens if re.fullmatch(r"(?:pay|acc|hrp)-\d{3}", token)}
+    query_tokens = {token for token in raw_tokens if token not in _STOPWORDS}
+    for token in tuple(query_tokens):
+        query_tokens.update(_EXPANSIONS.get(token, set()))
     dense_rank = {record_id: index for index, record_id in enumerate(dense_record_ids or [])}
     ranked: list[tuple[float, HandbookPageRecord]] = []
     for record in records:
-        haystack = set(_TOKEN.findall(f"{record.policy_id or ''} {record.title} {record.content}".lower()))
-        lexical = len(query_tokens & haystack) / max(1, len(query_tokens))
+        if topic and record.topic != topic:
+            continue
+        title_tokens = set(_TOKEN.findall(record.title.lower()))
+        body_tokens = set(_TOKEN.findall(record.content.lower()))
+        subarea_tokens = set(_TOKEN.findall(" ".join(record.subareas).replace("_", " ").lower()))
+        lexical = (
+            len(query_tokens & title_tokens) * 4.0
+            + len(query_tokens & subarea_tokens) * 5.0
+            + len(query_tokens & body_tokens) * 1.25
+        )
         if record.policy_id in exact_ids:
-            lexical += 10
+            lexical += 100.0
+        if policy_ids and record.policy_id in policy_ids:
+            lexical += 8.0
+        if "payroll" in query_tokens and "details" in query_tokens and "payroll details" in record.title.lower():
+            lexical += 12.0
         dense = 1 / (1 + dense_rank[record.record_id]) if record.record_id in dense_rank else 0
-        if lexical or dense:
-            ranked.append((lexical + dense * 0.35, record))
+        if lexical >= 1.0 or dense:
+            ranked.append((lexical + dense * 3.0, record))
     ranked.sort(key=lambda pair: (-pair[0], pair[1].page))
     evidence: list[RetrievedEvidence] = []
-    required: str | None = None
     selected_ids: set[str] = set()
-    for _, record in ranked:
+    for _score, record in ranked:
         if record.status != "active" or record.page_kind not in {"policy", "procedure"} or not record.policy_id:
             continue
         applicability, missing = _applicability(record, profile)
-        if missing and required is None:
-            required = missing
         if missing:
+            if not evidence:
+                return PolicyRetrievalResult(
+                    outcome=RetrievalOutcome.ATTRIBUTE_REQUIRED,
+                    required_attribute=missing,
+                )
             continue
         if record.record_id in selected_ids:
             continue
@@ -168,8 +204,158 @@ def hybrid_retrieve(
         ))
         if len(evidence) >= k:
             break
-    if required:
-        return PolicyRetrievalResult(outcome=RetrievalOutcome.ATTRIBUTE_REQUIRED, required_attribute=required)
     if not evidence:
         return PolicyRetrievalResult(outcome=RetrievalOutcome.INSUFFICIENT_EVIDENCE)
     return PolicyRetrievalResult(outcome=RetrievalOutcome.READY, evidence=evidence)
+
+
+class HandbookIndex(Protocol):
+    """Internal retrieval seam used by the turn module and its tests."""
+
+    def search(
+        self,
+        query: str,
+        profile: HireProfile,
+        *,
+        topic: str | None = None,
+        policy_ids: set[str] | None = None,
+        k: int = 8,
+    ) -> PolicyRetrievalResult: ...
+
+
+class InMemoryHandbookIndex:
+    """Verified-record adapter used by deterministic tests and safe degradation."""
+
+    def __init__(self, records: list[HandbookPageRecord]) -> None:
+        self.records = records
+
+    def search(
+        self,
+        query: str,
+        profile: HireProfile,
+        *,
+        topic: str | None = None,
+        policy_ids: set[str] | None = None,
+        k: int = 8,
+    ) -> PolicyRetrievalResult:
+        return hybrid_retrieve(
+            query,
+            profile,
+            self.records,
+            topic=topic,
+            policy_ids=policy_ids,
+            k=k,
+        )
+
+    def runtime_status(self) -> str:
+        return "degraded"
+
+
+class ChromaHandbookIndex(InMemoryHandbookIndex):
+    """Active-build Chroma adapter with a verified lexical degradation path."""
+
+    def __init__(self, repo, records: list[HandbookPageRecord], *, dense_lookup=None) -> None:
+        super().__init__(records)
+        self.repo = repo
+        self.dense_lookup = dense_lookup
+        self.last_search_mode = "degraded"
+
+    def runtime_status(self) -> str:
+        try:
+            import httpx
+            from langchain_chroma import Chroma
+
+            from stai.config import settings
+
+            active = self.repo.get_active_retrieval_build()
+            if not active:
+                return "degraded"
+            expected = self.records[0]
+            if (
+                active["handbook_version"] != expected.handbook_version
+                or active["manifest_identity"] != expected.page_manifest_sha256
+            ):
+                return "degraded"
+            store = Chroma(
+                collection_name=active["collection_name"],
+                persist_directory=str(settings.chroma_dir),
+            )
+            if store._collection.count() != len(self.records):
+                return "degraded"
+            response = httpx.get(
+                f"{settings.ollama_base_url.rstrip('/')}/api/tags",
+                timeout=settings.agent_probe_timeout_seconds,
+                follow_redirects=False,
+            )
+            response.raise_for_status()
+            names = {
+                str(item.get("name", "")).split(":latest")[0]
+                for item in response.json().get("models", [])
+            }
+            return "ready" if settings.embed_model.split(":latest")[0] in names else "degraded"
+        except Exception:
+            return "unavailable"
+
+    def search(
+        self,
+        query: str,
+        profile: HireProfile,
+        *,
+        topic: str | None = None,
+        policy_ids: set[str] | None = None,
+        k: int = 8,
+    ) -> PolicyRetrievalResult:
+        dense_record_ids: list[str] = []
+        try:
+            if self.dense_lookup:
+                dense_record_ids = list(self.dense_lookup(query, max(k * 3, 12)))
+                self.last_search_mode = "active_chroma"
+                return hybrid_retrieve(
+                    query,
+                    profile,
+                    self.records,
+                    dense_record_ids=dense_record_ids,
+                    topic=topic,
+                    policy_ids=policy_ids,
+                    k=k,
+                )
+            from langchain_chroma import Chroma
+            from langchain_ollama import OllamaEmbeddings
+
+            from stai.config import settings
+
+            active = self.repo.get_active_retrieval_build()
+            if not active:
+                raise RuntimeError("no active retrieval build")
+            expected = self.records[0]
+            if (
+                active["handbook_version"] != expected.handbook_version
+                or active["manifest_identity"] != expected.page_manifest_sha256
+            ):
+                raise RuntimeError("active retrieval identity does not match verified records")
+            store = Chroma(
+                collection_name=active["collection_name"],
+                embedding_function=OllamaEmbeddings(
+                    model=settings.embed_model,
+                    base_url=settings.ollama_base_url,
+                ),
+                persist_directory=str(settings.chroma_dir),
+            )
+            documents = store.similarity_search(query, k=max(k * 3, 12))
+            dense_record_ids = [
+                str(document.metadata.get("record_id"))
+                for document in documents
+                if document.metadata.get("record_id")
+            ]
+            self.last_search_mode = "active_chroma"
+        except Exception:
+            self.last_search_mode = "verified_lexical_fallback"
+        return hybrid_retrieve(
+            query,
+            profile,
+            self.records,
+            dense_record_ids=dense_record_ids,
+            topic=topic,
+            policy_ids=policy_ids,
+            k=k,
+        )

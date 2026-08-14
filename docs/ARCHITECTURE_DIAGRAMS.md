@@ -62,23 +62,27 @@ flowchart TD
     MedicalRoute -- No --> Classify["Input scope and injection classifier"]
     Classify --> Allowed{"Allowed?"}
     Allowed -- No --> Scoped["Typed scoped response"]
-    Allowed -- Yes --> Version["Get active handbook identity"]
-    Version --> Search["Hybrid search and eligibility gates"]
+    Allowed -- Yes --> Context["Load bounded typed conversation context"]
+    Context --> Resolve["Resolve topic, reference, dialogue act, and standalone query"]
+    Resolve --> Action{"Policy turn or workflow action?"}
+    Action -- "Offer or consent" --> Workflow["Deterministic versioned escalation command"]
+    Action -- "Policy" --> Version["Get active handbook identity"]
+    Version --> Search["Active Chroma plus weighted lexical candidates"]
     Search --> Found{"Eligible evidence?"}
     Found -- No --> Abstain["Abstention; no unrelated citation"]
     Found -- Yes --> Applicable{"All constraining attributes known?"}
     Applicable -- No --> Clarify["One focused clarification; no mutation"]
-    Applicable -- Yes --> Claim["Generate candidate typed result"]
-    Claim --> Validate["Schema, applicability, claim, and citation validation"]
+    Applicable -- Yes --> Claim["ReAct candidate or deterministic degraded composer"]
+    Claim --> Validate["Schema, applicability, topic relevance, claim, and citation validation"]
     Validate --> Valid{"Valid?"}
     Valid -- No --> SafeAbstain["Fail-closed typed abstention"]
-    Valid -- Yes --> Persist["Persist ordered safe outcome and evidence identity"]
+    Valid -- Yes --> Persist["Persist ordered safe outcome, context, and evidence identity"]
+    Workflow --> Persist
     Persist --> Render["Render identical UI/API semantics"]
-    Render --> Offer{"Human support requested or useful?"}
-    Offer -- Yes --> OfferOnly["Create offer; case only after explicit consent"]
+    Render --> OfferOnly["Offer precedes case; explicit consent is deterministic"]
 ```
 
-Evidence exposed to users is structured identity—policy ID, revision, handbook version, page, and artifact hashes—not stored raw snippets or model-authored filename citations. Conversation history is server owned and ordered. It informs continuity but never becomes authority for Hire Profile attributes.
+Evidence exposed to users is structured identity—policy ID, revision, handbook version, page, and artifact hashes—not stored raw snippets or model-authored filename citations. Conversation history is server owned and ordered. Safe typed turn state resolves follow-ups across restarts, while conversation statements never become authority for Hire Profile attributes. A wrong-topic citation is invalid even when its page identity was retrieved.
 
 ## Certificate flow
 
@@ -121,4 +125,4 @@ The telemetry side channel never changes a product outcome. Event IDs are random
 
 ## Deployment boundary
 
-The Docker image is Python 3.12 Linux, runs as non-root UID 10001, includes Tesseract English, and persists `/app/data` for SQLite and the separate installation key. The container smoke starts both Streamlit and FastAPI, checks their health, proves a PAY-001 policy answer, and proves a synthetic `Complete` certificate result. Nager is the only product network dependency and is isolated from health; all private Hire, conversation, policy, document, OCR, and medical data remain local.
+The Docker image is Python 3.12 Linux, runs as non-root UID 10001, includes Tesseract English, and persists `/app/data` for SQLite and the separate installation key. The container smoke starts both Streamlit and FastAPI, checks their health, replays the six-turn payroll/context/escalation regression with zero wrong-topic citations, and proves a synthetic `Complete` certificate result. Nager is isolated from health; all private Hire, conversation, policy, document, OCR, and medical data remain local.

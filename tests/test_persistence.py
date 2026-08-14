@@ -1,4 +1,5 @@
 import os
+import json
 import sqlite3
 from datetime import date
 from pathlib import Path
@@ -6,6 +7,9 @@ from pathlib import Path
 import pytest
 
 from stai.state import MedicalContentRejected, Repo
+from stai.handbook import build_handbook
+from stai.retriever import load_page_records
+from stai.service import AishaService
 
 
 def make_repo(tmp_path: Path) -> Repo:
@@ -14,14 +18,14 @@ def make_repo(tmp_path: Path) -> Repo:
 
 def test_schema_pragmas_and_single_alyssa_seed(tmp_path: Path) -> None:
     repo = make_repo(tmp_path)
-    assert repo.schema_version == 2
+    assert repo.schema_version == 3
     assert repo.get_hire_profile("emp-alyssa").role_key == "branch_banking_associate"
     assert repo.list_hire_ids() == ["emp-alyssa"]
     with sqlite3.connect(repo.db_path) as conn:
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 2
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == 3
         assert conn.execute("PRAGMA foreign_keys").fetchone()[0] == 0  # connection-local
         tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-    assert {"hires", "hire_profiles", "policy_conversations", "validation_results", "active_retrieval_build"} <= tables
+    assert {"hires", "hire_profiles", "policy_conversations", "policy_turn_results", "validation_results", "active_retrieval_build"} <= tables
 
 
 def test_connection_enables_required_runtime_pragmas(tmp_path: Path) -> None:
@@ -89,3 +93,19 @@ def test_persistence_privacy_denylist_not_present_as_columns(tmp_path: Path) -> 
         columns = {r[1] for table in tables for r in conn.execute(f'PRAGMA table_info("{table}")')}
     assert not (columns & forbidden)
 
+
+def test_typed_turn_state_persists_public_result_not_query_or_reasoning(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path)
+    records = load_page_records(build_handbook(tmp_path / "handbook").rag_pages_path)
+    service = AishaService(repo, records)
+    conversation = service.create_conversation("emp-alyssa", date(2026, 8, 10))
+    service.send_message(conversation["id"], "How do I put in my payroll details?")
+    with repo.connection() as conn:
+        row = conn.execute("SELECT * FROM policy_turn_results").fetchone()
+    payload = json.loads(row["safe_payload_json"])
+    assert row["resolved_topic"] == "payroll"
+    assert payload["type"] == "grounded_answer"
+    serialized = json.dumps(dict(row)).lower()
+    assert "standalone_query" not in serialized
+    assert "chain-of-thought" not in serialized
+    assert "retrieved content" not in serialized
