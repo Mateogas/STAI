@@ -442,6 +442,10 @@ def test_certificate_result_history_share_revoke_delete_and_idempotency(client):
     assert response.status_code == 200
     result = response.json()["data"]
     assert result["kind"] == "validation_result" and result["status"] == "complete"
+    assert result["agent_execution"]["mode"] in {
+        "react", "deterministic", "deterministic_degraded"
+    }
+    assert result["agent_execution"]["actions"][-1] == "persist_safe_result"
     replay = http.post(
         "/api/v1/hires/emp-alyssa/certificate-checks", headers=headers("cert-1"),
         data={"evaluation_date": "2026-08-10", "acknowledged": "true"},

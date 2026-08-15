@@ -2,15 +2,21 @@ from __future__ import annotations
 
 import pytest
 
+from stai.config import settings
 from stai.models import HireProfile
 from stai.state import Repo
 
 
 @pytest.fixture(autouse=True)
-def offline_react_runtime(monkeypatch):
-    """Keep the test suite offline while production requires LocalReactRunner."""
+def offline_react_runtime(monkeypatch, tmp_path):
+    """Keep tests isolated while production requires Ollama and active Chroma."""
     from tests.fakes import OfflineReactRunner
     from stai.models import GuardrailVerdict
+    from stai.retriever import InMemoryHandbookIndex
+
+    class OfflineHandbookIndex(InMemoryHandbookIndex):
+        def __init__(self, _repo, records, **_kwargs):
+            super().__init__(records)
 
     class OfflineClassifier:
         def __call__(self, _message):
@@ -21,6 +27,9 @@ def offline_react_runtime(monkeypatch):
 
     monkeypatch.setattr("stai.agent.LocalReactRunner", OfflineReactRunner)
     monkeypatch.setattr("stai.guardrails.LocalInputClassifier", OfflineClassifier)
+    monkeypatch.setattr("stai.retriever.ChromaHandbookIndex", OfflineHandbookIndex)
+    monkeypatch.setattr(settings, "db_path", tmp_path / "app.db")
+    monkeypatch.setattr(settings, "chroma_dir", tmp_path / "chroma")
 
 
 @pytest.fixture

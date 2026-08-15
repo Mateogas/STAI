@@ -51,11 +51,10 @@ class AgentRun:
 
 
 def build_llm(temperature: float = 0):
-    from langchain_ollama import ChatOllama
+    from stai.ollama_runtime import build_chat_model
 
-    return ChatOllama(
+    return build_chat_model(
         model=settings.agent_model,
-        base_url=settings.ollama_base_url,
         temperature=temperature,
         seed=settings.agent_seed,
         num_ctx=settings.agent_context_window,
@@ -64,11 +63,10 @@ def build_llm(temperature: float = 0):
 
 
 def build_finalizer_llm():
-    from langchain_ollama import ChatOllama
+    from stai.ollama_runtime import build_chat_model
 
-    return ChatOllama(
+    return build_chat_model(
         model=settings.finalizer_model or settings.agent_model,
-        base_url=settings.ollama_base_url,
         temperature=0,
         seed=settings.agent_seed,
         num_ctx=settings.agent_context_window,

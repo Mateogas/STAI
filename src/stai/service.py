@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import date
 
+from stai.config import settings
 from stai.state import Repo
 
 
@@ -16,11 +17,13 @@ class AishaService:
         records,
         *,
         medical_service=None,
+        certificate_agent_runner=None,
         handbook_index=None,
         agent_runner=None,
         input_classifier=None,
     ) -> None:
         from stai.agent import LocalReactRunner
+        from stai.certificate_agent import LocalCertificateAgentRunner
         from stai.cases import CaseWorkflow
         from stai.clarifications import PolicyClarificationWorkflow
         from stai.guardrails import LocalInputClassifier
@@ -30,7 +33,12 @@ class AishaService:
 
         self.repo = repo
         self.records = records
-        self.medical = medical_service or MedicalCheckService(repo)
+        if certificate_agent_runner is None and settings.certificate_agent_enabled:
+            certificate_agent_runner = LocalCertificateAgentRunner()
+        self.medical = medical_service or MedicalCheckService(
+            repo,
+            agent_runner=certificate_agent_runner,
+        )
         self.handbook_index = handbook_index or InMemoryHandbookIndex(records)
         self.case_workflow = CaseWorkflow(repo)
         self.clarification_workflow = PolicyClarificationWorkflow(repo)

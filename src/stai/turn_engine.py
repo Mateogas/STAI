@@ -89,7 +89,12 @@ class PolicyTurnEngine:
         user_message = self.repo.add_policy_message(conversation_id, "hire", message)
         profile = self.repo.get_hire_profile(conversation["hire_id"])
 
-        if blocked_category:
+        contextual_consent = (
+            pending_offer is not None
+            and blocked_category == "off_topic"
+            and " ".join(message.casefold().split()) == "i consent"
+        )
+        if blocked_category and not contextual_consent:
             plan = ResolvedTurn(
                 dialogue_act=DialogueAct.UNSUPPORTED,
                 standalone_query=message,

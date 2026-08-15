@@ -59,11 +59,11 @@ def ingest_handbook(repo: Repo | None = None, artifacts: HandbookArtifacts | Non
 
     def build_vector(collection_name, records):
         from langchain_chroma import Chroma
-        from langchain_ollama import OllamaEmbeddings
+        from stai.ollama_runtime import build_embeddings
 
         store = Chroma(
             collection_name=collection_name,
-            embedding_function=OllamaEmbeddings(model=settings.embed_model, base_url=settings.ollama_base_url),
+            embedding_function=build_embeddings(),
             persist_directory=str(settings.chroma_dir),
         )
         documents = [

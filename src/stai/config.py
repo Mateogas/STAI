@@ -36,8 +36,14 @@ class Settings(BaseSettings):
     # (over-blocked benefits jargon); set STAI_GUARDRAIL_MODEL=llama3.2:1b
     # if latency matters more than accuracy on the demo hardware.
     guardrail_model: str = "qwen2.5:3b-instruct"
+    # Evaluation-only: the 7B judge follows the closed rubric materially more
+    # reliably than the 3B runtime classifier while remaining practical on CPU.
+    judge_model: str = "qwen2.5:7b-instruct"
     embed_model: str = "nomic-embed-text"
     ollama_base_url: str = "http://localhost:11434"
+    # Unset lets Ollama choose available acceleration. Set 0 only for a
+    # deployment that explicitly requires CPU-only execution.
+    ollama_num_gpu: int | None = None
     agent_temperature: float = 0.0
     agent_seed: int = 20260810
     agent_probe_timeout_seconds: float = 3.0
@@ -65,6 +71,8 @@ class Settings(BaseSettings):
     certificate_max_pixels: int = 25_000_000
     certificate_timeout_seconds: int = 30
     certificate_ocr_confidence: float = 0.80
+    tesseract_cmd: Path | None = None
+    certificate_agent_enabled: bool = False
 
     # Browser origins allowed to call the explicitly demo-only REST API.
     cors_origins: list[str] = ["http://localhost:8501", "http://127.0.0.1:8501"]

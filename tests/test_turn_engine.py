@@ -187,6 +187,29 @@ def test_consent_button_flow_persists_confirmation_and_answers_status(tmp_path: 
     assert repo.get_latest_turn_context(conversation["id"])["dialogue_act"] == "action_status"
 
 
+def test_pending_offer_consent_is_not_overridden_by_topic_classifier(tmp_path: Path) -> None:
+    repo, records, conversation = setup(tmp_path)
+
+    def classifier(message: str) -> GuardrailVerdict:
+        category = "off_topic" if message == "I consent" else "on_topic"
+        return GuardrailVerdict(category=category)
+
+    service = AishaService(repo, records, input_classifier=classifier)
+    offer = service.send_message(
+        conversation["id"],
+        "Where is the official payroll route?",
+    )
+
+    confirmation = service.consent_escalation_from_conversation(
+        conversation["id"],
+        offer.offer_id,
+        expected_version=offer.version,
+    )
+
+    assert confirmation.type == "escalation_confirmation"
+    assert confirmation.case_id
+
+
 def test_policy_discovery_runs_agent_and_lists_active_catalog(tmp_path: Path) -> None:
     repo, records, conversation = setup(tmp_path)
 
