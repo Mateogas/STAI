@@ -396,22 +396,30 @@ class MedicalCheckService:
 
 
 _LABELS = {
-    "patient_name": ("patient name",),
-    "consultation_date": ("date of consultation", "consultation date"),
-    "issue_date": ("issue date",),
+    "patient_name": ("student/patient name", "patient/student name", "patient name", "student name", "name of patient"),
+    "consultation_date": ("date of consultation", "consultation date", "date seen", "date"),
+    "issue_date": ("issue date", "date issued"),
     "absence_start_date": ("absence start date", "recommended rest from"),
     "absence_end_date": ("absence end date",),
     "duration_days": ("duration days",),
-    "clinician_name": ("clinician name", "physician name"),
+    "clinician_name": ("attending physician", "clinician name", "physician name", "attending clinician", "examined by"),
     "facility_name": ("facility name",),
 }
+
+# Placeholder values that mean a labelled field was intentionally left blank.
+_PLACEHOLDERS = {"", "[missing]", "missing", "n/a", "na", "none", "-", "--", "tbd", "___"}
+
+
+def _is_placeholder(value: str) -> bool:
+    return value.strip().strip("[]").strip().lower() in _PLACEHOLDERS
 
 
 def parse_certificate_text(text: str) -> CertificateFields:
     """Parse synthetic/demo certificate labels locally without retaining text.
 
     Presence-only fields (diagnosis, license, signature) never retain their
-    underlying value, preserving the medical-content privacy boundary.
+    underlying value, preserving the medical-content privacy boundary. Labelled
+    placeholder values such as "[MISSING]" or "N/A" are treated as absent.
     """
     normalized = "\n".join(line.strip() for line in text.splitlines() if line.strip())
     values: dict[str, object] = {}
@@ -420,7 +428,11 @@ def parse_certificate_text(text: str) -> CertificateFields:
         matches: list[str] = []
         for label in labels:
             matches.extend(re.findall(rf"(?im)^{re.escape(label)}\s*:\s*(.+?)\s*$", normalized))
-        unique = list(dict.fromkeys(value.strip() for value in matches if value.strip()))
+            if matches:
+                break  # honour label priority: stop at the first variant that hits
+        unique = list(dict.fromkeys(
+            value.strip() for value in matches if value.strip() and not _is_placeholder(value)
+        ))
         if len(unique) > 1 and field not in {"consultation_date", "absence_start_date"}:
             ambiguous = True
         if unique:
@@ -434,10 +446,10 @@ def parse_certificate_text(text: str) -> CertificateFields:
                 values[field] = unique[0]
 
     # Real certificates name the doctor inline ("Dr. Maria Lourdes Santos, MD")
-    # rather than under a "Clinician Name:" label.
+    # rather than under a label. Tolerate a missing space after the period.
     if not values.get("clinician_name"):
         doctor = re.search(
-            r"(?im)\bDr\.?\s+([A-Z][A-Za-z.\-']+(?:\s+[A-Z][A-Za-z.\-']+){1,3})\b",
+            r"(?im)\bDr\.?\s*([A-Z][A-Za-z.\-']+(?:\s+[A-Z][A-Za-z.\-']+){1,3})\b",
             normalized,
         )
         if doctor:
@@ -447,14 +459,20 @@ def parse_certificate_text(text: str) -> CertificateFields:
         match = re.search(rf"(?im)^{re.escape(label)}\s*:\s*(.+?)\s*$", normalized)
         if not match:
             return None
-        return match.group(1).strip().lower() not in {"no", "none", "absent", "false"}
+        value = match.group(1).strip()
+        if _is_placeholder(value):
+            return False
+        return value.lower() not in {"no", "absent", "false"}
 
     # License and diagnosis are presence-only. License appears as "License
-    # Number:", "License No.:", or "PRC License No.:"; diagnosis as "Diagnosis:".
-    license_present = bool(
-        re.search(r"(?im)(?:prc\s+)?license\s+(?:no\.?|number)\s*:?\.?\s*[A-Za-z0-9\-]+", normalized)
-    ) or present("license number")
-    diagnosis_present = bool(re.search(r"(?im)^\s*diagnosis\s*:\s*\S+", normalized))
+    # Number:", "License No.:", "Physician License Number:", or "PRC License
+    # No.:"; diagnosis as "Diagnosis:".
+    license_match = re.search(
+        r"(?im)^.*?license\s+(?:no\.?|number)\s*:?\.?\s*(.+?)\s*$", normalized
+    )
+    license_present = bool(license_match and not _is_placeholder(license_match.group(1)))
+    diagnosis_match = re.search(r"(?im)^\s*diagnosis\s*:\s*(.+?)\s*$", normalized)
+    diagnosis_present = bool(diagnosis_match and not _is_placeholder(diagnosis_match.group(1)))
 
     values.update(
         license_number_present=license_present or None,

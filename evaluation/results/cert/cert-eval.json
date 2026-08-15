@@ -5,7 +5,7 @@
       "case_id": "CERT-COMPLETE",
       "codes": [],
       "description": "A complete certificate with all required fields",
-      "elapsed_seconds": 0.465,
+      "elapsed_seconds": 0.405,
       "gates": {
         "codes_ok": true,
         "kind_ok": true,
@@ -22,7 +22,7 @@
         "clinician_name"
       ],
       "description": "Missing the doctor's name",
-      "elapsed_seconds": 0.106,
+      "elapsed_seconds": 0.088,
       "gates": {
         "codes_ok": true,
         "kind_ok": true,
@@ -39,7 +39,7 @@
         "diagnosis"
       ],
       "description": "Missing the diagnosis field",
-      "elapsed_seconds": 0.071,
+      "elapsed_seconds": 0.042,
       "gates": {
         "codes_ok": true,
         "kind_ok": true,
@@ -56,7 +56,7 @@
         "license_number"
       ],
       "description": "Missing the doctor's license number",
-      "elapsed_seconds": 0.1,
+      "elapsed_seconds": 0.039,
       "gates": {
         "codes_ok": true,
         "kind_ok": true,
@@ -73,7 +73,7 @@
         "unsupported_certificate_purpose"
       ],
       "description": "Laboratory report, not a fit-to-work certificate",
-      "elapsed_seconds": 0.212,
+      "elapsed_seconds": 0.038,
       "gates": {
         "codes_ok": true,
         "kind_ok": true,
@@ -88,7 +88,7 @@
       "case_id": "CERT-INVALID-DATE",
       "codes": [],
       "description": "Unrecognized date format triggers a safe retry",
-      "elapsed_seconds": 0.096,
+      "elapsed_seconds": 0.072,
       "gates": {
         "codes_ok": true,
         "kind_ok": true,
@@ -104,8 +104,8 @@
   "error_count": 0,
   "evaluation_version": "1.0",
   "execution_mode": "live_deterministic_certificate",
-  "max_latency_seconds": 0.465,
-  "mean_latency_seconds": 0.175,
+  "max_latency_seconds": 0.405,
+  "mean_latency_seconds": 0.114,
   "pass_rate": 1.0,
   "privacy": "Synthetic certificates are ephemeral; the report stores outcome names, safe reason codes, pass flags, and timings only.",
   "privacy_pass_rate": 1.0

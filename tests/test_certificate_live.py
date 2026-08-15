@@ -147,6 +147,31 @@ def test_real_extraction_flags_a_missing_required_field(repo, service, records):
     _assert_private(repo, outcome)
 
 
+def test_alternate_labels_and_placeholder_flag_only_the_truly_missing_field(repo, service, records):
+    """A cert with alternate labels and a "[MISSING]" diagnosis placeholder must
+    flag diagnosis alone, not the fields that are actually present."""
+    profile = repo.get_hire_profile("emp-alyssa")
+    lines = (
+        "Medical Certificate",
+        "Student/Patient Name: Alex Jordan",
+        "Date: May 14, 2025",
+        "Attending Physician: Dr. Morgan Ellison, MD",
+        "Physician License Number: EA-9876543",
+        "Diagnosis: [MISSING]",
+    )
+    outcome = service.check(
+        _pdf(lines),
+        filename="private-certificate.pdf",
+        evaluation_date=EVALUATION_DATE,
+        applicability=resolve_certificate_applicability(records, profile),
+        acknowledged=True,
+    )
+    assert outcome.kind == "validation_result"
+    assert outcome.status == ValidationStatus.INCOMPLETE
+    assert outcome.missing_codes == ["diagnosis"]
+    _assert_private(repo, outcome)
+
+
 def test_computed_applicability_gates_the_flow_before_any_extraction(repo, service, records):
     """A narrowed certificate policy that excludes this Hire stops the pipeline."""
     profile = repo.get_hire_profile("emp-alyssa")

@@ -421,8 +421,10 @@ def test_attribute_request_hr_approval_uses_versions(client):
 def synthetic_certificate(*, two_digit_issue=False) -> bytes:
     buffer = BytesIO(); canvas = Canvas(buffer)
     lines = [
-        "Patient Name: Alyssa Reyes", "Consultation Date: 08/08/2026",
-        f"Issue Date: {'08/09/26' if two_digit_issue else '08/09/2026'}",
+        "Patient Name: Alyssa Reyes",
+        "Diagnosis: Acute Upper Respiratory Tract Infection",
+        f"Consultation Date: {'08/08/26' if two_digit_issue else '08/08/2026'}",
+        "Issue Date: 08/09/2026",
         "Absence Start Date: 08/08/2026", "Absence End Date: 08/10/2026",
         "Duration Days: 3", "Clinician Name: Dr. Sample Physician",
         "Facility Name: Synthetic Care Clinic", "License Number: DEMO-123",
