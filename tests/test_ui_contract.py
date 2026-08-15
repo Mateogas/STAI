@@ -29,16 +29,38 @@ def test_dialogue_handles_bounded_agent_failure_without_a_traceback():
 
 
 def test_selected_dialogue_information_hierarchy_is_present():
-    for label in ("Ask AISHA", "Certificate Check", "History", "New Hire", "HR User"):
+    for label in (
+        "Ask AISHA", "Certificate Check", "History", "Alyssa · Hire", "HR · Support"
+    ):
         assert label in SOURCE
     assert "persona picker" not in SOURCE.lower()
+
+
+def test_first_view_states_purpose_scope_and_demo_boundary():
+    for label in (
+        "Reach the right onboarding rule, faster",
+        "Payroll",
+        "Resource Access",
+        "HR Policies",
+        "Fictional BDO educational demo",
+        "No real employee data",
+        "No BDO internal-system access",
+        "Support, not surveillance",
+    ):
+        assert label in SOURCE
+    for question in (
+        "When will I receive my first pay?",
+        "How do I request the systems I need?",
+        "What should I do when I need sick leave?",
+    ):
+        assert question in SOURCE
 
 
 def test_conversation_and_nested_case_thread_contract_is_present():
     for label in (
         "New conversation",
         "Your conversations",
-        "HR ticket thread",
+        "HR support case",
         "Parent sharing is active",
         "Add information to this HR case",
         "Request one missing detail",
@@ -59,6 +81,36 @@ def test_conversation_and_nested_case_thread_contract_is_present():
     assert "ticket_tree_" in SOURCE
 
 
+def test_outcome_consent_and_local_processing_states_are_explicit():
+    for label in (
+        "Handbook answer",
+        "Your detail needed",
+        "Insufficient handbook evidence",
+        "Optional HR support",
+        "Review before sharing",
+        "Nothing has been shared yet",
+        "I reviewed the summary and consent",
+        "Checking the active handbook",
+        "Local CPU processing can take a moment",
+        "Handbook temporarily unavailable",
+        "Reload assistant",
+    ):
+        assert label in SOURCE
+
+
+def test_certificate_privacy_copy_hides_execution_internals():
+    for label in (
+        "Completeness check only",
+        "Processed for this check",
+        "Retained after a successful check",
+        "No result was saved",
+        "Official HR Document Route",
+        "Blank Manual Field Summary",
+    ):
+        assert label in SOURCE
+    assert "outcome.agent_execution" not in SOURCE
+
+
 def test_approved_dialogue_visual_contract_is_preserved():
     for token in (
         "--aisha-navy: #0a2450",
@@ -77,4 +129,4 @@ def test_approved_dialogue_visual_contract_is_preserved():
         "aisha-logo",
     ):
         assert shell_region in SOURCE
-    assert "st.columns([1.05, 3, 1.15]" in SOURCE
+    assert "st.columns([1.1, 3.4, 1.15]" in SOURCE
