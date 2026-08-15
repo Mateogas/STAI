@@ -343,11 +343,26 @@ class AgentResponseDraft(BaseModel):
 class AgentPlanDraft(BaseModel):
     """Small structured planning schema used by local function-calling models."""
 
-    dialogue_act: DialogueAct
-    topic: OnboardingTopic | None = None
-    policy_ids: list[str] = Field(default_factory=list)
-    standalone_query: str = Field(min_length=1, max_length=4000)
-    agent_actions: list[AgentAction] = Field(default_factory=list)
+    dialogue_act: DialogueAct = Field(
+        description="The user's dialogue act, using one listed lowercase enum value."
+    )
+    topic: OnboardingTopic | None = Field(
+        default=None,
+        description="Exactly one policy topic for a question or follow-up; otherwise null.",
+    )
+    policy_ids: list[str] = Field(
+        default_factory=list,
+        description="Only retrieved policy IDs that directly answer the user's goal.",
+    )
+    standalone_query: str = Field(
+        min_length=1,
+        max_length=4000,
+        description="A self-contained restatement of the current user's goal.",
+    )
+    agent_actions: list[AgentAction] = Field(
+        default_factory=list,
+        description="The closed actions taken or requested during this turn.",
+    )
 
     @model_validator(mode="before")
     @classmethod

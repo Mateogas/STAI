@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 
+import httpx
+
 try:
     from langchain.agents import create_agent as _create_agent
     from langchain.agents.middleware import ModelCallLimitMiddleware
@@ -37,6 +39,10 @@ from stai.tools import build_policy_tools
 class AgentUnavailableError(RuntimeError):
     """The required conversational model is not available for a supported turn."""
 
+    def __init__(self, message: str, *, stage: str = "unknown") -> None:
+        super().__init__(message)
+        self.stage = stage
+
 
 @dataclass(frozen=True)
 class AgentRun:
@@ -53,6 +59,20 @@ def build_llm(temperature: float = 0):
         temperature=temperature,
         seed=settings.agent_seed,
         num_ctx=settings.agent_context_window,
+        client_kwargs={"timeout": settings.agent_request_timeout_seconds},
+    )
+
+
+def build_finalizer_llm():
+    from langchain_ollama import ChatOllama
+
+    return ChatOllama(
+        model=settings.finalizer_model or settings.agent_model,
+        base_url=settings.ollama_base_url,
+        temperature=0,
+        seed=settings.agent_seed,
+        num_ctx=settings.agent_context_window,
+        client_kwargs={"timeout": settings.agent_request_timeout_seconds},
     )
 
 
@@ -110,7 +130,13 @@ def run_agent(agent, messages, *, model=None, capture=None) -> AgentTurnDecision
         )
     except GraphRecursionError as exc:
         raise AgentUnavailableError(
-            "agent research loop exceeded its bounded execution budget"
+            "agent research loop exceeded its bounded execution budget",
+            stage="react_loop",
+        ) from exc
+    except httpx.HTTPError as exc:
+        raise AgentUnavailableError(
+            "agent research request failed",
+            stage="react_request",
         ) from exc
     final_model = model or build_llm()
     evidence = []
@@ -129,7 +155,7 @@ def run_agent(agent, messages, *, model=None, capture=None) -> AgentTurnDecision
         for item in result["messages"]
         if type(item).__name__ == "HumanMessage"
     ]
-    synthesis = result["messages"][-1].content
+    synthesis = _message_text(result["messages"][-1].content)
     research_budget_exhausted = (
         isinstance(synthesis, str)
         and synthesis.startswith("Model call limits exceeded:")
@@ -165,7 +191,9 @@ def run_agent(agent, messages, *, model=None, capture=None) -> AgentTurnDecision
             "follow-up must select exactly one topic. policy_ids contains only policies that "
             "directly answer the user's goal, not every retrieved candidate. Contrastive "
             "wording matters: a regular payroll-schedule question is not a first-pay cutoff "
-            "question even if both concepts occur in retrieved pages."
+            "question even if both concepts occur in retrieved pages. standalone_query must "
+            "be a self-contained restatement of the current user goal, and agent_actions must "
+            "contain only the listed closed action values."
         ),
         plan_input,
     )
@@ -182,7 +210,10 @@ def run_agent(agent, messages, *, model=None, capture=None) -> AgentTurnDecision
             {**plan_input, "invalid_plan": plan.model_dump(mode="json")},
         )
         if not _plan_is_coherent(plan):
-            raise AgentUnavailableError("agent plan did not resolve one coherent policy topic")
+            raise AgentUnavailableError(
+                "agent plan did not resolve one coherent policy topic",
+                stage="plan_validation",
+            )
     response_type = _invoke_typed(
         final_model,
         AgentResponseTypeDraft,
@@ -214,9 +245,11 @@ def run_agent(agent, messages, *, model=None, capture=None) -> AgentTurnDecision
             },
         )
         if not _plan_is_coherent(plan) or not _plan_matches_response(plan, response_type):
-            raise AgentUnavailableError("agent plan and response type remained inconsistent")
+            raise AgentUnavailableError(
+                "agent plan and response type remained inconsistent",
+                stage="plan_validation",
+            )
     response_schemas = {
-        "grounded_answer": AgentGroundedDraft,
         "clarification_request": AgentClarificationDraft,
         "abstention": AgentAbstentionDraft,
         "escalation_offer": AgentEscalationDraft,
@@ -240,18 +273,22 @@ def run_agent(agent, messages, *, model=None, capture=None) -> AgentTurnDecision
         "procedure, unclear route, unclear exception, or policy conflict is eligible. Do not "
         "invent case or offer IDs."
     )
-    try:
-        response = _invoke_typed(
-            final_model,
-            response_schemas[response_type],
-            response_instructions,
-            response_input,
-        )
-    except AgentUnavailableError as exc:
-        raise AgentUnavailableError(
-            f"response formatting failed for plan topic={plan.topic} "
-            f"policy_ids={plan.policy_ids} evidence_pages={len(scoped_evidence)}: {exc}"
-        ) from exc
+    if response_type == "grounded_answer":
+        response = _grounded_from_react(synthesis, scoped_evidence, capture)
+    else:
+        try:
+            response = _invoke_typed(
+                final_model,
+                response_schemas[response_type],
+                response_instructions,
+                response_input,
+            )
+        except AgentUnavailableError as exc:
+            raise AgentUnavailableError(
+                f"response formatting failed for plan topic={plan.topic} "
+                f"policy_ids={plan.policy_ids} evidence_pages={len(scoped_evidence)}: {exc}",
+                stage="response_formatting",
+            ) from exc
     if response_type == "grounded_answer" and not _claims_are_exact(
         response, scoped_evidence
     ):
@@ -274,7 +311,10 @@ def run_agent(agent, messages, *, model=None, capture=None) -> AgentTurnDecision
         )
         response = response.model_copy(update={"claims": repaired_claims.claims})
         if not _claims_are_exact(response, scoped_evidence):
-            raise AgentUnavailableError("grounded claims did not copy retrieved evidence exactly")
+            raise AgentUnavailableError(
+                "grounded claims did not copy retrieved evidence exactly",
+                stage="claim_formatting",
+            )
     payload = plan.model_dump(mode="json")
     payload["response_type"] = response_type
     response_payload = response.model_dump(mode="json")
@@ -318,6 +358,72 @@ def _plan_is_coherent(plan: AgentPlanDraft) -> bool:
     )
 
 
+def _message_text(content) -> str:
+    if isinstance(content, str):
+        return content.strip()
+    if isinstance(content, list):
+        return " ".join(
+            block.get("text", "") if isinstance(block, dict) else str(block)
+            for block in content
+        ).strip()
+    return str(content or "").strip()
+
+
+def _grounded_from_react(synthesis: str, evidence: list[dict], capture):
+    """Package the ReAct synthesis with deterministic, captured evidence metadata."""
+    if not synthesis or not evidence:
+        raise AgentUnavailableError(
+            "grounded response lacked synthesis or captured evidence",
+            stage="response_grounding",
+        )
+    metadata = {
+        (item.get("policy_id"), item.get("handbook_version"), item.get("page")): item
+        for item in getattr(capture, "evidence_metadata", [])
+    }
+    citations = []
+    claims = []
+    applicability_values = []
+    for item in evidence:
+        identity = (item["policy_id"], item["handbook_version"], item["page"])
+        citations.append(
+            {
+                "policy_id": item["policy_id"],
+                "handbook_version": item["handbook_version"],
+                "page_start": item["page"],
+            }
+        )
+        claims.append(
+            {
+                "text": item["content"],
+                "citation_indexes": [len(citations) - 1],
+            }
+        )
+        applicability_values.append(
+            metadata.get(identity, {}).get(
+                "applicability", ApplicabilityStatus.APPLIES.value
+            )
+        )
+    if all(value == ApplicabilityStatus.DOES_NOT_APPLY.value for value in applicability_values):
+        applicability = ApplicabilityStatus.DOES_NOT_APPLY
+    elif any(
+        value == ApplicabilityStatus.NEEDS_CLARIFICATION.value
+        for value in applicability_values
+    ):
+        applicability = ApplicabilityStatus.NEEDS_CLARIFICATION
+    else:
+        applicability = ApplicabilityStatus.APPLIES
+    return AgentGroundedDraft.model_validate(
+        {
+            "text": synthesis,
+            "handbook_version": evidence[0]["handbook_version"],
+            "applicability": applicability,
+            "evidence_state": EvidenceState.READY,
+            "citations": citations,
+            "claims": claims,
+        }
+    )
+
+
 def _plan_matches_response(plan: AgentPlanDraft, response_type: str) -> bool:
     if response_type == "grounded_answer":
         return plan.dialogue_act.value in {
@@ -331,48 +437,111 @@ def _plan_matches_response(plan: AgentPlanDraft, response_type: str) -> bool:
     return True
 
 
+def _structured_attempt(result: dict) -> object:
+    """Recover the attempted object from either tool calls or JSON response text."""
+    raw = result.get("raw")
+    calls = getattr(raw, "tool_calls", [])
+    if calls:
+        return calls[0].get("args", {})
+    content = getattr(raw, "content", "")
+    if isinstance(content, list):
+        content = " ".join(
+            block.get("text", "") if isinstance(block, dict) else str(block)
+            for block in content
+        )
+    if not isinstance(content, str):
+        return {}
+    try:
+        start, end = content.index("{"), content.rindex("}") + 1
+        return json.loads(content[start:end])
+    except (ValueError, json.JSONDecodeError):
+        return {}
+
+
+def _parsed_or_none(result: dict, schema):
+    if result.get("parsed") is not None:
+        return result["parsed"]
+    attempted = _structured_attempt(result)
+    try:
+        return schema.model_validate(attempted)
+    except Exception:
+        return None
+
+
 def _invoke_typed(model, schema, instructions: str, payload: dict):
-    """Invoke one small function schema and retry only malformed structured output."""
+    """Invoke one native JSON schema and retry only malformed structured output."""
+    schema_json = schema.model_json_schema()
+    fields = ", ".join(schema_json.get("properties", {}))
+    required = ", ".join(schema_json.get("required", [])) or "none"
+    contract = (
+        "Return exactly one JSON object matching the supplied schema. "
+        f"Include these fields: {fields}. Required fields: {required}."
+    )
     finalizer = model.with_structured_output(
         schema,
-        method="function_calling",
+        method="json_schema",
         include_raw=True,
     )
     messages = [
-        ("system", instructions),
+        ("system", f"{instructions} {contract}"),
         ("human", json.dumps(payload, default=str)),
     ]
-    finalized = finalizer.invoke(messages)
-    if finalized.get("parsed") is not None:
-        return finalized["parsed"]
-    calls = getattr(finalized.get("raw"), "tool_calls", [])
-    attempted = calls[0]["args"] if calls else {}
-    repaired = finalizer.invoke(
-        [
-            *messages,
-            (
-                "human",
-                "Repair the malformed structured result. Return every required field. "
-                f"Validation error: {finalized.get('parsing_error')}. "
-                f"Invalid attempt: {json.dumps(attempted, default=str)}",
-            ),
-        ]
-    )
-    if repaired.get("parsed") is None:
+    try:
+        finalized = finalizer.invoke(messages)
+    except Exception as exc:
         raise AgentUnavailableError(
-            f"agent returned invalid {schema.__name__}: {repaired.get('parsing_error')}"
+            f"structured request failed for {schema.__name__}",
+            stage=f"structured_request:{schema.__name__}",
+        ) from exc
+    parsed = _parsed_or_none(finalized, schema)
+    if parsed is not None:
+        return parsed
+    attempted = _structured_attempt(finalized)
+    try:
+        repaired = finalizer.invoke(
+            [
+                *messages,
+                (
+                    "human",
+                    "Repair the malformed structured result. Return every required field. "
+                    f"Validation error: {finalized.get('parsing_error')}. "
+                    f"Invalid attempt: {json.dumps(attempted, default=str)}",
+                ),
+            ]
         )
-    return repaired["parsed"]
+    except Exception as exc:
+        raise AgentUnavailableError(
+            f"structured repair request failed for {schema.__name__}",
+            stage=f"structured_request:{schema.__name__}",
+        ) from exc
+    parsed = _parsed_or_none(repaired, schema)
+    if parsed is None:
+        raise AgentUnavailableError(
+            f"agent returned invalid {schema.__name__}",
+            stage=f"structured_output:{schema.__name__}",
+        )
+    return parsed
 
 
 class LocalReactRunner:
     """Required production ReAct adapter; it never substitutes a local answer path."""
 
-    def __init__(self, repo: Repo, records, handbook_index, *, probe_timeout: float = 0.25) -> None:
+    def __init__(
+        self,
+        repo: Repo,
+        records,
+        handbook_index,
+        *,
+        probe_timeout: float | None = None,
+    ) -> None:
         self.repo = repo
         self.records = records
         self.handbook_index = handbook_index
-        self.probe_timeout = probe_timeout
+        self.probe_timeout = (
+            settings.agent_probe_timeout_seconds
+            if probe_timeout is None
+            else probe_timeout
+        )
 
     def __call__(
         self,
@@ -382,9 +551,11 @@ class LocalReactRunner:
     ) -> AgentRun:
         if not self.available():
             raise AgentUnavailableError(
-                f"required Ollama model {settings.agent_model!r} is unavailable"
+                f"required Ollama model {settings.agent_model!r} is unavailable",
+                stage="model_availability",
             )
         model = build_llm()
+        finalizer_model = build_finalizer_llm()
         graph, capture = build_policy_agent(
             profile,
             self.repo,
@@ -398,7 +569,12 @@ class LocalReactRunner:
             for item in messages
         )
         return AgentRun(
-            run_agent(graph, langchain_messages, model=model, capture=capture),
+            run_agent(
+                graph,
+                langchain_messages,
+                model=finalizer_model,
+                capture=capture,
+            ),
             capture,
         )
 
@@ -417,7 +593,10 @@ class LocalReactRunner:
                 str(item.get("name", "")).split(":latest")[0]
                 for item in payload.get("models", [])
             }
-            configured = settings.agent_model.split(":latest")[0]
-            return configured in names
+            configured = {
+                settings.agent_model.split(":latest")[0],
+                (settings.finalizer_model or settings.agent_model).split(":latest")[0],
+            }
+            return configured <= names
         except Exception:
             return False

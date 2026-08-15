@@ -28,6 +28,9 @@ class Settings(BaseSettings):
 
     # --- Ollama models ---
     agent_model: str = "llama3.1:8b"          # must support native tool calling
+    # Optional small model for typed plan/response schemas. Defaults to the
+    # agent model when unset, but can reduce latency on constrained hardware.
+    finalizer_model: str | None = None
     # Few-shot classifier. Keep separately configurable for demo hardware.
     # scored 14/15 on the topic battery where llama3.2:1b scored 8/15
     # (over-blocked benefits jargon); set STAI_GUARDRAIL_MODEL=llama3.2:1b
@@ -37,7 +40,8 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
     agent_temperature: float = 0.0
     agent_seed: int = 20260810
-    agent_probe_timeout_seconds: float = 0.25
+    agent_probe_timeout_seconds: float = 3.0
+    agent_request_timeout_seconds: float = 90.0
     # The graph-level cap must leave room for middleware nodes as well as the
     # model/tool loop. The model-call cap is the user-facing loop boundary.
     agent_recursion_limit: int = 32

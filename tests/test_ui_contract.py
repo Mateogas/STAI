@@ -23,8 +23,9 @@ def test_ui_never_exposes_retrieval_or_medical_internals():
 
 
 def test_dialogue_handles_bounded_agent_failure_without_a_traceback():
-    assert "except AgentUnavailableError:" in SOURCE
+    assert "except AgentUnavailableError as exc:" in SOURCE
     assert "AISHA could not safely complete this answer" in SOURCE
+    assert "AISHA policy turn failed safely at stage=%s" in SOURCE
 
 
 def test_selected_dialogue_information_hierarchy_is_present():

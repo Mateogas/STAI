@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date
 from html import escape
 import json
+import logging
 
 import streamlit as st
 
@@ -16,6 +17,9 @@ from stai.retriever import ChromaHandbookIndex
 from stai.config import settings
 from stai.service import AishaService
 from stai.state import Repo
+
+
+logger = logging.getLogger(__name__)
 
 
 DEMO_DATE = date(2026, 8, 10)
@@ -467,7 +471,8 @@ def ask_aisha(service: AishaService) -> None:
     try:
         with st.status("Checking the active handbook…", expanded=False):
             response = service.send_message(conversation_id, prompt)
-    except AgentUnavailableError:
+    except AgentUnavailableError as exc:
+        logger.error("AISHA policy turn failed safely at stage=%s", exc.stage)
         st.error(
             "AISHA could not safely complete this answer. No policy answer was "
             "saved. Please try again; if the issue continues, check the Ollama "

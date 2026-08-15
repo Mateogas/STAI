@@ -106,7 +106,10 @@ class PolicyTurnEngine:
             if self.agent_runner is None:
                 from stai.agent import AgentUnavailableError
 
-                raise AgentUnavailableError("no ReAct runner is configured")
+                raise AgentUnavailableError(
+                    "no ReAct runner is configured",
+                    stage="runner_configuration",
+                )
             runtime_context = self._runtime_context(
                 conversation,
                 profile,

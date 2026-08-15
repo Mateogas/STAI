@@ -178,9 +178,12 @@ instance with a local persistent volume is the supported demo topology.
 2. Pull all required models on the Ollama host:
    `llama3.1:8b`, `qwen2.5:3b-instruct`, and `nomic-embed-text`.
 3. Set `STAI_OLLAMA_BASE_URL` to an address reachable from the application.
-   `STAI_AGENT_RECURSION_LIMIT=32`, `STAI_AGENT_MODEL_CALL_LIMIT=6`, and
-   `STAI_AGENT_CONTEXT_WINDOW=8192` are the defaults; declare them explicitly
-   if production uses an environment allowlist. Remove obsolete
+   `STAI_FINALIZER_MODEL` may name a smaller schema-capable model while leaving
+   the main ReAct model on `STAI_AGENT_MODEL`. `STAI_AGENT_RECURSION_LIMIT=32`,
+   `STAI_AGENT_MODEL_CALL_LIMIT=6`, `STAI_AGENT_CONTEXT_WINDOW=8192`,
+   `STAI_AGENT_PROBE_TIMEOUT_SECONDS=3`, and
+   `STAI_AGENT_REQUEST_TIMEOUT_SECONDS=90` are the defaults; declare them
+   explicitly if production uses an environment allowlist. Remove obsolete
    `STAI_AGENT_ENABLED` configuration.
 4. Run `uv run python -m stai.ingestion` against the production persistent
    volume. The command stages and verifies the collection before atomically

@@ -97,6 +97,7 @@ def _default_llm():
         base_url=settings.ollama_base_url,
         temperature=0,
         format="json",
+        client_kwargs={"timeout": settings.agent_request_timeout_seconds},
     )
 
 
@@ -115,13 +116,30 @@ def classify_input(message: str, llm=None) -> GuardrailVerdict:
 class LocalInputClassifier:
     """Ollama-backed classifier adapter with a fast, explicit fail-open probe."""
 
-    def __init__(self, *, probe_timeout: float = 0.25) -> None:
-        self.probe_timeout = probe_timeout
+    def __init__(self, *, probe_timeout: float | None = None) -> None:
+        self.probe_timeout = (
+            settings.agent_probe_timeout_seconds
+            if probe_timeout is None
+            else probe_timeout
+        )
 
     def __call__(self, message: str) -> GuardrailVerdict:
         if not self.available():
-            raise RuntimeError("required input-classifier model is unavailable")
-        return classify_input(message)
+            from stai.agent import AgentUnavailableError
+
+            raise AgentUnavailableError(
+                "required input-classifier model is unavailable",
+                stage="classifier_availability",
+            )
+        try:
+            return classify_input(message)
+        except Exception as exc:
+            from stai.agent import AgentUnavailableError
+
+            raise AgentUnavailableError(
+                "input classifier request failed",
+                stage="classifier_request",
+            ) from exc
 
     def available(self) -> bool:
         import httpx

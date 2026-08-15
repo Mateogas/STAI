@@ -179,6 +179,12 @@ def hybrid_retrieve(
         if "payroll" in query_tokens and "details" in query_tokens and "payroll details" in record.title.lower():
             lexical += 12.0
         if (
+            "payroll" in query_tokens
+            and query_tokens & {"view", "download", "see"}
+            and "payslip" in subarea_tokens
+        ):
+            lexical += 16.0
+        if (
             query_tokens & {"clothes", "clothing", "attire", "uniform", "dress"}
             and "dress" in subarea_tokens
         ):

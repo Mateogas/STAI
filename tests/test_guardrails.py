@@ -2,7 +2,14 @@ from types import SimpleNamespace
 
 import pytest
 
-from stai.guardrails import classify_input, parse_verdict, redact_pii, validate_policy_output
+from stai.config import settings
+from stai.guardrails import (
+    LocalInputClassifier,
+    classify_input,
+    parse_verdict,
+    redact_pii,
+    validate_policy_output,
+)
 
 
 class FakeLLM:
@@ -22,6 +29,11 @@ def test_classifier_failure_is_surfaced_without_local_fallback():
         def invoke(self, _): raise ConnectionError("offline")
     with pytest.raises(ConnectionError, match="offline"):
         classify_input("PAY-001", llm=Boom())
+
+
+def test_classifier_uses_configured_remote_probe_timeout(monkeypatch):
+    monkeypatch.setattr(settings, "agent_probe_timeout_seconds", 2.5)
+    assert LocalInputClassifier().probe_timeout == 2.5
 
 
 def test_malformed_or_unsupported_model_output_fails_closed():

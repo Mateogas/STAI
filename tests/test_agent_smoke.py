@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from types import SimpleNamespace
 
 import pytest
 
@@ -11,11 +12,19 @@ from langchain_core.messages import AIMessage, ToolMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
 from langgraph.errors import GraphRecursionError
 
-from stai.agent import AgentUnavailableError, build_policy_agent, run_agent
+from stai.agent import (
+    AgentUnavailableError,
+    LocalReactRunner,
+    _grounded_from_react,
+    _invoke_typed,
+    build_finalizer_llm,
+    build_policy_agent,
+    run_agent,
+)
 from stai.config import settings
 from stai.guardrails import validate_policy_output
 from stai.handbook import build_handbook
-from stai.models import HireProfile
+from stai.models import AgentPlanDraft, HireProfile
 from stai.retriever import load_page_records
 
 
@@ -112,3 +121,117 @@ def test_run_agent_maps_graph_recursion_to_safe_domain_error(monkeypatch):
     with pytest.raises(AgentUnavailableError, match="bounded execution budget"):
         run_agent(graph, [("user", "office clothing")], model=object())
     assert graph.recursion_limit >= settings.agent_model_call_limit * 4 + 8
+
+
+def test_typed_finalizer_uses_native_json_schema_and_repairs_missing_fields():
+    class StubStructuredModel:
+        def __init__(self):
+            self.method = None
+            self.calls = 0
+
+        def with_structured_output(self, _schema, *, method, include_raw):
+            self.method = method
+            assert include_raw is True
+            return self
+
+        def invoke(self, _messages):
+            self.calls += 1
+            if self.calls == 1:
+                content = '{"dialogue_act":"question","topic":"payroll","policy_ids":["PAY-001"]}'
+                error = ValueError("standalone_query missing")
+            else:
+                content = json.dumps(
+                    {
+                        "dialogue_act": "question",
+                        "topic": "payroll",
+                        "policy_ids": ["PAY-001"],
+                        "standalone_query": "How to view payroll",
+                        "agent_actions": ["retrieve_policy"],
+                    }
+                )
+                error = None
+            return {
+                "parsed": None,
+                "raw": AIMessage(content=f"```json\n{content}\n```"),
+                "parsing_error": error,
+            }
+
+    model = StubStructuredModel()
+    plan = _invoke_typed(
+        model,
+        AgentPlanDraft,
+        "Return the payroll plan.",
+        {"conversation_messages": ["How to view payroll"]},
+    )
+
+    assert model.method == "json_schema"
+    assert model.calls == 2
+    assert plan.standalone_query == "How to view payroll"
+    assert plan.policy_ids == ["PAY-001"]
+
+
+def test_typed_finalizer_failure_reports_a_safe_stage():
+    class InvalidStructuredModel:
+        def with_structured_output(self, _schema, *, method, include_raw):
+            assert method == "json_schema" and include_raw is True
+            return self
+
+        def invoke(self, _messages):
+            return {
+                "parsed": None,
+                "raw": AIMessage(content="{}"),
+                "parsing_error": None,
+            }
+
+    with pytest.raises(AgentUnavailableError) as failure:
+        _invoke_typed(
+            InvalidStructuredModel(),
+            AgentPlanDraft,
+            "Return the payroll plan.",
+            {"conversation_messages": ["How to view payroll"]},
+        )
+    assert failure.value.stage == "structured_output:AgentPlanDraft"
+
+
+def test_finalizer_model_and_timeouts_are_independently_configurable(monkeypatch):
+    monkeypatch.setattr(settings, "agent_model", "gemma4:12b")
+    monkeypatch.setattr(settings, "finalizer_model", "gemma4:e4b")
+    monkeypatch.setattr(settings, "agent_request_timeout_seconds", 47.0)
+    monkeypatch.setattr(settings, "agent_probe_timeout_seconds", 2.5)
+
+    finalizer = build_finalizer_llm()
+    runner = LocalReactRunner(object(), [], object())
+
+    assert finalizer.model == "gemma4:e4b"
+    assert finalizer.client_kwargs == {"timeout": 47.0}
+    assert runner.probe_timeout == 2.5
+
+
+def test_grounded_response_reuses_react_synthesis_and_captured_evidence():
+    evidence = [
+        {
+            "policy_id": "PAY-002",
+            "handbook_version": "1.1",
+            "page": 12,
+            "content": "Payslips are available in the fictional portal.",
+        }
+    ]
+    capture = SimpleNamespace(
+        evidence_metadata=[
+            {
+                "policy_id": "PAY-002",
+                "handbook_version": "1.1",
+                "page": 12,
+                "applicability": "applies",
+            }
+        ]
+    )
+
+    response = _grounded_from_react(
+        "Open the fictional Employee Self-Service Portal.", evidence, capture
+    )
+
+    assert response.text == "Open the fictional Employee Self-Service Portal."
+    assert response.citations[0].policy_id == "PAY-002"
+    assert response.claims[0].text == evidence[0]["content"]
+    assert response.claims[0].citation_indexes == [0]

@@ -65,6 +65,17 @@ def test_clothing_paraphrase_finds_the_dress_policy_first(tmp_path: Path) -> Non
     assert result.evidence[0].applicability == ApplicabilityStatus.DOES_NOT_APPLY
 
 
+def test_view_payroll_paraphrase_finds_payslip_access_first(tmp_path: Path) -> None:
+    records = load_page_records(build_handbook(tmp_path).rag_pages_path)
+    result = hybrid_retrieve(
+        "How to view payroll",
+        HireProfile.alyssa(),
+        records,
+    )
+    assert result.outcome == RetrievalOutcome.READY
+    assert result.evidence[0].policy_id == "PAY-002"
+
+
 def test_manifest_mismatch_is_integrity_failure(tmp_path: Path) -> None:
     artifacts = build_handbook(tmp_path)
     rows = [json.loads(line) for line in artifacts.rag_pages_path.read_text().splitlines()]
