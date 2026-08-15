@@ -250,6 +250,34 @@ def validate_certificate_fields(
     return DeterministicValidation(status=status, missing_codes=missing, inconsistency_codes=inconsistent, warning_codes=["retry_used"] if retry_used else [])
 
 
+CERTIFICATE_POLICY_SUBAREA = "medical_certificate"
+
+
+def resolve_certificate_applicability(records, profile) -> ApplicabilityStatus:
+    """Resolve whether the governing certificate policy applies to this Hire.
+
+    Finds the active policy page that governs medical certificates (by subarea,
+    not a hardcoded ID) and evaluates its handbook applicability rules against
+    the confirmed Hire Profile. Fails closed to human clarification when no
+    governing policy is published.
+    """
+    from stai.policy import evaluate_applicability
+
+    policy_record = next(
+        (
+            record
+            for record in records
+            if record.status == "active"
+            and record.page_kind == "policy"
+            and CERTIFICATE_POLICY_SUBAREA in (record.subareas or [])
+        ),
+        None,
+    )
+    if policy_record is None:
+        return ApplicabilityStatus.NEEDS_CLARIFICATION
+    return evaluate_applicability(policy_record, profile).status
+
+
 class MedicalCheckService:
     def __init__(
         self,

@@ -61,6 +61,12 @@ class AishaService:
             raise KeyError("unknown Hire")
         return self.repo.create_policy_conversation(employee_id, simulated_date)
 
+    def certificate_applicability(self, profile):
+        """Resolve certificate-policy applicability for a Hire from the handbook."""
+        from stai.medical import resolve_certificate_applicability
+
+        return resolve_certificate_applicability(self.records, profile)
+
     def list_messages(self, conversation_id: str) -> list[dict]:
         return self.repo.list_policy_messages(conversation_id)
 

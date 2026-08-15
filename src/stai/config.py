@@ -53,6 +53,10 @@ class Settings(BaseSettings):
     agent_recursion_limit: int = 32
     agent_model_call_limit: int = 6
     agent_context_window: int = 8192
+    # End-to-end wall-clock ceiling for one live policy turn. Enforced only by
+    # the opt-in live suite (tests/test_live_policy_qa.py) and the live
+    # evaluator; tune per demo hardware/endpoint via STAI_LIVE_TURN_BUDGET_SECONDS.
+    live_turn_budget_seconds: float = 30.0
 
     # --- paths ---
     chroma_dir: Path = _DATA / "chroma"

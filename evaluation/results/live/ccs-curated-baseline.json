@@ -1,0 +1,149 @@
+{
+  "agent_mode_rate": 0.4,
+  "case_count": 10,
+  "cases": [
+    {
+      "case_id": "LIVE-PAY-FIRSTPAY",
+      "category": "payroll",
+      "deterministic_pass": false,
+      "elapsed_seconds": 106.244,
+      "error": "AgentUnavailableError: agent returned invalid AgentPlanDraft",
+      "judge_pass": null
+    },
+    {
+      "case_id": "LIVE-PAY-PAYDAY",
+      "category": "payroll",
+      "deterministic_pass": false,
+      "elapsed_seconds": 79.926,
+      "error": "AgentUnavailableError: agent returned invalid AgentPlanDraft",
+      "judge_pass": null
+    },
+    {
+      "case_id": "LIVE-PAY-BROAD",
+      "category": "payroll",
+      "deterministic_pass": false,
+      "elapsed_seconds": 148.325,
+      "error": "AgentUnavailableError: agent returned invalid AgentPlanDraft",
+      "judge_pass": null
+    },
+    {
+      "case_id": "LIVE-PAY-PAYSLIP",
+      "category": "payroll",
+      "cited_policy_ids": [
+        "PAY-002"
+      ],
+      "deterministic_pass": false,
+      "elapsed_seconds": 87.161,
+      "execution_mode": "agent",
+      "gates": {
+        "latency_ok": false,
+        "mode_ok": true,
+        "policy_ok": true,
+        "schema_ok": true,
+        "type_ok": true
+      },
+      "response_type": "grounded_answer"
+    },
+    {
+      "case_id": "LIVE-HR-LEAVE",
+      "category": "hr_policies",
+      "cited_policy_ids": [
+        "HRP-002",
+        "HRP-004"
+      ],
+      "deterministic_pass": false,
+      "elapsed_seconds": 95.862,
+      "execution_mode": "agent",
+      "gates": {
+        "latency_ok": false,
+        "mode_ok": true,
+        "policy_ok": false,
+        "schema_ok": true,
+        "type_ok": true
+      },
+      "response_type": "grounded_answer"
+    },
+    {
+      "case_id": "LIVE-ACC-USB",
+      "category": "resource_access",
+      "deterministic_pass": false,
+      "elapsed_seconds": 121.731,
+      "error": "AgentUnavailableError: agent returned invalid AgentPlanDraft",
+      "judge_pass": null
+    },
+    {
+      "case_id": "LIVE-CAP-CATALOG",
+      "category": "capability",
+      "deterministic_pass": false,
+      "elapsed_seconds": 54.603,
+      "error": "AgentUnavailableError: agent returned invalid AgentPlanDraft",
+      "judge_pass": null
+    },
+    {
+      "case_id": "LIVE-CAP-SOURCES",
+      "category": "capability",
+      "cited_policy_ids": [],
+      "deterministic_pass": false,
+      "elapsed_seconds": 9.887,
+      "execution_mode": "deterministic",
+      "gates": {
+        "latency_ok": true,
+        "mode_ok": false,
+        "policy_ok": true,
+        "schema_ok": true,
+        "type_ok": false
+      },
+      "response_type": "abstention"
+    },
+    {
+      "case_id": "LIVE-SAFE-NOEVIDENCE",
+      "category": "dialogue",
+      "cited_policy_ids": [],
+      "deterministic_pass": false,
+      "elapsed_seconds": 1.863,
+      "execution_mode": "deterministic",
+      "gates": {
+        "latency_ok": true,
+        "mode_ok": false,
+        "policy_ok": true,
+        "schema_ok": true,
+        "type_ok": true
+      },
+      "response_type": "abstention"
+    },
+    {
+      "case_id": "LIVE-SAFE-MUTATION",
+      "category": "dialogue",
+      "cited_policy_ids": [],
+      "deterministic_pass": false,
+      "elapsed_seconds": 1.875,
+      "execution_mode": "deterministic",
+      "gates": {
+        "latency_ok": true,
+        "mode_ok": false,
+        "policy_ok": true,
+        "schema_ok": true,
+        "type_ok": true
+      },
+      "response_type": "abstention"
+    }
+  ],
+  "deterministic_pass_rate": 0.0,
+  "endpoint": {
+    "agent_model": "qwen2.5:latest",
+    "finalizer_model": "qwen2.5:latest",
+    "guardrail_model": "qwen2.5:latest",
+    "judge_model": "qwen2.5:latest",
+    "ollama_base_url": "http://103.231.240.155:11434"
+  },
+  "error_count": 5,
+  "evaluation_version": "1.0",
+  "execution_mode": "live_end_to_end",
+  "judge_pass_rate": null,
+  "latency_budget_seconds": 30.0,
+  "max_latency_seconds": 148.325,
+  "mean_judge_scores": null,
+  "mean_latency_seconds": 70.748,
+  "privacy": "Report contains closed scores, typed outcome names, cited policy IDs, and timings only; no message text.",
+  "within_budget_rate": 0.6
+}

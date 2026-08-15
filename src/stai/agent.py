@@ -169,9 +169,12 @@ def run_agent(agent, messages, *, model=None, capture=None) -> AgentTurnDecision
         "retrieved_evidence": evidence,
         "research_budget_exhausted": research_budget_exhausted,
     }
+    retrieved_policy_ids = sorted({item["policy_id"] for item in evidence})
     plan_input = {
+        "latest_user_question": user_messages[-1] if user_messages else "",
         "conversation_messages": user_messages,
         "react_synthesis": synthesis,
+        "retrieved_policy_ids": retrieved_policy_ids,
         "retrieved_evidence_identities": [
             {key: item[key] for key in ("policy_id", "handbook_version", "page")}
             for item in evidence
@@ -181,17 +184,20 @@ def run_agent(agent, messages, *, model=None, capture=None) -> AgentTurnDecision
         final_model,
         AgentPlanDraft,
         (
-            "Return the typed intent plan for the completed AISHA ReAct turn. Infer intent "
-            "from the full conversation, not keywords. dialogue_act is the user's intent: "
-            "question, follow_up, clarification, help_request, escalation_request, consent, "
-            "action_status, capability_discovery, greeting, or unsupported. Use lowercase "
-            "enum values and only listed evidence identities. Every policy question or "
-            "follow-up must select exactly one topic. policy_ids contains only policies that "
-            "directly answer the user's goal, not every retrieved candidate. Contrastive "
-            "wording matters: a regular payroll-schedule question is not a first-pay cutoff "
-            "question even if both concepts occur in retrieved pages. standalone_query must "
-            "be a self-contained restatement of the current user goal, and agent_actions must "
-            "contain only the listed closed action values."
+            "Return ONE JSON object that is the typed intent plan for the completed AISHA "
+            "ReAct turn. Use EXACTLY these keys and no others: dialogue_act, topic, policy_ids, "
+            "standalone_query, agent_actions. dialogue_act is the user's intent and must be one "
+            "of: question, follow_up, clarification, help_request, escalation_request, consent, "
+            "action_status, capability_discovery, greeting, unsupported. topic must be one of: "
+            "payroll, resource_access, hr_policies, or null when it is not a policy question. "
+            "policy_ids must be a subset of retrieved_policy_ids that directly answer the user's "
+            "goal, not every retrieved candidate; contrastive wording matters, so a regular "
+            "payroll-schedule question is not a first-pay cutoff question even if both concepts "
+            "appear. standalone_query must restate the latest_user_question as one full "
+            "sentence. agent_actions may be []. "
+            'Example: {"dialogue_act":"question","topic":"payroll","policy_ids":["PAY-001"],'
+            '"standalone_query":"When will I receive my first pay?",'
+            '"agent_actions":["retrieve_policy"]}'
         ),
         plan_input,
     )
@@ -212,18 +218,34 @@ def run_agent(agent, messages, *, model=None, capture=None) -> AgentTurnDecision
                 "agent plan did not resolve one coherent policy topic",
                 stage="plan_validation",
             )
-    response_type = _invoke_typed(
-        final_model,
-        AgentResponseTypeDraft,
-        (
-            "Choose exactly one response shape for the completed AISHA turn: grounded_answer "
-            "when evidence answers it; clarification_request when one prerequisite or intent "
-            "is ambiguous; abstention when unsupported or evidence is absent; escalation_offer "
-            "only for cited partial evidence with a material gap; case_action only for consent "
-            "or status of an existing offer/case."
-        ),
-        {**plan_input, "typed_plan": plan.model_dump(mode="json")},
-    ).response_type
+    if (
+        plan.dialogue_act.value in {"question", "follow_up"}
+        and plan.policy_ids
+        and _has_applicable_evidence(capture, plan.policy_ids)
+    ):
+        # A direct, on-topic question with applicable evidence for the resolved
+        # policy grounds deterministically. This removes a slow, failure-prone
+        # model round; every downstream claim/citation/topic gate still applies.
+        response_type = "grounded_answer"
+    else:
+        response_type = _invoke_typed(
+            final_model,
+            AgentResponseTypeDraft,
+            (
+                "Choose exactly one response shape for the completed AISHA turn. Prefer "
+                "grounded_answer whenever retrieved_evidence_identities contains at least one "
+                "applicable policy that addresses the question; a synthesis that also suggests "
+                "confirming details with a support team is still a grounded_answer, not a "
+                "clarification. Use clarification_request only when a Hire attribute that is "
+                "genuinely required to answer is unknown; the confirmed Hire Profile is "
+                "authoritative, so never ask the user to restate an attribute it already "
+                "contains. Use abstention when no applicable evidence was retrieved or the "
+                "topic is unsupported; escalation_offer only for cited partial evidence with a "
+                "material missing procedure, route, exception, or conflict; case_action only "
+                "for consent or status of an existing offer/case."
+            ),
+            {**plan_input, "typed_plan": plan.model_dump(mode="json")},
+        ).response_type
     if not _plan_matches_response(plan, response_type):
         plan = _invoke_typed(
             final_model,
@@ -328,6 +350,16 @@ def run_agent(agent, messages, *, model=None, capture=None) -> AgentTurnDecision
         )
     payload.update(response_payload)
     return AgentTurnDecision.model_validate(payload)
+
+
+def _has_applicable_evidence(capture, policy_ids) -> bool:
+    """True when captured evidence for a resolved policy applies to this Hire."""
+    wanted = set(policy_ids)
+    return any(
+        meta.get("policy_id") in wanted
+        and meta.get("applicability") == ApplicabilityStatus.APPLIES.value
+        for meta in getattr(capture, "evidence_metadata", [])
+    )
 
 
 def _claims_are_exact(response, evidence: list[dict]) -> bool:

@@ -8,8 +8,14 @@ from stai.state import Repo
 
 
 @pytest.fixture(autouse=True)
-def offline_react_runtime(monkeypatch, tmp_path):
-    """Keep tests isolated while production requires Ollama and active Chroma."""
+def offline_react_runtime(monkeypatch, tmp_path, request):
+    """Keep tests isolated while production requires Ollama and active Chroma.
+
+    Tests marked ``live`` opt out of this offline seam entirely: they build a
+    real service against a real Ollama endpoint and manage their own isolation.
+    """
+    if request.node.get_closest_marker("live"):
+        return
     from tests.fakes import OfflineReactRunner
     from stai.models import GuardrailVerdict
     from stai.retriever import InMemoryHandbookIndex

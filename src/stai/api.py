@@ -19,7 +19,7 @@ from pydantic import BaseModel, Field
 from stai.config import settings
 from stai.handbook import ACTIVE_HANDBOOK_VERSION, build_handbook
 from stai.medical import preflight_upload
-from stai.models import ApplicabilityStatus, ResolutionScope, ResolutionType
+from stai.models import ResolutionScope, ResolutionType
 from stai.retriever import load_page_records
 from stai.service import AishaService
 from stai.state import IdempotencyConflict, MedicalContentRejected, Repo
@@ -582,7 +582,8 @@ async def certificate_check(employee_id: str, request: Request, evaluation_date:
     replay = _check_replay(repo, scope, key, canonical, request)
     if isinstance(replay, JSONResponse): return replay
     if replay: return success(request, _public_validation_result(repo.get_validation_result(replay["target_resource_id"])))
-    outcome = service.medical.check(data, filename=file.filename or "upload", evaluation_date=evaluation_date, applicability=ApplicabilityStatus.APPLIES, acknowledged=acknowledged)
+    profile = repo.get_hire_profile(employee_id)
+    outcome = service.medical.check(data, filename=file.filename or "upload", evaluation_date=evaluation_date, applicability=service.certificate_applicability(profile), acknowledged=acknowledged)
     if outcome.kind == "upload_rejection": return _upload_error(request, outcome.code or "upload_rejection")
     if outcome.kind == "check_failure": return safe_error(request, 500, "certificate_check_failed", "Local certificate processing failed safely.", retryable=True)
     if outcome.kind == "privacy_acknowledgement_required": return safe_error(request, 422, "privacy_acknowledgement_required", "Acknowledge the local result-only privacy notice before processing.")
@@ -604,7 +605,8 @@ async def retry_certificate_check(employee_id: str, request: Request, retry_toke
     if replay: return success(request, _public_validation_result(repo.get_validation_result(replay["target_resource_id"])))
     try: repo.consume_retry_session(retry_token)
     except KeyError: return safe_error(request, 409, "retry_token_invalid_or_expired", "The certificate retry token is invalid or expired.")
-    outcome = service.medical.check(data, filename=file.filename or "upload", evaluation_date=evaluation_date, applicability=ApplicabilityStatus.APPLIES, acknowledged=True, retry_used=True)
+    profile = repo.get_hire_profile(employee_id)
+    outcome = service.medical.check(data, filename=file.filename or "upload", evaluation_date=evaluation_date, applicability=service.certificate_applicability(profile), acknowledged=True, retry_used=True)
     if outcome.kind == "check_failure": return safe_error(request, 500, "certificate_check_failed", "Local certificate processing failed safely.", retryable=True)
     if outcome.validation_id:
         _save_replay(repo, scope, key, canonical, "validation_result", outcome.validation_id, outcome.version, 200, outcome.kind)

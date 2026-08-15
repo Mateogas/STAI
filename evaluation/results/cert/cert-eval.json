@@ -1,0 +1,113 @@
+{
+  "case_count": 6,
+  "cases": [
+    {
+      "case_id": "CERT-COMPLETE",
+      "codes": [],
+      "description": "A complete, consistent certificate",
+      "elapsed_seconds": 0.428,
+      "gates": {
+        "codes_ok": true,
+        "kind_ok": true,
+        "privacy_ok": true,
+        "status_ok": true
+      },
+      "outcome_kind": "validation_result",
+      "passed": true,
+      "status": "complete"
+    },
+    {
+      "case_id": "CERT-MISSING-CLINICIAN",
+      "codes": [
+        "clinician_name"
+      ],
+      "description": "Missing the clinician name",
+      "elapsed_seconds": 0.105,
+      "gates": {
+        "codes_ok": true,
+        "kind_ok": true,
+        "privacy_ok": true,
+        "status_ok": true
+      },
+      "outcome_kind": "validation_result",
+      "passed": true,
+      "status": "incomplete"
+    },
+    {
+      "case_id": "CERT-PATIENT-MISMATCH",
+      "codes": [
+        "patient_name_mismatch"
+      ],
+      "description": "Patient name does not match the Hire",
+      "elapsed_seconds": 0.073,
+      "gates": {
+        "codes_ok": true,
+        "kind_ok": true,
+        "privacy_ok": true,
+        "status_ok": true
+      },
+      "outcome_kind": "validation_result",
+      "passed": true,
+      "status": "incomplete"
+    },
+    {
+      "case_id": "CERT-ABSENCE-REVERSED",
+      "codes": [
+        "absence_range_reversed",
+        "duration_range_mismatch"
+      ],
+      "description": "Absence end precedes absence start",
+      "elapsed_seconds": 0.064,
+      "gates": {
+        "codes_ok": true,
+        "kind_ok": true,
+        "privacy_ok": true,
+        "status_ok": true
+      },
+      "outcome_kind": "validation_result",
+      "passed": true,
+      "status": "incomplete"
+    },
+    {
+      "case_id": "CERT-UNSUPPORTED-PURPOSE",
+      "codes": [
+        "unsupported_certificate_purpose"
+      ],
+      "description": "Laboratory report, not a fit-to-work certificate",
+      "elapsed_seconds": 0.048,
+      "gates": {
+        "codes_ok": true,
+        "kind_ok": true,
+        "privacy_ok": true,
+        "status_ok": true
+      },
+      "outcome_kind": "validation_result",
+      "passed": true,
+      "status": "needs_human_review"
+    },
+    {
+      "case_id": "CERT-INVALID-DATE",
+      "codes": [],
+      "description": "Unrecognized date format triggers a safe retry",
+      "elapsed_seconds": 0.124,
+      "gates": {
+        "codes_ok": true,
+        "kind_ok": true,
+        "privacy_ok": true,
+        "status_ok": true
+      },
+      "outcome_kind": "retry_required",
+      "passed": true,
+      "status": null
+    }
+  ],
+  "certificate_applicability": "applies",
+  "error_count": 0,
+  "evaluation_version": "1.0",
+  "execution_mode": "live_deterministic_certificate",
+  "max_latency_seconds": 0.428,
+  "mean_latency_seconds": 0.14,
+  "pass_rate": 1.0,
+  "privacy": "Synthetic certificates are ephemeral; the report stores outcome names, safe reason codes, pass flags, and timings only.",
+  "privacy_pass_rate": 1.0
+}

@@ -11,7 +11,6 @@ import streamlit as st
 
 from stai.agent import AgentUnavailableError
 from stai.handbook import build_handbook
-from stai.models import ApplicabilityStatus
 from stai.retriever import load_page_records
 from stai.retriever import ChromaHandbookIndex
 from stai.config import settings
@@ -817,11 +816,12 @@ def certificate_check(service: AishaService) -> None:
             "and removing temporary content. This can take a moment on CPU.</span>",
             unsafe_allow_html=True,
         )
+        profile = service.repo.get_hire_profile("emp-alyssa")
         outcome = service.medical.check(
             upload.getvalue(),
             filename=upload.name,
             evaluation_date=DEMO_DATE,
-            applicability=ApplicabilityStatus.APPLIES,
+            applicability=service.certificate_applicability(profile),
             acknowledged=acknowledged,
         )
         status_area.update(label="Local check complete", state="complete", expanded=False)
