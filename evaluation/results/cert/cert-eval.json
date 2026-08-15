@@ -4,8 +4,8 @@
     {
       "case_id": "CERT-COMPLETE",
       "codes": [],
-      "description": "A complete, consistent certificate",
-      "elapsed_seconds": 0.428,
+      "description": "A complete certificate with all required fields",
+      "elapsed_seconds": 0.465,
       "gates": {
         "codes_ok": true,
         "kind_ok": true,
@@ -21,8 +21,8 @@
       "codes": [
         "clinician_name"
       ],
-      "description": "Missing the clinician name",
-      "elapsed_seconds": 0.105,
+      "description": "Missing the doctor's name",
+      "elapsed_seconds": 0.106,
       "gates": {
         "codes_ok": true,
         "kind_ok": true,
@@ -34,12 +34,12 @@
       "status": "incomplete"
     },
     {
-      "case_id": "CERT-PATIENT-MISMATCH",
+      "case_id": "CERT-MISSING-DIAGNOSIS",
       "codes": [
-        "patient_name_mismatch"
+        "diagnosis"
       ],
-      "description": "Patient name does not match the Hire",
-      "elapsed_seconds": 0.073,
+      "description": "Missing the diagnosis field",
+      "elapsed_seconds": 0.071,
       "gates": {
         "codes_ok": true,
         "kind_ok": true,
@@ -51,13 +51,12 @@
       "status": "incomplete"
     },
     {
-      "case_id": "CERT-ABSENCE-REVERSED",
+      "case_id": "CERT-MISSING-LICENSE",
       "codes": [
-        "absence_range_reversed",
-        "duration_range_mismatch"
+        "license_number"
       ],
-      "description": "Absence end precedes absence start",
-      "elapsed_seconds": 0.064,
+      "description": "Missing the doctor's license number",
+      "elapsed_seconds": 0.1,
       "gates": {
         "codes_ok": true,
         "kind_ok": true,
@@ -74,7 +73,7 @@
         "unsupported_certificate_purpose"
       ],
       "description": "Laboratory report, not a fit-to-work certificate",
-      "elapsed_seconds": 0.048,
+      "elapsed_seconds": 0.212,
       "gates": {
         "codes_ok": true,
         "kind_ok": true,
@@ -89,7 +88,7 @@
       "case_id": "CERT-INVALID-DATE",
       "codes": [],
       "description": "Unrecognized date format triggers a safe retry",
-      "elapsed_seconds": 0.124,
+      "elapsed_seconds": 0.096,
       "gates": {
         "codes_ok": true,
         "kind_ok": true,
@@ -105,8 +104,8 @@
   "error_count": 0,
   "evaluation_version": "1.0",
   "execution_mode": "live_deterministic_certificate",
-  "max_latency_seconds": 0.428,
-  "mean_latency_seconds": 0.14,
+  "max_latency_seconds": 0.465,
+  "mean_latency_seconds": 0.175,
   "pass_rate": 1.0,
   "privacy": "Synthetic certificates are ephemeral; the report stores outcome names, safe reason codes, pass flags, and timings only.",
   "privacy_pass_rate": 1.0

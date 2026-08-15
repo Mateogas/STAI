@@ -182,6 +182,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .aisha-empty-state h3 { margin: 0 0 6px; color: var(--aisha-navy); font-size: 19px; }
 .aisha-empty-state p { max-width: 620px; margin: 0; color: #596679; font-size: 13px; line-height: 1.55; }
 .aisha-starter-label { margin: 14px 1rem 6px; color: var(--aisha-muted); font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.aisha-starter-topic { margin: 12px 1rem 6px; color: var(--aisha-navy); font-size: 12px; font-weight: 800; letter-spacing: .04em; }
 [class*="st-key-starter_"] .stButton > button {
   height: 100%; min-height: 78px !important; padding: 11px 12px; justify-content: flex-start;
   text-align: left; border-color: #cfd7e4; background: white;
@@ -260,8 +261,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .aisha-case-breadcrumb { color: var(--aisha-muted); font-size: 12px; }
 .aisha-case-speaker { margin-bottom: 5px; color: var(--aisha-blue); font-size: 11px; font-weight: 800; text-transform: uppercase; }
 .aisha-case-internal { border-style: dashed !important; background: #f4f1ea !important; }
+.st-key-conversation_list { max-height: 360px; overflow-y: auto; padding-right: 3px; }
 .st-key-conversation_list .stButton > button { min-height: 44px !important; justify-content: flex-start; text-align: left; }
 .st-key-conversation_list .stButton > button p { font-size: 12px; }
+/* HR · Support view is hidden from the demo; the control stays in the tree for contracts. */
+.st-key-role_view { display: none !important; }
 
 .stButton > button { border: 1px solid #9ca8b9; border-radius: 9px; background: white; color: var(--aisha-ink); }
 .stButton > button[kind="primary"], button[data-testid="stBaseButton-primary"] {
@@ -566,23 +570,60 @@ def render_context(repo: Repo) -> None:
     )
 
 
+STARTER_QUESTIONS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    (
+        "Payroll",
+        (
+            "When will I receive my first pay?",
+            "How do I view and download my payslip?",
+            "How do I update my payroll details or bank account?",
+            "Can you explain deductions like tax, SSS, PhilHealth, and Pag-IBIG?",
+            "If a payday falls on a public holiday, when do I get paid?",
+        ),
+    ),
+    (
+        "Resource Access",
+        (
+            "How do I request the systems I need?",
+            "How do I get access to the branch training sandbox?",
+            "I can't sign in to the Employee Self-Service portal—what should I do?",
+            "How do I set up my branch device on my first day?",
+            "What are the rules for using my company device securely?",
+        ),
+    ),
+    (
+        "HR Policies",
+        (
+            "What should I do when I need sick leave?",
+            "What are the branch attendance and office hours I should follow?",
+            "How do I raise a workplace conduct concern?",
+            "What does my medical certificate need to include to be complete?",
+            "What personal data does AISHA share with HR?",
+        ),
+    ),
+)
+
+
 def suggested_question_buttons() -> str | None:
     st.markdown('<div class="aisha-starter-label">Try a question</div>', unsafe_allow_html=True)
-    questions = (
-        ("Payroll", "When will I receive my first pay?"),
-        ("Resource Access", "How do I request the systems I need?"),
-        ("HR Policies", "What should I do when I need sick leave?"),
-    )
     selected = None
     with st.container(key="starter_questions"):
-        columns = st.columns(3, gap="small")
-        for column, (topic, question) in zip(columns, questions, strict=True):
-            if column.button(
-                f"{topic}\n\n{question}",
-                key=f"starter_{topic.lower().replace(' ', '_')}",
-                width="stretch",
+        for topic, questions in STARTER_QUESTIONS:
+            slug = topic.lower().replace(" ", "_")
+            st.markdown(
+                f'<div class="aisha-starter-topic">{topic}</div>',
+                unsafe_allow_html=True,
+            )
+            columns = st.columns(len(questions), gap="small")
+            for index, (column, question) in enumerate(
+                zip(columns, questions, strict=True)
             ):
-                selected = question
+                if column.button(
+                    question,
+                    key=f"starter_{slug}_{index}",
+                    width="stretch",
+                ):
+                    selected = question
     return selected
 
 

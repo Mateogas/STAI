@@ -6,17 +6,11 @@ from stai.models import ValidationStatus
 
 def complete_fields(**changes):
     values = dict(
-        patient_name="Alyssa M. Reyes",
-        consultation_date="08/08/2026",
-        issue_date="08/09/2026",
-        absence_start_date="08/08/2026",
-        absence_end_date="08/10/2026",
-        duration_days=3,
-        clinician_name="Dr. Sample Physician",
-        facility_name="Synthetic Care Clinic",
+        patient_name="Juan Miguel Dela Cruz",
+        consultation_date="05/15/2025",
+        clinician_name="Dr. Maria Lourdes Santos",
         license_number_present=True,
-        signature_present=True,
-        recommendation_present=True,
+        diagnosis_present=True,
     )
     values.update(changes)
     return CertificateFields(**values)
@@ -29,34 +23,24 @@ def test_complete_certificate_is_deterministic() -> None:
 
 
 def test_missing_policy_required_field_is_incomplete() -> None:
-    result = validate_certificate_fields(complete_fields(facility_name=None), "Alyssa Reyes", date(2026, 8, 10))
+    result = validate_certificate_fields(complete_fields(diagnosis_present=None), "Alyssa Reyes", date(2026, 8, 10))
     assert result.status == ValidationStatus.INCOMPLETE
-    assert result.missing_codes == ["facility_name"]
+    assert result.missing_codes == ["diagnosis"]
 
 
-def test_closed_inconsistency_codes_cover_name_dates_and_duration() -> None:
+def test_consultation_after_the_evaluation_date_is_flagged() -> None:
     result = validate_certificate_fields(
-        complete_fields(
-            patient_name="Alice Reyes",
-            consultation_date="08/11/2026",
-            issue_date="08/09/2026",
-            absence_end_date="08/09/2026",
-            duration_days=5,
-        ),
+        complete_fields(consultation_date="08/11/2026"),
         "Alyssa Reyes",
         date(2026, 8, 10),
     )
-    assert set(result.inconsistency_codes) == {
-        "patient_name_mismatch",
-        "issue_before_consultation",
-        "consultation_after_evaluation_date",
-        "duration_range_mismatch",
-    }
+    assert result.status == ValidationStatus.INCOMPLETE
+    assert result.inconsistency_codes == ["consultation_after_evaluation_date"]
 
 
 def test_unrecognized_two_digit_year_requires_human_review_after_retry() -> None:
     result = validate_certificate_fields(
-        complete_fields(issue_date="08/09/26"),
+        complete_fields(consultation_date="08/09/26"),
         "Alyssa Reyes",
         date(2026, 8, 10),
         retry_used=True,

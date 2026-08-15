@@ -48,6 +48,7 @@ def complete_fields() -> CertificateFields:
         license_number_present=True,
         signature_present=True,
         recommendation_present=True,
+        diagnosis_present=True,
     )
 
 

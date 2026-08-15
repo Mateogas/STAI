@@ -20,10 +20,7 @@ from stai.models import ApplicabilityStatus, ValidationStatus
 from stai.state import Repo
 
 
-REQUIRED_TEXT_FIELDS = (
-    "patient_name", "consultation_date", "issue_date", "absence_start_date",
-    "clinician_name", "facility_name",
-)
+REQUIRED_TEXT_FIELDS = ("patient_name", "consultation_date", "clinician_name")
 
 
 class CertificateFields(BaseModel):
@@ -38,6 +35,7 @@ class CertificateFields(BaseModel):
     license_number_present: bool | None = None
     signature_present: bool | None = None
     recommendation_present: bool | None = None
+    diagnosis_present: bool | None = None
     confidence: dict[str, float] = Field(default_factory=dict, exclude=True)
     extraction_ambiguous: bool = Field(default=False, exclude=True)
     unsupported_purpose: bool = Field(default=False, exclude=True)
@@ -174,16 +172,34 @@ def _ocr_image(image: Image.Image) -> str:
     return pytesseract.image_to_string(oriented, lang="eng")
 
 
-_DATE = re.compile(r"^(\d{2})[ /-](\d{2})[ /-](\d{4})$")
+_MONTHS = {
+    "january": 1, "february": 2, "march": 3, "april": 4, "may": 5, "june": 6,
+    "july": 7, "august": 8, "september": 9, "october": 10, "november": 11, "december": 12,
+    "jan": 1, "feb": 2, "mar": 3, "apr": 4, "jun": 6, "jul": 7, "aug": 8,
+    "sep": 9, "sept": 9, "oct": 10, "nov": 11, "dec": 12,
+}
+_DATE_NUMERIC = re.compile(r"(\d{2})[ /-](\d{2})[ /-](\d{4})")
+_DATE_TEXT = re.compile(r"([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})")
 
 
 def _date_value(raw: str | None) -> date | None:
-    if not raw or not (match := _DATE.fullmatch(raw.strip())):
+    if not raw:
         return None
-    try:
-        return date(int(match.group(3)), int(match.group(1)), int(match.group(2)))
-    except ValueError:
-        return None
+    stripped = raw.strip()
+    if numeric := _DATE_NUMERIC.fullmatch(stripped):
+        try:
+            return date(int(numeric.group(3)), int(numeric.group(1)), int(numeric.group(2)))
+        except ValueError:
+            return None
+    if textual := _DATE_TEXT.fullmatch(stripped):
+        month = _MONTHS.get(textual.group(1).lower())
+        if not month:
+            return None
+        try:
+            return date(int(textual.group(3)), month, int(textual.group(2)))
+        except ValueError:
+            return None
+    return None
 
 
 def _name_ends(raw: str) -> tuple[str, str]:
@@ -210,42 +226,20 @@ def validate_certificate_fields(
         return DeterministicValidation(status=ValidationStatus.NEEDS_HUMAN_REVIEW, review_codes=["low_confidence_after_retry"])
 
     missing = [name for name in REQUIRED_TEXT_FIELDS if not getattr(fields, name)]
-    if not fields.absence_end_date and not fields.duration_days:
-        missing.append("absence_end_or_duration")
-    for name in ("license_number_present", "signature_present", "recommendation_present"):
-        if getattr(fields, name) is not True:
-            missing.append(name)
+    if fields.diagnosis_present is not True:
+        missing.append("diagnosis")
+    if fields.license_number_present is not True:
+        missing.append("license_number")
 
-    raw_dates = {
-        "consultation": fields.consultation_date,
-        "issue": fields.issue_date,
-        "start": fields.absence_start_date,
-        "end": fields.absence_end_date,
-    }
-    dates = {key: _date_value(value) for key, value in raw_dates.items()}
-    invalid_dates = [key for key, raw in raw_dates.items() if raw and dates[key] is None]
-    if invalid_dates:
+    consultation = _date_value(fields.consultation_date)
+    if fields.consultation_date and consultation is None:
         if not retry_used:
             return DeterministicValidation(retry_required=True)
         return DeterministicValidation(status=ValidationStatus.NEEDS_HUMAN_REVIEW, review_codes=["unrecognized_date_format_after_retry"])
 
     inconsistent = []
-    if fields.patient_name and _name_ends(fields.patient_name) != _name_ends(hire_name):
-        inconsistent.append("patient_name_mismatch")
-    if dates["consultation"] and dates["issue"] and dates["consultation"] > dates["issue"]:
-        inconsistent.append("issue_before_consultation")
-    if dates["consultation"] and dates["consultation"] > evaluation_date:
+    if consultation and consultation > evaluation_date:
         inconsistent.append("consultation_after_evaluation_date")
-    if dates["issue"] and dates["issue"] > evaluation_date:
-        inconsistent.append("issue_after_evaluation_date")
-    if dates["start"] and dates["end"] and dates["start"] > dates["end"]:
-        inconsistent.append("absence_range_reversed")
-    if fields.duration_days is not None and fields.duration_days <= 0:
-        inconsistent.append("duration_not_positive")
-    if dates["start"] and dates["end"] and fields.duration_days:
-        expected = (dates["end"] - dates["start"]).days + 1
-        if fields.duration_days != expected:
-            inconsistent.append("duration_range_mismatch")
     status = ValidationStatus.INCOMPLETE if missing or inconsistent else ValidationStatus.COMPLETE
     return DeterministicValidation(status=status, missing_codes=missing, inconsistency_codes=inconsistent, warning_codes=["retry_used"] if retry_used else [])
 
@@ -402,43 +396,72 @@ class MedicalCheckService:
 
 
 _LABELS = {
-    "patient_name": "patient name",
-    "consultation_date": "consultation date",
-    "issue_date": "issue date",
-    "absence_start_date": "absence start date",
-    "absence_end_date": "absence end date",
-    "duration_days": "duration days",
-    "clinician_name": "clinician name",
-    "facility_name": "facility name",
+    "patient_name": ("patient name",),
+    "consultation_date": ("date of consultation", "consultation date"),
+    "issue_date": ("issue date",),
+    "absence_start_date": ("absence start date", "recommended rest from"),
+    "absence_end_date": ("absence end date",),
+    "duration_days": ("duration days",),
+    "clinician_name": ("clinician name", "physician name"),
+    "facility_name": ("facility name",),
 }
 
 
 def parse_certificate_text(text: str) -> CertificateFields:
-    """Parse synthetic/demo certificate labels locally without retaining text."""
+    """Parse synthetic/demo certificate labels locally without retaining text.
+
+    Presence-only fields (diagnosis, license, signature) never retain their
+    underlying value, preserving the medical-content privacy boundary.
+    """
     normalized = "\n".join(line.strip() for line in text.splitlines() if line.strip())
     values: dict[str, object] = {}
     ambiguous = False
-    for field, label in _LABELS.items():
-        matches = re.findall(rf"(?im)^{re.escape(label)}\s*:\s*(.+?)\s*$", normalized)
+    for field, labels in _LABELS.items():
+        matches: list[str] = []
+        for label in labels:
+            matches.extend(re.findall(rf"(?im)^{re.escape(label)}\s*:\s*(.+?)\s*$", normalized))
         unique = list(dict.fromkeys(value.strip() for value in matches if value.strip()))
-        if len(unique) > 1:
+        if len(unique) > 1 and field not in {"consultation_date", "absence_start_date"}:
             ambiguous = True
         if unique:
             if field == "duration_days":
                 number = re.search(r"\d+", unique[0])
                 values[field] = int(number.group()) if number else None
+            elif field in {"consultation_date", "absence_start_date"}:
+                # "May 15, 2025 TO: May 17, 2025" style lines carry two dates.
+                values[field] = re.split(r"\s+to\b", unique[0], flags=re.IGNORECASE)[0].strip()
             else:
                 values[field] = unique[0]
+
+    # Real certificates name the doctor inline ("Dr. Maria Lourdes Santos, MD")
+    # rather than under a "Clinician Name:" label.
+    if not values.get("clinician_name"):
+        doctor = re.search(
+            r"(?im)\bDr\.?\s+([A-Z][A-Za-z.\-']+(?:\s+[A-Z][A-Za-z.\-']+){1,3})\b",
+            normalized,
+        )
+        if doctor:
+            values["clinician_name"] = "Dr. " + doctor.group(1).strip()
+
     def present(label: str) -> bool | None:
         match = re.search(rf"(?im)^{re.escape(label)}\s*:\s*(.+?)\s*$", normalized)
         if not match:
             return None
         return match.group(1).strip().lower() not in {"no", "none", "absent", "false"}
+
+    # License and diagnosis are presence-only. License appears as "License
+    # Number:", "License No.:", or "PRC License No.:"; diagnosis as "Diagnosis:".
+    license_present = bool(
+        re.search(r"(?im)(?:prc\s+)?license\s+(?:no\.?|number)\s*:?\.?\s*[A-Za-z0-9\-]+", normalized)
+    ) or present("license number")
+    diagnosis_present = bool(re.search(r"(?im)^\s*diagnosis\s*:\s*\S+", normalized))
+
     values.update(
-        license_number_present=present("license number"),
+        license_number_present=license_present or None,
         signature_present=present("signature"),
         recommendation_present=present("recommendation"),
+        diagnosis_present=diagnosis_present or None,
         extraction_ambiguous=ambiguous,
-        unsupported_purpose=bool(re.search(r"(?i)laboratory|prescription|diagnostic report", normalized)),
+        unsupported_purpose=bool(re.search(r"(?i)laboratory result|prescription|diagnostic report", normalized)),
     )
     return CertificateFields(**values)

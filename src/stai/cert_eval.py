@@ -37,16 +37,10 @@ EVALUATION_DATE = date(2026, 8, 10)
 
 _COMPLETE = {
     "Patient Name": "Alyssa Reyes",
+    "Diagnosis": "Acute Upper Respiratory Tract Infection",
     "Consultation Date": "08/08/2026",
-    "Issue Date": "08/09/2026",
-    "Absence Start Date": "08/08/2026",
-    "Absence End Date": "08/10/2026",
-    "Duration Days": "3",
     "Clinician Name": "Dr. Sample Physician",
-    "Facility Name": "Synthetic Care Clinic",
-    "License Number": "present",
-    "Signature": "present",
-    "Recommendation": "present",
+    "License Number": "1234567",
 }
 
 # Document-content values that must never surface in a safe result.
@@ -80,24 +74,23 @@ def _with(**overrides: str | None) -> dict[str, str]:
 
 CASES: tuple[CertCase, ...] = (
     CertCase(
-        "CERT-COMPLETE", "A complete, consistent certificate",
+        "CERT-COMPLETE", "A complete certificate with all required fields",
         _COMPLETE, "validation_result", "complete",
     ),
     CertCase(
-        "CERT-MISSING-CLINICIAN", "Missing the clinician name",
+        "CERT-MISSING-CLINICIAN", "Missing the doctor's name",
         _with(clinician_name=None), "validation_result", "incomplete",
         expected_codes=("clinician_name",),
     ),
     CertCase(
-        "CERT-PATIENT-MISMATCH", "Patient name does not match the Hire",
-        _with(patient_name="Juan Dela Cruz"), "validation_result", "incomplete",
-        expected_codes=("patient_name_mismatch",),
+        "CERT-MISSING-DIAGNOSIS", "Missing the diagnosis field",
+        _with(diagnosis=None), "validation_result", "incomplete",
+        expected_codes=("diagnosis",),
     ),
     CertCase(
-        "CERT-ABSENCE-REVERSED", "Absence end precedes absence start",
-        _with(absence_start_date="08/10/2026", absence_end_date="08/08/2026", duration_days="3"),
-        "validation_result", "incomplete",
-        expected_codes=("absence_range_reversed",),
+        "CERT-MISSING-LICENSE", "Missing the doctor's license number",
+        _with(license_number=None), "validation_result", "incomplete",
+        expected_codes=("license_number",),
     ),
     CertCase(
         "CERT-UNSUPPORTED-PURPOSE", "Laboratory report, not a fit-to-work certificate",

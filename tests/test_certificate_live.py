@@ -33,6 +33,7 @@ EVALUATION_DATE = date(2026, 8, 10)
 COMPLETE_LINES = (
     "Medical Certificate",
     "Patient Name: Alyssa Reyes",
+    "Diagnosis: Acute Upper Respiratory Tract Infection",
     "Consultation Date: 08/08/2026",
     "Issue Date: 08/09/2026",
     "Absence Start Date: 08/08/2026",
