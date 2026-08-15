@@ -63,10 +63,10 @@ Current narrative direction:
 
 ```powershell
 uv sync                                  # install (Python 3.12 pinned)
-uv run python -m stai.ingestion          # (re)build Chroma KB from data/hr_docs (needs Ollama)
+uv run python -m stai.ingestion          # stage, verify, and activate Chroma from handbook/dist
 uv run streamlit run app.py              # run the app
-uv run uvicorn stai.api:app --reload     # run the REST API (/health, /chat)
-uv run pytest                            # full suite - no Ollama needed (LLMs mocked)
+uv run uvicorn stai.api:app --reload     # run typed REST API (/api/v1)
+uv run pytest                            # full suite; LLM calls are mocked
 uv run pytest tests/test_pulse.py -k risk   # single file / keyword
 ```
 
@@ -78,37 +78,31 @@ var away, which is the upgrade path the plan designed.)
 
 ## Architecture
 
-Chat turn pipeline, wired in `app.py`:
+Chat turn pipeline, shared by `app.py` and `src/stai/api.py`:
 
-`guardrails.classify_input` (small LLM, few-shot; fail-open) ->
-`agent.build_agent` (LangChain 1.x `create_agent` + `ChatOllama`, rebuilt every
-turn so the system prompt carries persona + simulated date) -> tools mutate
-state and record into a `tools.RunCapture` -> `guardrails.apply_output_guardrails`
-(must-cite check + PII redaction) rewrites the streamed text before it is
-persisted.
-
-The same stages are packaged non-streaming in `service.run_chat_turn`, which
-the FastAPI app (`stai.api`: `GET /health`, `POST /chat`) reuses. Every turn
-(Streamlit or API) appends one JSON line to `data/observability.jsonl` via
-`stai.observability` (lengths/latency/tools/sources - never message text).
-Chat turns also persist to the SQLite `chat_messages` table, so conversations
-survive restarts; the API loads that history when a request carries none.
+`LocalInputClassifier` (required small Ollama model; fail-closed) ->
+`PolicyTurnEngine.handle_turn` -> fresh LangChain `create_agent` ReAct loop ->
+read-only `build_policy_tools` operations and `RunCapture` -> typed Agent Plan
+plus typed response draft -> deterministic handbook/citation/applicability/
+claim/privacy/consent validation -> persistence or a deterministic workflow
+command. Supported turns have no keyword-planner or local answer fallback.
 
 Key cross-file contracts:
 
-- `tools.build_tools(employee, repo, sim_date) -> (tools, RunCapture)`:
-  tools are closures over the current persona. `RunCapture` is how the UI gets
-  the Sources expander and how the must-cite guardrail knows whether
-  `search_knowledge_base` ran and what it retrieved.
-- Citation format is `[source: <filename>]`, produced by `retriever.format_docs`,
-  demanded by the system prompt in `agent.py`, and parsed/enforced by
-  `guardrails.enforce_citations`. Change it in all three.
+- `tools.build_policy_tools(profile, repo, records, handbook_index=...) ->
+  (tools, RunCapture)`: tools are read-only closures over the confirmed Hire
+  Profile. `RunCapture` retains retrieved identities and ephemeral exact page
+  contents for validation; snippets are not persisted or exposed publicly.
+- Citation identity is `PolicyCitation(policy_id, handbook_version, page_start,
+  page_end)`. Agent drafts cite only identities captured in the same run, and
+  every `PolicyClaim.text` must be an exact contiguous excerpt from cited
+  evidence.
 - The clock is the simulated date from the sidebar (`app.py`), threaded into
   pulse scheduling and the system prompt. Never use `date.today()` in
   agent/pulse logic.
-- LLM-output parsing is separated from LLM calls (`parse_verdict`,
-  `parse_pulse`) so logic tests never need Ollama; classifier LLMs are
-  injectable (`llm=` param) and tests pass fakes.
+- ReAct synthesis is finalized through small typed schemas in `agent.py` so the
+  local 8B model does not hand-write one large JSON object. Logic tests inject
+  an offline agent runner and classifier; production always requires Ollama.
 - State goes through `state.Repo` (SQLite, connection-per-op for Streamlit
   threads). Seeded once from `data/*.json`; delete `data/stai.db` to reset the
   demo (or sidebar -> Demo controls).
@@ -128,9 +122,16 @@ hardware is unknown.
   `.venv` during installs = OneDrive sync lock; retry.
 - `python` on PATH is 3.14; the project pins 3.12 via `.python-version`.
   Always go through `uv run`.
-- Ingestion is a full reset-and-rebuild (`reset_collection`), cheap and
-  idempotent. Run it after editing anything in `data/hr_docs/`.
+- Ingestion builds a hash-named staging collection, verifies it, and atomically
+  activates it. Run it after handbook changes or when provisioning a new data
+  volume; never point SQLite at a collection manually.
+- Production requires `llama3.1:8b`, `qwen2.5:3b-instruct`, and
+  `nomic-embed-text`, plus an active Chroma build. `/api/v1/health` returns 503
+  until all required dependencies are ready. `STAI_AGENT_ENABLED` was removed;
+  there is no supported disabled-agent mode.
 - Tests assert against the real `data/*.json` seed data; renaming people/tasks
   will require updating tests.
 - `tests/test_app_boot.py` executes `app.py` headlessly via Streamlit
-  `AppTest`; it creates/seeds the real `data/stai.db` but never calls an LLM.
+  `AppTest`; it creates/seeds the real `data/stai.db`. LLM calls are mocked, but
+  if that database points to an active Chroma build the interaction tests still
+  require the configured Ollama embedding endpoint.

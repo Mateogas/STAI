@@ -48,6 +48,14 @@ ollama list
 
 If Ollama is hosted elsewhere, set `STAI_OLLAMA_BASE_URL` rather than changing code. Model names remain environment-overridable with the `STAI_` settings in `.env.example`.
 
+Production also uses `STAI_AGENT_RECURSION_LIMIT=32`,
+`STAI_AGENT_MODEL_CALL_LIMIT=6`, and `STAI_AGENT_CONTEXT_WINDOW=8192`. The
+model-call limit is the user-facing ReAct research budget; the larger graph
+recursion limit leaves room for middleware and tool nodes. These are defaults,
+but deployments with an explicit environment allowlist should declare them.
+Remove any legacy `STAI_AGENT_ENABLED` value: the agent is mandatory and the
+setting no longer exists.
+
 Completion criterion: all three configured models appear in `ollama list`, and the application readiness probe can reach the configured Ollama endpoint.
 
 ### 3. Build and activate the Chroma knowledge base
@@ -74,7 +82,10 @@ curl http://127.0.0.1:8000/api/v1/health
 
 Exercise the canonical demo journeys: grounded PAY-001, unsupported abstention, ACC-006 clarification, evidence-gated payroll-route offer, explicit consent, HR resolution, resolved-thread memory, reviewed clarification reuse, attribute change, and certificate result share/revoke/delete.
 
-Completion criterion: health truthfully reports the agent and active index as ready; all displayed policy evidence is structured and topic-correct; privacy and consent boundaries remain intact.
+Completion criterion: health returns HTTP 200 and truthfully reports the agent,
+classifier, and active index as ready. HTTP 503 is a deployment blocker, not a
+degraded-but-usable state. All displayed policy evidence is structured and
+topic-correct; privacy and consent boundaries remain intact.
 
 ### 5. Run the disposable-staging dialogue gate
 
@@ -95,12 +106,24 @@ Start Docker Desktop or another compatible Docker daemon, then run the image and
 ```bash
 docker info
 docker build -t aisha-demo .
-docker run --rm -v aisha-smoke:/app/data \
+docker run --rm --add-host=host.docker.internal:host-gateway \
+  -v aisha-smoke:/app/data aisha-demo uv run python -m stai.ingestion
+docker run --rm --add-host=host.docker.internal:host-gateway \
+  -v aisha-smoke:/app/data \
   aisha-demo uv run python deploy/container_smoke.py
 docker volume rm aisha-smoke
 ```
 
-Completion criterion: the image builds, runs as `aisha` UID 10001, both UI/API health checks succeed, the dialogue regression has zero wrong-topic citations, the synthetic certificate result is `Complete`, and the output contains `LINUX_CONTAINER_SMOKE=PASS`.
+On native Linux, `host.docker.internal` requires the `--add-host` mapping above
+when Ollama runs on the Docker host. If Ollama runs elsewhere, pass
+`-e STAI_OLLAMA_BASE_URL=http://OLLAMA_HOST:11434` instead. Keep Ollama on a
+private deployment network.
+
+Completion criterion: the image builds, runs as `aisha` UID 10001, the UI
+liveness check succeeds, `/api/v1/health` returns ready, the dialogue regression
+has zero wrong-topic citations, the synthetic certificate result is `Complete`,
+and the output contains `LINUX_CONTAINER_SMOKE=PASS`. Do not use Streamlit's
+`/_stcore/health` as the production dependency-readiness probe.
 
 ### 7. Run the complete verification set
 

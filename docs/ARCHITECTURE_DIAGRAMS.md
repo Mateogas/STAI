@@ -36,22 +36,32 @@ flowchart LR
         Telemetry["Closed schema-v2 operation metadata"]
     end
 
-    Handbook --> Retrieval --> Policy --> Agent
-    Profile --> Policy
+    Handbook --> Retrieval
+    Profile --> Agent
+    Agent --> Retrieval --> Agent
+    Agent --> Policy
+    Policy --> PolicyResult
     Nager --> Agent
     State <--> Repo
     File --> Medical --> Repo
     Agent --> Consent --> Repo
     Repo <--> UI
     Repo <--> API
-    Agent --> PolicyResult
     Consent --> Case
     Consent --> Attribute
     Medical --> Validation
     Core -. "metadata only" .-> Telemetry
 ```
 
-The policy answer is not whatever text a model happens to emit. Retrieval first resolves the active immutable build, combines vector and lexical candidates, then rejects records that fail version, integrity, authority, status, topic, or applicability gates. The policy core validates every material claim and citation before either surface can render it. The model can choose among bounded tools, but it cannot approve a profile revision, manufacture consent, decide certificate authenticity, or write arbitrary SQL.
+The policy answer is not whatever text a model happens to emit. Every supported
+turn first enters ReAct, which resolves intent from conversation context,
+chooses and revises searches, reads complete policy bundles, and drafts a typed
+plan and response. Retrieval resolves the active immutable build and combines
+vector and lexical candidates. The policy core then rejects records or claims
+that fail identity, integrity, authority, status, topic, applicability,
+citation, or exact-support checks before either surface can render the result.
+The model cannot approve a profile revision, manufacture consent, decide
+certificate authenticity, or write arbitrary SQL.
 
 ## Policy turn flow
 
@@ -62,21 +72,17 @@ flowchart TD
     MedicalRoute -- No --> Classify["Input scope and injection classifier"]
     Classify --> Allowed{"Allowed?"}
     Allowed -- No --> Scoped["Typed scoped response"]
-    Allowed -- Yes --> Context["Load bounded typed conversation context"]
-    Context --> Resolve["Produce typed Agent Plan: intent, scope, subarea, and allowed actions"]
-    Resolve --> Action{"Policy turn or workflow action?"}
-    Action -- "Offer or consent" --> Workflow["Deterministic versioned escalation command"]
-    Action -- "Policy" --> Version["Get active handbook identity"]
-    Version --> Search["Active Chroma plus weighted lexical candidates"]
-    Search --> Found{"Eligible evidence?"}
-    Found -- No --> Abstain["Abstention; no unrelated citation"]
-    Found -- Yes --> Applicable{"All constraining attributes known?"}
-    Applicable -- No --> Clarify["One focused clarification; no mutation"]
-    Applicable -- Yes --> Claim["Typed ReAct plan and response draft"]
-    Claim --> Validate["Schema, applicability, topic relevance, claim, and citation validation"]
+    Allowed -- Yes --> Context["Load bounded conversation and pending-offer context"]
+    Context --> ReAct["Fresh create_agent ReAct loop"]
+    ReAct --> Tools["Search, revise, read policy bundle, check applicability or status"]
+    Tools --> ReAct
+    ReAct --> Draft["Typed Agent Plan plus typed response draft"]
+    Draft --> Validate["Handbook, citation, applicability, exact claim, privacy, and consent validation"]
     Validate --> Valid{"Valid?"}
-    Valid -- No --> SafeAbstain["Fail-closed typed abstention"]
-    Valid -- Yes --> Persist["Persist ordered safe outcome, context, and evidence identity"]
+    Valid -- No --> Error["Surface safe failure; never compose a local answer"]
+    Valid -- Yes --> Action{"Read-only response or workflow command?"}
+    Action -- "Response" --> Persist["Persist ordered safe outcome, context, and evidence identity"]
+    Action -- "Consent or mutation" --> Workflow["Deterministic versioned command"]
     Workflow --> Persist
     Persist --> Render["Render identical UI/API semantics"]
     Render --> OfferOnly["Offer precedes case; explicit consent is deterministic"]
@@ -113,10 +119,11 @@ The left navigation nests each Case Thread beneath its parent and shows text sta
 
 ```mermaid
 flowchart TD
-    Question["Supported-topic question"] --> Evidence{"Eligible policy evidence?"}
+    Question["Supported-topic question"] --> AgentGap["ReAct separates supported and unresolved portions"]
+    AgentGap --> Evidence{"Deterministically eligible evidence?"}
     Evidence -- "None, outage, or subject omitted" --> Abstain["Abstain; no HR offer"]
     Evidence -- "Complete" --> Answer["Grounded handbook answer"]
-    Evidence -- "Partial" --> Gap{"Material Evidence Gap?"}
+    Evidence -- "Partial" --> Gap{"Validated material Evidence Gap?"}
     Gap -- No --> Answer
     Gap -- Yes --> Offer["Consent-first HR clarification offer"]
     Offer --> Case["Shared Case Thread"]

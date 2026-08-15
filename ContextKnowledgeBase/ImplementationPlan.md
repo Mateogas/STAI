@@ -54,3 +54,9 @@ No later work should reintroduce ramp plans, task/pulse/risk surveillance, filen
 | 5. Bounded agent loop | Complete | Typed observe-plan actions plus closed read-only tools; deterministic validation and mutations remain outside model authority |
 | 6. Mediated HR cases | Complete | Schema epoch 6 information requests, AISHA-coordinated Hire answers, HR notes/resolutions, notifications, and separate direct-conversation consent |
 | 7. Surfaces and acceptance | Pending final gate | Streamlit, `/api/v1`, documentation, full tests, acceptance, and responsive walkthrough agree |
+
+Production activation requires the three configured Ollama models, ingestion
+into the same persistent data volume used by the running application, and an
+HTTP 200 `ready` result from `/api/v1/health`. Streamlit's health route is a
+liveness check only. There is no `STAI_AGENT_ENABLED` switch or supported local
+answer fallback.

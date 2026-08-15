@@ -8,6 +8,7 @@ import json
 
 import streamlit as st
 
+from stai.agent import AgentUnavailableError
 from stai.handbook import build_handbook
 from stai.models import ApplicabilityStatus
 from stai.retriever import load_page_records
@@ -463,8 +464,17 @@ def ask_aisha(service: AishaService) -> None:
         return
     with st.chat_message("user"):
         st.markdown(prompt)
-    with st.status("Checking the active handbook…", expanded=False):
-        response = service.send_message(conversation_id, prompt)
+    try:
+        with st.status("Checking the active handbook…", expanded=False):
+            response = service.send_message(conversation_id, prompt)
+    except AgentUnavailableError:
+        st.error(
+            "AISHA could not safely complete this answer. No policy answer was "
+            "saved. Please try again; if the issue continues, check the Ollama "
+            "model and restart the local service."
+        )
+        announce("AISHA could not complete the answer safely.")
+        return
     announce(f"AISHA returned {response.type.replace('_', ' ')}.")
     with st.chat_message("assistant"):
         outcome_badge(response.type)

@@ -53,6 +53,18 @@ def test_missing_constraining_attribute_requests_only_that_attribute(tmp_path: P
     assert result.required_attribute == "work_site"
 
 
+def test_clothing_paraphrase_finds_the_dress_policy_first(tmp_path: Path) -> None:
+    records = load_page_records(build_handbook(tmp_path).rag_pages_path)
+    result = hybrid_retrieve(
+        "What kind of clothing could I wear in the office?",
+        HireProfile.alyssa(),
+        records,
+    )
+    assert result.outcome == RetrievalOutcome.READY
+    assert result.evidence[0].policy_id == "HRP-007"
+    assert result.evidence[0].applicability == ApplicabilityStatus.DOES_NOT_APPLY
+
+
 def test_manifest_mismatch_is_integrity_failure(tmp_path: Path) -> None:
     artifacts = build_handbook(tmp_path)
     rows = [json.loads(line) for line in artifacts.rag_pages_path.read_text().splitlines()]

@@ -2,22 +2,25 @@
 
 **Snapshot date:** 2026-08-15, Asia/Manila
 
-**Branch before this documentation commit:** `main` at `0595846`
+**Code baseline:** `main` after the mandatory ReAct refactor (`1a14cd5`) plus
+the current bounded-loop hardening worktree
 
-**Overall state:** feature-complete educational capstone; offline verification is green; three environment-dependent live module gates remain.
+**Overall state:** feature-complete educational capstone; the full local suite
+and a real-Ollama/Chroma contrastive turn are green; target production container
+readiness remains environment-dependent.
 
 ## Verification performed for this snapshot
 
 | Check | Result |
 |---|---|
-| Main offline test suite | **Passed:** 142 tests, 6 warnings, 15.39 seconds |
+| Main test suite | **Passed:** 242 tests, 6 warnings with local Ollama embedding available |
 | Separate MLflow relay suite | **Passed:** 6 tests, 1 warning, 6.97 seconds |
-| Deterministic handbook gate | **Passed:** 108 pages, handbook v1.0 |
+| Deterministic handbook gate | **Passed:** 108 pages, handbook v1.1 |
 | Frozen benchmark | **Passed:** P3 selected, Locked CSS 0.987481, zero hard failures |
 | Six-turn dialogue regression | **Passed:** correct offer-then-consent progression and zero wrong-topic citations |
 | Privacy/replacement scan | **Passed:** 28 public OpenAPI paths, 30 SQLite tables, zero legacy regressions |
 | Live Nager demonstration | **Passed:** live 2026 result with exact `Based on Nager.` attribution |
-| Integrated acceptance | **Partial:** its main-suite and Docker stages were skipped for this run; the suite passed separately, and three module rows remain live-gate pending |
+| Mandatory ReAct live check | **Passed locally:** real `llama3.1:8b` plus active Chroma selected PAY-001 for a contrastive regular-schedule question and validated pages 7, 8, 9, and 11 |
 
 The main shell did not expose `uv` on `PATH`, so the installed project virtual environments were used directly for the two test suites. This is a workstation setup issue, not a test failure.
 
@@ -32,23 +35,34 @@ The main shell did not expose `uv` on `PATH`, so the installed project virtual e
 
 ## Implemented handbook and retrieval
 
-- Deterministic 108-page AISHA Handbook v1.0 generated from normalized YAML.
+- Deterministic 108-page AISHA Handbook v1.1 generated from normalized YAML.
 - PDF, page manifest, immutable RAG page records, artifact hashes, and publication verification.
 - Immutable hash-named Chroma build lifecycle with staging verification, activation, prior-build pointer, and rollback.
 - Hybrid weighted lexical and dense retrieval.
 - Active-version, integrity, authority, applicability, policy-subject, topic, and claim/citation gates.
 - Structured citations containing policy ID, revision, handbook version, page, and artifact identity.
-- Safe deterministic lexical composition when the live model/index path is unavailable.
+- Chroma failure is surfaced; lexical candidates are not used as a production
+  answer fallback.
 
 ## Implemented orchestration and guardrails
 
 - Shared `PolicyTurnEngine` used by Streamlit and FastAPI.
 - Restart-safe follow-up context and server-owned ordered conversation history.
-- Bounded ReAct path using a fresh agent and schema-validated read-only tools when Ollama is ready.
+- Mandatory fresh ReAct path with schema-validated read-only tools for every
+  supported turn.
+- Six-model-call research budget with a graph recursion limit of 32; repeated
+  tool loops stop safely and the UI reports agent unavailability without saving
+  an answer.
+- ReAct-owned intent, follow-up resolution, query revision, policy-bundle
+  reading, applicability checks, partial-evidence reasoning, and typed
+  plan/response drafting.
 - Fail-closed typed parsing and output validation.
 - Wrong-topic citation rejection before persistence or display.
-- Input classification with safe fail-open behavior; evidence, applicability, consent, escalation, clarification promotion, and certificate privacy fail closed.
-- Deterministic Evidence Gap assessment; unsupported topics, omissions, outages, and bare human requests cannot create cases.
+- Required input-classifier availability plus fail-closed evidence identity,
+  exact claim support, applicability, consent, escalation, clarification
+  promotion, and certificate privacy.
+- Model-proposed, deterministically validated Evidence Gaps; unsupported topics,
+  omissions, outages, and bare human requests cannot create cases.
 
 ## Implemented memory and HR workflow
 
@@ -111,19 +125,18 @@ The main shell did not expose `uv` on `PATH`, so the installed project virtual e
 | Project Python virtual environment | Present and working | Offline suite can run |
 | `uv` command | Not visible on shell `PATH` | Canonical `uv run ...` commands need PATH/install repair |
 | Ollama executable | Installed | Runtime is available in principle |
-| Required Ollama models | None currently listed | Live ReAct and embeddings are not ready |
-| Active Chroma retrieval build | None in SQLite | Dense retrieval health cannot be `ready` |
+| Required Ollama models | Installed locally | Agent, classifier, and embedding probes can become ready |
+| Active Chroma retrieval build | Built and activated locally | Real Chroma/ReAct validation is available locally |
 | Docker CLI | Installed | Docker commands are available in principle |
-| Docker daemon | Not running | Image build and Linux container smoke were not executed |
+| Docker daemon | Not reassessed for this refactor | Container readiness remains a deployment verification step |
 | Internet/Nager | Available during snapshot | Live Nager evidence passed |
 
 ## Canonical module state
 
-Nine claimed modules are recorded as **Met**. Three are **Implemented / Live gate pending**:
-
-1. Chroma RAG — requires a built and active Chroma collection plus live retrieval demonstration.
-2. ReAct Agent — requires configured Ollama models and a live ready-state dialogue run.
-3. Dockerization — requires an active Docker daemon, image build, and Linux container smoke.
+The mandatory ReAct and Chroma path has local live evidence. The remaining
+environment-specific release gate is the target Linux/Docker deployment and its
+recorded readiness/smoke evidence. Module status changes still follow the
+canonical checklist rather than this summary.
 
 SQL Agent remains **Unclaimed / Out of scope** by design.
 

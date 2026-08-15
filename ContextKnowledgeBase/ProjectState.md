@@ -12,6 +12,10 @@ Implemented production boundaries:
 - A versioned `/api/v1` surface with safe envelopes, configured CORS, fixed simulated dates, server-owned history, idempotent replay, versions, cursors, role-separated demo namespaces, and one health endpoint.
 - Streamlit Ask AISHA, Certificate Check, History, and HR structured views with reopenable conversations, nested child Case Threads, shared-parent banners, AISHA-mediated information requests, HR internal notes, separately consented direct conversation, typed resolution scope/reuse review, resolved-thread follow-ups, responsive layout, keyboard focus, status, and announcement evidence.
 - One shared `PolicyTurnEngine` sends every supported turn through mandatory ReAct with bounded follow-up context. ReAct owns intent, query revision, policy-bundle reading, and typed plan/response drafting; deterministic code owns handbook/citation identity, applicability, exact claim support, privacy, Evidence Gap eligibility, consent, and every mutation. Model or active-index failure is surfaced rather than answered by a local composer.
+- Production requires `llama3.1:8b`, `qwen2.5:3b-instruct`, and
+  `nomic-embed-text`, an active Chroma build on the same persistent data volume,
+  and `/api/v1/health` readiness. `STAI_AGENT_ENABLED` is removed; Streamlit
+  health is liveness only and a required dependency outage returns HTTP 503.
 - A 65-question realistic new-Hire corpus with executable planning and representative end-to-end regressions for deployed wording, payroll ambiguity, policy discovery, privacy, device security, handbook omissions, and HR mediation.
 - A v1.1 six-turn production regression across the module, API, and Linux container smoke; wrong-topic citations are hard failures.
 - Nager.Holidays as a bounded Philippines-only current/following-year tool with exact `Based on Nager.` attribution, seven-day cache, retry, validation, circuit breaker, and offline fallback.

@@ -2,9 +2,23 @@
 
 AISHA is a local-first, evidence-grounded onboarding decision-support capstone for Payroll, Resource Access, and HR Policies. It serves one fictional Hire, Alyssa Reyes, using a synthetic deterministic handbook and local state. It is not a BDO Unibank product or production system.
 
-The north star is trustworthy resolution rather than unrestricted conversation. AISHA resolves the active handbook, retrieves page-native candidates, applies integrity and eligibility gates, evaluates four HR-confirmed profile attributes, and validates typed claims and citations. It asks one deciding clarification, abstains, or offers a consent-first human route only when eligible policy evidence answers part of the question but leaves a material Evidence Gap.
+The north star is trustworthy resolution rather than unrestricted conversation.
+Every supported policy turn enters a fresh bounded ReAct loop, which resolves
+the Hire's goal from conversation context, revises retrieval queries, reads
+complete policy bundles, and drafts a typed plan and response. Deterministic
+code then validates the active handbook, evidence identity, exact claims,
+citations, applicability, privacy, and consent before rendering or mutation.
+AISHA asks one deciding clarification, abstains, or offers a consent-first human
+route only when eligible policy evidence answers part of the question but
+leaves a material Evidence Gap.
 
-The stack is Python 3.12, Pydantic, LangChain/LangGraph bounded ReAct orchestration, Ollama-configurable models, Chroma hybrid RAG, SQLite, Streamlit, FastAPI, local PyMuPDF/Pillow/Tesseract certificate processing, and Docker. The only bounded product network integration is Nager.Holidays for Philippine current/following-year calendar facts.
+The stack is Python 3.12, Pydantic, LangChain/LangGraph bounded ReAct
+orchestration, Ollama-configurable models, Chroma hybrid RAG, SQLite,
+Streamlit, FastAPI, local PyMuPDF/Pillow/Tesseract certificate processing, and
+Docker. Production policy turns require the configured ReAct, classifier, and
+embedding models plus an active Chroma build; there is no model-disabled answer
+path. The only bounded product network integration is Nager.Holidays for
+Philippine current/following-year calendar facts.
 
 Product state is normalized and local. It includes handbook builds and active pointer, profile revisions, ordered policy conversations, evidence-gated escalation offers, consented Case Threads and notifications, Case Resolution Memory and clarification review state, one-attribute change requests, validation results and retry lifecycle, Nager cache, idempotency records, and telemetry shipping state. Sensitive certificate contents are never part of public history.
 

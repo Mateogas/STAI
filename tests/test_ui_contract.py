@@ -22,6 +22,11 @@ def test_ui_never_exposes_retrieval_or_medical_internals():
         assert f"st.markdown({term}" not in SOURCE
 
 
+def test_dialogue_handles_bounded_agent_failure_without_a_traceback():
+    assert "except AgentUnavailableError:" in SOURCE
+    assert "AISHA could not safely complete this answer" in SOURCE
+
+
 def test_selected_dialogue_information_hierarchy_is_present():
     for label in ("Ask AISHA", "Certificate Check", "History", "New Hire", "HR User"):
         assert label in SOURCE

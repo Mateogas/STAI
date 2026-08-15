@@ -50,6 +50,10 @@ P1 is the minimal role/scope/tool baseline. P2 adds the typed outcome, claim/evi
 
 All variants use benchmark/scorer v1.0, handbook v1.0, the same fixtures and deterministic case order seed `20260810`, temperature 0, and three prompt-dependent repetitions. The bundled execution mode is `offline_deterministic_contract`: it measures frozen prompt-contract coverage and subsystem assertions, not live `llama3.1:8b` answer quality. The runtime seed is recorded as unsupported in this mode.
 
+`offline_deterministic_contract` is an evaluation harness only. It is not a
+runtime fallback: production policy turns require the configured ReAct model,
+classifier model, embedding model, and active Chroma build.
+
 | Variant | Locked G | R | A | D | M | X | Locked CSS | Hard failures | Gate |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---|
 | P1 minimal | .880 | .880 | .880 | .880 | .880 | .880 | .880000 | 0 | Fail: CSS/component threshold |

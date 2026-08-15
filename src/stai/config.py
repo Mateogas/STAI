@@ -38,7 +38,10 @@ class Settings(BaseSettings):
     agent_temperature: float = 0.0
     agent_seed: int = 20260810
     agent_probe_timeout_seconds: float = 0.25
-    agent_recursion_limit: int = 16
+    # The graph-level cap must leave room for middleware nodes as well as the
+    # model/tool loop. The model-call cap is the user-facing loop boundary.
+    agent_recursion_limit: int = 32
+    agent_model_call_limit: int = 6
     agent_context_window: int = 8192
 
     # --- paths ---

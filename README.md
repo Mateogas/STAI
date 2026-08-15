@@ -21,7 +21,10 @@ The shipped demo supports one fictional Hire, Alyssa Reyes, across exactly three
 
 ## Local setup
 
-Python 3.12 and [`uv`](https://docs.astral.sh/uv/) are required. Ollama is needed only for the live ReAct/embedding path; the complete logic/API test suite uses fakes and does not require Ollama or network access.
+Python 3.12 and [`uv`](https://docs.astral.sh/uv/) are required. Logic and API
+tests use model fakes. The Streamlit interaction tests also fake the chat model,
+but they use the real local database; when it points to an active Chroma build,
+the configured Ollama embedding endpoint must be running.
 
 ```bash
 uv sync
@@ -30,7 +33,8 @@ uv run streamlit run app.py
 uv run uvicorn stai.api:app --host 127.0.0.1 --port 8000
 ```
 
-For the optional live model/index path:
+The following model/index setup is optional only for offline tests. It is
+required for every deployed policy conversation:
 
 ```bash
 ollama pull llama3.1:8b
@@ -132,12 +136,22 @@ The frozen prompt benchmark remains in `evaluation/results/v1.0/`. The integrate
 
 ```bash
 docker build -t aisha-demo .
-docker run --rm -p 8501:8501 -v aisha-data:/app/data aisha-demo
-docker run --rm -p 8000:8000 -v aisha-data:/app/data \
+docker run --rm --add-host=host.docker.internal:host-gateway \
+  -v aisha-data:/app/data aisha-demo uv run python -m stai.ingestion
+docker run --rm -p 8501:8501 --add-host=host.docker.internal:host-gateway \
+  -v aisha-data:/app/data aisha-demo
+docker run --rm -p 8000:8000 --add-host=host.docker.internal:host-gateway \
+  -v aisha-data:/app/data \
   aisha-demo uv run uvicorn stai.api:app --host 0.0.0.0 --port 8000
-docker run --rm -v aisha-smoke:/app/data \
+docker run --rm --add-host=host.docker.internal:host-gateway \
+  -v aisha-smoke:/app/data \
   aisha-demo uv run python deploy/container_smoke.py
 ```
+
+The commands above assume Ollama runs on the Linux Docker host. If it runs
+elsewhere, replace the image default with
+`-e STAI_OLLAMA_BASE_URL=http://OLLAMA_HOST:11434`. Keep Ollama private to the
+deployment network; do not expose port 11434 publicly.
 
 Before deployment, run the dialogue gate against a disposable staging database
 whose health status is `ready`:
@@ -150,7 +164,35 @@ uv run python deploy/predeploy_dialogue.py \
 The staging gate intentionally creates one fictional consented case and must
 not be run against a persistent production database.
 
-The image runs as `aisha` UID 10001, includes Tesseract English, PyMuPDF, Pillow, multipart support, and persists SQLite/Chroma/key state under `/app/data`. Ollama is intentionally external; on Linux point `STAI_OLLAMA_BASE_URL` at the Ollama host/container and do not place SQLite or Chroma on NFS/SMB or behind multiple replicas. A single VM/LXC instance with a local persistent volume is the supported demo topology.
+The image runs as `aisha` UID 10001, includes Tesseract English, PyMuPDF,
+Pillow, multipart support, and persists SQLite/Chroma/key state under
+`/app/data`. Run ingestion against that same persistent volume before starting
+a newly provisioned deployment. Ollama is intentionally external; do not place
+SQLite or Chroma on NFS/SMB or behind multiple replicas. A single VM/LXC
+instance with a local persistent volume is the supported demo topology.
+
+### Production upgrade checklist
+
+1. Pull `main`, rebuild the image or run `uv sync --frozen`, and preserve a
+   backup/snapshot of the production `/app/data` volume.
+2. Pull all required models on the Ollama host:
+   `llama3.1:8b`, `qwen2.5:3b-instruct`, and `nomic-embed-text`.
+3. Set `STAI_OLLAMA_BASE_URL` to an address reachable from the application.
+   `STAI_AGENT_RECURSION_LIMIT=32`, `STAI_AGENT_MODEL_CALL_LIMIT=6`, and
+   `STAI_AGENT_CONTEXT_WINDOW=8192` are the defaults; declare them explicitly
+   if production uses an environment allowlist. Remove obsolete
+   `STAI_AGENT_ENABLED` configuration.
+4. Run `uv run python -m stai.ingestion` against the production persistent
+   volume. The command stages and verifies the collection before atomically
+   changing the active pointer.
+5. Start both surfaces if both are deployed. Streamlit's `/_stcore/health`
+   checks only the UI process; it does not prove that Ollama or Chroma is ready.
+6. Configure the deployment readiness probe against
+   `GET /api/v1/health` on the FastAPI process. Production is ready only when it
+   returns HTTP 200 with `data.status == "ready"`; HTTP 503 means a required
+   model, embedding model, or active Chroma build is unavailable.
+
+No SQLite schema migration or new secret is required for this ReAct refactor.
 
 ## Module scope
 

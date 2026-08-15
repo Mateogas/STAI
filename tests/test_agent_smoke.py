@@ -4,11 +4,15 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, ToolMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
+from langgraph.errors import GraphRecursionError
 
-from stai.agent import build_policy_agent
+from stai.agent import AgentUnavailableError, build_policy_agent, run_agent
+from stai.config import settings
 from stai.guardrails import validate_policy_output
 from stai.handbook import build_handbook
 from stai.models import HireProfile
@@ -63,3 +67,48 @@ def test_react_escalation_tool_offers_route_without_case_mutation(repo, tmp_path
     agent.invoke({"messages": [("user", "Who can clarify PAY-001?")]})
     assert capture.tool_calls == ["offer_escalation"]
     assert repo.list_escalation_cases() == []
+
+
+def test_react_model_call_limit_stops_a_repeating_tool_loop(repo, tmp_path):
+    records = load_page_records(build_handbook(tmp_path / "handbook").rag_pages_path)
+
+    class RepeatingToolModel(FakeToolCallingModel):
+        def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+            self.index += 1
+            message = AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "search_handbook",
+                        "args": {"query": "office clothing"},
+                        "id": f"loop-{self.index}",
+                    }
+                ],
+            )
+            return ChatResult(generations=[ChatGeneration(message=message)])
+
+    fake = RepeatingToolModel(responses=[])
+    agent, capture = build_policy_agent(HireProfile.alyssa(), repo, records, llm=fake)
+
+    result = agent.invoke(
+        {"messages": [("user", "What clothing can I wear in the office?")]},
+        config={"recursion_limit": settings.agent_recursion_limit},
+    )
+
+    assert result["messages"][-1].content.startswith("Model call limits exceeded:")
+    assert len(capture.tool_calls) == settings.agent_model_call_limit
+
+
+def test_run_agent_maps_graph_recursion_to_safe_domain_error(monkeypatch):
+    class RecursingGraph:
+        recursion_limit = None
+
+        def invoke(self, *_args, **kwargs):
+            self.recursion_limit = kwargs["config"]["recursion_limit"]
+            raise GraphRecursionError("loop")
+
+    monkeypatch.setattr(settings, "agent_recursion_limit", 16)
+    graph = RecursingGraph()
+    with pytest.raises(AgentUnavailableError, match="bounded execution budget"):
+        run_agent(graph, [("user", "office clothing")], model=object())
+    assert graph.recursion_limit >= settings.agent_model_call_limit * 4 + 8

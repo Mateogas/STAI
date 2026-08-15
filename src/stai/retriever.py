@@ -114,6 +114,10 @@ _EXPANSIONS = {
     "salary": {"payroll", "pay"},
     "wage": {"payroll", "pay"},
     "login": {"sign-in", "account", "access"},
+    "clothes": {"clothing", "attire", "dress", "uniform"},
+    "clothing": {"clothes", "attire", "dress", "uniform"},
+    "attire": {"clothes", "clothing", "dress", "uniform"},
+    "uniform": {"clothes", "clothing", "attire", "dress"},
 }
 _PROFILE_FIELDS = {
     "role_keys": "role_key",
@@ -173,6 +177,11 @@ def hybrid_retrieve(
         if policy_ids and record.policy_id in policy_ids:
             lexical += 8.0
         if "payroll" in query_tokens and "details" in query_tokens and "payroll details" in record.title.lower():
+            lexical += 12.0
+        if (
+            query_tokens & {"clothes", "clothing", "attire", "uniform", "dress"}
+            and "dress" in subarea_tokens
+        ):
             lexical += 12.0
         dense = 1 / (1 + dense_rank[record.record_id]) if record.record_id in dense_rank else 0
         if lexical >= 1.0 or dense:

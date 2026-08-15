@@ -49,11 +49,28 @@ The HR workspace exposes only consented Case Threads, pending one-attribute chan
 
 ## Knowledge and decision architecture
 
-The sole policy authority is the deterministic 108-page synthetic AISHA Handbook v1.0 generated from `handbook/source.yaml`. The build produces a PDF, page manifest, immutable page-native RAG records, hashes, and a publication report.
+The sole policy authority is the deterministic 108-page synthetic AISHA
+Handbook v1.1 generated from `handbook/source.yaml`. The build produces a PDF,
+page manifest, immutable page-native RAG records, hashes, and a publication
+report.
 
 Retrieval combines weighted lexical candidates with Chroma dense candidates. Before evidence can support an answer, the system validates the active handbook build, artifact integrity, authority, topic, revision, and applicability. Activation uses immutable hash-named builds and an atomic SQLite pointer; a failed staging build cannot replace the active index. A structurally valid but wrong-topic answer fails closed before display.
 
-The shared `PolicyTurnEngine` is the main seam for both UI and API turns. It performs bounded context resolution, topic gating, retrieval, applicability checks, candidate composition, schema validation, relevance validation, safe persistence, and escalation eligibility. When the configured Ollama model is reachable, it uses a fresh bounded ReAct agent with schema-validated tools. When it is unavailable, the engine records degraded execution and uses a verified deterministic composer.
+The shared `PolicyTurnEngine` is the main seam for both UI and API turns. After
+the injection/off-topic boundary, every supported turn enters a fresh bounded
+ReAct agent with conversation and pending-offer context. The model determines
+intent, revises searches, reads complete policy bundles, checks applicability,
+and distinguishes supported from unresolved portions before returning a typed
+plan and response draft. Deterministic code validates active handbook identity,
+captured citations, exact claim excerpts, applicability, privacy, Evidence Gap
+eligibility, and consent before persistence or mutation. If Ollama or Chroma is
+unavailable, the request fails safely; there is no verified local answer
+composer.
+
+Production therefore requires the configured agent, classifier, and embedding
+models plus an active Chroma build. `/api/v1/health` returns HTTP 503 until they
+are ready. `STAI_AGENT_ENABLED` no longer exists, and Streamlit's
+`/_stcore/health` is process liveness rather than dependency readiness.
 
 ## Technology stack
 

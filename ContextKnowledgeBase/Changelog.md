@@ -208,6 +208,27 @@ Remaining follow-up:
 - Fixed payroll-schedule false abstentions by validating the Hire's wording separately from internal retrieval expansions.
 - Updated Streamlit, `/api/v1`, ADRs, domain vocabulary, and current handoff documentation.
 
+## 2026-08-15 - Mandatory ReAct production path
+
+- Routed every supported policy turn through a fresh `create_agent` ReAct loop;
+  the production keyword planner and deterministic answer composer are no
+  longer invoked.
+- Added typed plan/response finalization, query revision and policy-bundle
+  tools, exact captured-evidence claim validation, and deterministic
+  applicability/privacy/consent enforcement.
+- Removed `STAI_AGENT_ENABLED`, removed Chroma lexical answer fallback, and made
+  required model/index readiness return HTTP 503.
+- Set the default agent context window to 8192, the model-call research budget
+  to six, and the graph recursion limit to 32.
+- Bounded repeated tool loops to six model calls, kept a separate graph limit
+  of 32 for middleware/tool nodes, and surfaced safe agent failures in the UI.
+- Verified 242 tests with the local embedding endpoint available and a real
+  `llama3.1:8b` plus Chroma contrastive
+  payroll-schedule turn using PAY-001 pages 7, 8, 9, and 11.
+- Production follow-up: pull all three Ollama models, run ingestion against the
+  persistent production volume, provide Docker-to-Ollama connectivity, and use
+  `/api/v1/health` rather than Streamlit liveness as the readiness probe.
+
 ## Future changelog rule
 
 When a future chat finishes a task, append a short entry here:

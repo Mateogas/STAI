@@ -72,7 +72,23 @@ SQLite is used as deterministic application state, not as an LLM-generated SQL s
 
 Policy messages are ordered by server-assigned sequence. API clients submit only a new message; they cannot submit arbitrary prior turns or overwrite conversation history. An Idempotency-Key binds a command fingerprint to its prior response so retries return the same semantic result. Reusing a key for a different command is rejected. Cursor pagination has fixed bounds and stable ordering.
 
-Consent is represented as deterministic state progression. `EvidenceGapAssessor` must first find eligible partial evidence and classify a missing procedure, unclear exception, policy conflict, or unclear route. A bare help request can only return an already-pending eligible offer; it cannot manufacture one. Explicit language such as “route it please” counts only when that pending notice has already been shown. Consent backfills the ordered parent history into a child Case Thread and later Hire/AISHA parent messages are mirrored while open. HR may create one structured Case Information Request, AISHA asks it in the Hire thread, and the linked Hire answer returns the case to HR. HR resolution records a type, scope, and reuse state; AISHA communicates it and disables mirroring. Direct human conversation requires its own offer and Hire consent. Related closed-thread questions use the resolution directly. Only a reviewed non-case-only Policy Clarification can supplement a later grounded answer; Case Exceptions stay thread-only and Policy Amendment Candidates remain pending handbook publication.
+Consent is represented as deterministic state progression. ReAct may propose an
+Evidence Gap only after separating the supported and unresolved portions of a
+question. Deterministic code then verifies that the cited partial evidence was
+captured in the same run, that the known excerpt is exact, and that the gap is
+one of missing procedure, unclear exception, policy conflict, or unclear route.
+A bare help request can only return an already-pending eligible offer; it cannot
+manufacture one. Explicit language such as “route it please” counts only when
+that pending notice has already been shown. Consent backfills the ordered parent
+history into a child Case Thread and later Hire/AISHA parent messages are
+mirrored while open. HR may create one structured Case Information Request,
+AISHA asks it in the Hire thread, and the linked Hire answer returns the case to
+HR. HR resolution records a type, scope, and reuse state; AISHA communicates it
+and disables mirroring. Direct human conversation requires its own offer and
+Hire consent. Related closed-thread questions use the resolution directly. Only
+a reviewed non-case-only Policy Clarification can supplement a later grounded
+answer; Case Exceptions stay thread-only and Policy Amendment Candidates remain
+pending handbook publication.
 
 The Full Demo Reset is an explicit destructive product action. It clears product state, restores the fictional Alyssa seed and active handbook pointer, rotates the certificate fingerprint key, and re-establishes required directories. It accurately states its limits: it does not claim to erase already shipped bounded telemetry or external backups. Automated reset tests verify state and key rotation.
 
@@ -84,7 +100,20 @@ FastAPI exposes only `/api/v1`. The contract includes health; conversation creat
 
 Both surfaces cross the same `PolicyTurnEngine` interface through `AishaService`. This is important for acceptance: the UI cannot quietly provide a weaker context, relevance, or consent rule than the API. Tests replay the original six-turn production failure through the module and API, reject a wrong-topic agent candidate, inspect OpenAPI for forbidden fields, replay idempotent messages, close cases, revise attributes, and exercise the complete certificate lifecycle.
 
-Health describes service availability and handbook activation without treating optional Nager or telemetry as required dependencies. A missing active handbook can produce a degraded service state while the health endpoint itself remains responsive. This supports diagnosis without hiding a required policy dependency.
+Health describes service availability and handbook activation without treating
+optional Nager or telemetry as required dependencies. The endpoint remains
+responsive for diagnosis, but it returns HTTP 503 with `status: unavailable`
+when SQLite, the active Chroma build, the agent model, or the classifier model
+is not ready. Streamlit's `/_stcore/health` is only process liveness and must not
+be used as the production dependency-readiness probe.
+
+For production, Ollama is external and must provide `llama3.1:8b`,
+`qwen2.5:3b-instruct`, and `nomic-embed-text`. The application uses an
+8192-token agent context window, a six-model-call ReAct research budget, and
+a graph recursion limit of 32 by default. The separate graph limit leaves room
+for middleware and tool nodes. New persistent volumes must run the immutable
+ingestion command before serving traffic. There is no `STAI_AGENT_ENABLED`
+switch and no supported model/index answer fallback.
 
 ## 9. Privacy-safe LLMOps
 

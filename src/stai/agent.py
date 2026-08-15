@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 try:
     from langchain.agents import create_agent as _create_agent
+    from langchain.agents.middleware import ModelCallLimitMiddleware
     _V1 = True
 except ImportError:  # pragma: no cover
     from langgraph.prebuilt import create_react_agent as _create_agent
@@ -75,7 +76,17 @@ def build_policy_agent(
     prompt = render_policy_prompt(prompt_variant, "Alyssa Reyes", version)
     model = llm or build_llm()
     if _V1:
-        graph = _create_agent(model, tools, system_prompt=prompt)
+        graph = _create_agent(
+            model,
+            tools,
+            system_prompt=prompt,
+            middleware=[
+                ModelCallLimitMiddleware(
+                    run_limit=settings.agent_model_call_limit,
+                    exit_behavior="end",
+                )
+            ],
+        )
     else:  # pragma: no cover
         graph = _create_agent(model, tools, prompt=prompt)
     return graph, capture
@@ -83,10 +94,24 @@ def build_policy_agent(
 
 def run_agent(agent, messages, *, model=None, capture=None) -> AgentTurnDecision:
     """Run ReAct, then force its plan and response through small typed schemas."""
-    result = agent.invoke(
-        {"messages": messages},
-        config={"recursion_limit": settings.agent_recursion_limit},
+    from langgraph.errors import GraphRecursionError
+
+    # Each model round passes through middleware nodes in addition to the model
+    # and tool nodes. Keep stale deployments that still set the old value (16)
+    # from tripping LangGraph before the stricter model-call limit can stop the run.
+    recursion_limit = max(
+        settings.agent_recursion_limit,
+        settings.agent_model_call_limit * 4 + 8,
     )
+    try:
+        result = agent.invoke(
+            {"messages": messages},
+            config={"recursion_limit": recursion_limit},
+        )
+    except GraphRecursionError as exc:
+        raise AgentUnavailableError(
+            "agent research loop exceeded its bounded execution budget"
+        ) from exc
     final_model = model or build_llm()
     evidence = []
     if capture is not None:
@@ -105,10 +130,20 @@ def run_agent(agent, messages, *, model=None, capture=None) -> AgentTurnDecision
         if type(item).__name__ == "HumanMessage"
     ]
     synthesis = result["messages"][-1].content
+    research_budget_exhausted = (
+        isinstance(synthesis, str)
+        and synthesis.startswith("Model call limits exceeded:")
+    )
+    if research_budget_exhausted:
+        synthesis = (
+            "The bounded research budget ended. Finalize only from the retrieved "
+            "evidence; abstain if that evidence is insufficient."
+        )
     finalizer_input = {
         "conversation_messages": user_messages,
         "react_synthesis": synthesis,
         "retrieved_evidence": evidence,
+        "research_budget_exhausted": research_budget_exhausted,
     }
     plan_input = {
         "conversation_messages": user_messages,

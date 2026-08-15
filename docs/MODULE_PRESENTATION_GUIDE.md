@@ -13,12 +13,18 @@ uv run streamlit run app.py
 uv run uvicorn stai.api:app --port 8000
 ```
 
-Optional live-model/index rehearsal:
+Required live-model/index rehearsal for the deployed demo:
 
 ```bash
-ollama pull llama3.1:8b qwen2.5:3b-instruct nomic-embed-text
+ollama pull llama3.1:8b
+ollama pull qwen2.5:3b-instruct
+ollama pull nomic-embed-text
 uv run python -m stai.ingestion
+curl -i http://127.0.0.1:8000/api/v1/health
 ```
+
+Continue only when health returns HTTP 200 with `data.status` equal to `ready`.
+The offline fake-model tests are regression evidence, not a production fallback.
 
 Run the complete acceptance command before presenting: `uv run python -m stai.acceptance`. Reset only through **Demo controls → Full Demo Reset**; explain that this clears local product state and rotates the certificate key but does not claim to erase already-shipped bounded telemetry or external backups.
 
@@ -47,7 +53,11 @@ Show the four Policy Response shapes in OpenAPI or tests. Demonstrate `Does ACC-
 
 ### 4. ReAct + External Tool — 90 seconds — Bon Aquino / Johann Casio
 
-Explain the bounded loop: Active Handbook → search → deterministic applicability → validated output → optional route. Show the fake-model trace in `tests/test_agent_smoke.py` if Ollama is unavailable.
+Explain the bounded loop: conversation context → ReAct intent and query planning
+→ search/revise/read bundle/check applicability → typed plan and response draft
+→ deterministic evidence/privacy/consent validation → optional command. The
+fake-model trace in `tests/test_agent_smoke.py` demonstrates the contract, but
+the live demo must use ready Ollama and Chroma dependencies.
 
 Run or display the genuine Nager evidence. State exactly `Based on Nager.` Explain that the tool calls only the Philippines endpoint for the simulated current/following year, sends no Hire or content data, and supplies calendar facts—not employment consequences. An outage uses cache/handbook/human fallback and never changes health.
 
@@ -81,7 +91,12 @@ Explain safe `{data,meta}` and `{error,meta}` envelopes, configured CORS, Alyssa
 
 Show one schema-v2 JSONL event: random event ID, closed event/route/operation/outcome, counts and timings, with no Hire ID or content. Explain JSONL → bounded shipper → authenticated relay → separate MLflow and event-ID retry idempotency.
 
-Show `evaluation/results/v1.1/acceptance.json` and the Docker smoke. The Linux image runs as UID 10001, installs Tesseract English, uses `/app/data`, and proves Streamlit health, `/api/v1/health`, the six-turn payroll/context/escalation regression with zero wrong-topic citations, and a synthetic Complete certificate result.
+Show `evaluation/results/v1.1/acceptance.json` and the Docker smoke. The Linux
+image runs as UID 10001, installs Tesseract English, and uses `/app/data` for
+SQLite and Chroma. Explain that `/_stcore/health` proves only Streamlit process
+liveness while `/api/v1/health` is the required dependency-readiness probe. The
+smoke also covers the payroll/context/escalation regression with zero
+wrong-topic citations and a synthetic Complete certificate result.
 
 Finish with P3 Locked CSS and zero hard failures, followed immediately by the limitation: synthetic deterministic contract evidence, not production or real BDO validation.
 
